@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "324481217206",
+    "project_id": "getit-edbed",
+    "storage_bucket": "getit-edbed.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:324481217206:android:d9e67d7fe26aabad3e2c17",
+        "android_client_info": {
+          "package_name": "com.getit.store"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "324481217206-b82s15ggofe9ms3g79pco74vnjmsnkad.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBS5zC9gJ3T-1IldOvovNQD8v7QCai8_rA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "324481217206-b82s15ggofe9ms3g79pco74vnjmsnkad.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
