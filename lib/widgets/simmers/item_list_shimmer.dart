@@ -4,7 +4,7 @@ import '../../utils/ResponsiveLayout.dart';
 import 'package:shimmer/shimmer.dart';
 
 class ItemListShimmer extends StatelessWidget {
-  const ItemListShimmer({Key key}) : super(key: key);
+  const ItemListShimmer({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -18,12 +18,12 @@ class ItemListShimmer extends StatelessWidget {
       itemCount: 6,
 
       itemBuilder: (_, i) => Shimmer.fromColors(
-        baseColor: ColorCodes.baseColor,
-        highlightColor: ColorCodes.lightGreyWebColor,
+        baseColor: ColorCodes.shimmerColor,
+        highlightColor: ColorCodes.shimmerColor,
         child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(2),
-            border: Border.all(color: Color(0xFFCFCFCF)),
+            border: Border.all(color: ColorCodes.shimmerColor),
           ),
           margin: EdgeInsets.only(left: 5.0, top: 5.0, bottom: 5.0, right: 5),
           child: Row(
@@ -46,7 +46,7 @@ class ItemListShimmer extends StatelessWidget {
                                       width: 60,
                                       height: 8,
                                       decoration: BoxDecoration(
-                                        color: Colors.grey,
+                                        color: ColorCodes.shimmerColor,
                                         borderRadius: BorderRadius.circular(16),
                                       ),
                                     ),
@@ -57,7 +57,7 @@ class ItemListShimmer extends StatelessWidget {
                                       width: 60,
                                       height: 8,
                                       decoration: BoxDecoration(
-                                        color: Colors.grey,
+                                        color: ColorCodes.shimmerColor,
                                         borderRadius: BorderRadius.circular(16),
                                       ),
                                     ),
@@ -68,7 +68,7 @@ class ItemListShimmer extends StatelessWidget {
                                       width: 60,
                                       height: 8,
                                       decoration: BoxDecoration(
-                                        color: Colors.grey,
+                                        color: ColorCodes.shimmerColor,
                                         borderRadius: BorderRadius.circular(16),
                                       ),
                                     ),
@@ -81,7 +81,7 @@ class ItemListShimmer extends StatelessWidget {
                             width: 60,
                             height: 10,
                             decoration: BoxDecoration(
-                              color: Colors.grey,
+                              color: ColorCodes.shimmerColor,
                               borderRadius: BorderRadius.circular(16),
                             ),
                           ),
@@ -99,7 +99,7 @@ class ItemListShimmer extends StatelessWidget {
                             width: 60,
                             height: 20,
                             decoration: BoxDecoration(
-                              color: Colors.grey,
+                              color: ColorCodes.shimmerColor,
                               borderRadius: BorderRadius.circular(16),
                             ),
                           ),
@@ -108,7 +108,7 @@ class ItemListShimmer extends StatelessWidget {
                             width: 60,
                             height: 20,
                             decoration: BoxDecoration(
-                              color: Colors.grey,
+                              color: ColorCodes.shimmerColor,
                               borderRadius: BorderRadius.circular(16),
                             ),
                           ),
@@ -122,7 +122,7 @@ class ItemListShimmer extends StatelessWidget {
                       width: 160,
                       height: 20,
                       decoration: BoxDecoration(
-                        color: Colors.grey,
+                        color: ColorCodes.shimmerColor,
                         borderRadius: BorderRadius.circular(16),
                       ),
                     ),

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../../controller/mutations/cart_mutation.dart';
 import '../constants/api.dart';
 import '../blocs/cart_item_bloc.dart';
 import '../constants/features.dart';
@@ -8,57 +9,18 @@ import '../models/cartItemsField.dart';
 import '../data/hiveDB.dart';
 import 'package:hive/hive.dart';
 import 'package:http/http.dart' as http;
-
 import '../main.dart';
 import '../utils/prefUtils.dart';
-import '../constants/IConstants.dart';
 
 class CartItems with ChangeNotifier {
   static List<CartItemsFields> itemsList = [];
   final _cartItemController = StreamController<List<CartItemsFields>>();
 
-  Future<int> addToCart(String itemId, String varId, String varName, String varMinItem,
-      String varMaxItem, String varLoyalty, String varStock, String varMrp, String itemName,
-      String qty, String price, String membershipPrice, String itemImage,
-      String membershipId, String mode, String veg_type, String type,String eligibleforexpress, String delivery,String duration, String durationType,String note) async { // imp feature in adding async is the it automatically wrap into Future.
-
-    String user = (PrefUtils.prefs.containsKey("apikey")) ? PrefUtils.prefs.getString("tokenid") : PrefUtils.prefs.getString("apikey");
-
-    print("veg type ....add cart "+veg_type.toString()+"type....."+type.toString());
-    print("data add item "+itemId + "  ...."+  varId+"hhh"+  varName+"jhh"+ varMinItem+"yghjdd"+varMaxItem+"hj"+
-        varLoyalty+"ghjn"+  varStock+"fghjk" +  varMrp +"ftghjnk" + itemName+
-        "fghj" + qty+ "fghjk" + price+"hjkm"+"fghjk" +membershipPrice+"rdtfghjkl"+ itemImage+
-        "fghj" +"tryuhj"+ membershipId+"rtghj" +mode+"sdf"+ veg_type+"rtghj"+type
-    );
-    print("eligible for express"+eligibleforexpress.toString());
-    debugPrint("body..."+{
-      "user": user,
-      "itemId": itemId,
-      "var_id": varId,
-      "varName": varName,
-      "varMinItem": varMinItem,
-      "varMaxItem": varMaxItem,
-      "itemLoyalty": varLoyalty,
-      "varStock": varStock,
-      "varMrp": varMrp,
-      "itemName": itemName,
-      "quantity": qty,
-      "price": price,
-      "membershipPrice": membershipPrice,
-      "itemActualprice": varMrp,
-      "itemImage": itemImage,
-      "membershipId": membershipId,
-      "mode": mode,
-      "membership": (PrefUtils.prefs.containsKey("apikey")) ? "0" : (PrefUtils.prefs.getString('membership')??"0"),
-      "branch": PrefUtils.prefs.getString('branch'),
-      "veg_type": veg_type,
-      "type": type,
-      "eligible_for_express": eligibleforexpress,
-      "delivery" :delivery,
-      "duration": (duration??""),
-      "duration_type": durationType,
-      "note": note
-    }.toString());
+  Future<int> addToCart(String? itemId, String? varId, String? varName, String? varMinItem,
+      String? varMaxItem, String? varLoyalty, String? varStock, String? varMrp, String? itemName,
+      String? qty, String? price, String? membershipPrice, String? itemImage,
+      String? membershipId, String? mode, String? veg_type, String? type,String? eligibleforexpress, String? delivery,String? duration, String? durationType,String? note) async { // imp feature in adding async is the it automatically wrap into Future.
+    String user = (PrefUtils.prefs!.containsKey("apikey")) ? PrefUtils.prefs!.getString("tokenid")! : PrefUtils.prefs!.getString("apikey")!;
    try {
       final response = await http.post(
           Api.addToCart,
@@ -80,8 +42,8 @@ class CartItems with ChangeNotifier {
             "itemImage": itemImage,
             "membershipId": membershipId,
             "mode": mode,
-            "membership": (PrefUtils.prefs.containsKey("apikey")) ? "0" : PrefUtils.prefs.getString('membership'),
-            "branch": PrefUtils.prefs.getString('branch'),
+            "membership": (PrefUtils.prefs!.containsKey("apikey")) ? "0" : PrefUtils.prefs!.getString('membership'),
+            "branch": PrefUtils.prefs!.getString('branch'),
             "veg_type": veg_type,
             "type": type,
             "eligible_for_express": eligibleforexpress,
@@ -92,7 +54,6 @@ class CartItems with ChangeNotifier {
           }
       );
       final responseJson = json.decode(utf8.decode(response.bodyBytes));
-      print("responseeeee"+responseJson.toString());
       if(responseJson['status'].toString() == "200") {
         return 200;
       } else {
@@ -105,7 +66,7 @@ class CartItems with ChangeNotifier {
   }
 
   Future<int> updateCart(String varId, String qty, String price) async { // imp feature in adding async is the it automatically wrap into Future.
-    String user = (PrefUtils.prefs.containsKey("apikey")) ? PrefUtils.prefs.getString("tokenid") : PrefUtils.prefs.getString('apikey');
+    String user = (PrefUtils.prefs!.containsKey("apikey")) ? PrefUtils.prefs!.getString("tokenid")! : PrefUtils.prefs!.getString('apikey')!;
     try {
       final response = await http.post(
           Api.updateCart,
@@ -114,7 +75,7 @@ class CartItems with ChangeNotifier {
             "var_id": varId,
             "quantity": qty,
             "price": price,
-            "branch": PrefUtils.prefs.getString('branch'),
+            "branch": PrefUtils.prefs!.getString('branch'),
           }
       );
       final responseJson = json.decode(utf8.decode(response.bodyBytes));
@@ -130,14 +91,14 @@ class CartItems with ChangeNotifier {
   }
 
   Future<int> reOrder(String orderId) async { // imp feature in adding async is the it automatically wrap into Future.
-    var url = Api.reorder + orderId + "/" + PrefUtils.prefs.getString('branch') + "/" + PrefUtils.prefs.getString('apikey');
+    var url = Api.reorder + orderId + "/" + PrefUtils.prefs!.getString('branch')! + "/" + PrefUtils.prefs!.getString('apikey')!;
     try {
-      final response = await http
-          .get(
-        url,
-      );
+      final response = await http.get(url,);
       final responseJson = json.decode(utf8.decode(response.bodyBytes));
       if(responseJson['status'].toString() == "200") {
+        SetCartItem(CartTask.fetch ,onloade: (value){
+
+      });
         return 200;
       } else {
         return 400;
@@ -149,7 +110,7 @@ class CartItems with ChangeNotifier {
   }
 
   Future<int> emptyCart() async { // imp feature in adding async is the it automatically wrap into Future.
-    String user = (PrefUtils.prefs.containsKey("apikey")) ? PrefUtils.prefs.getString("tokenid") : PrefUtils.prefs.getString('apikey');
+    String user = (!PrefUtils.prefs!.containsKey("apikey")) ? PrefUtils.prefs!.getString("ftokenid")! : PrefUtils.prefs!.getString('apikey')!;
 
     var url = Api.emptyCart + user;
     try {
@@ -171,39 +132,20 @@ class CartItems with ChangeNotifier {
 
   Future<void> fetchCartItems() async {
     // imp feature in adding async is the it automatically wrap into Future.
-    String user = (!PrefUtils.prefs.containsKey("apikey")) ? PrefUtils.prefs.getString("tokenid") : PrefUtils.prefs.getString('apikey');
-   print("user ret $user");
-    var url = Api.getCartItems + user + "/" + PrefUtils.prefs.getString('branch');
-    debugPrint("fetchitem....."+url.toString());
+    String user = (!PrefUtils.prefs!.containsKey("apikey")) ? PrefUtils.prefs!.getString("tokenid")! : PrefUtils.prefs!.getString('apikey')!;
+    var url = Api.getCartItems + user + "/" + PrefUtils.prefs!.getString('branch')!;
     try {
-      //  itemsList.clear();
-
-      final response = await http
-          .get(
-        url,
-      );
+      final response = await http.get(url,);
       final responseJson = json.decode(utf8.decode(response.bodyBytes));
       itemsList.clear();
       if(responseJson.toString() != "[]") {
         final dataJsondecode = json.decode(json.encode(responseJson));
 
         List data = []; //list for categories
-        print("resp cartitem........ $dataJsondecode");
         dataJsondecode.asMap().forEach((index, value) => data.add(
             dataJsondecode[index] as Map<String, dynamic>)); //store each category values in data list
         await Hive.box<Product>(productBoxName).clear();
         for (int i = 0; i < data.length; i++) {
-          /*int qty = 0, status = 0;
-        if(i == 0) {
-          qty = 0;
-          status = int.parse(data[i]['status'].toString());
-        } else if(i == 1) {
-          qty = int.parse(data[i]['quantity'].toString());
-          status = 1;
-        } else {
-          qty = int.parse(data[i]['quantity'].toString());
-          status = int.parse(data[i]['status'].toString());
-        }*/
           itemsList.add(CartItemsFields(
             itemId: int.parse(data[i]['itemId'].toString()),
             varId: int.parse(data[i]['var_id'].toString()),
@@ -225,7 +167,6 @@ class CartItems with ChangeNotifier {
             veg_type : data[i]['veg_type'].toString(),
             type : data[i]['type'].toString(),
             eligible_for_express: Features.isExpressDelivery ? data[i]['eligible_for_express'].toString() : "1",
-
             delivery: data[i]['delivery'].toString(),
             duration: data[i]['duration'].toString(),
             durationType: data[i]['duration_type'].toString(),
@@ -233,9 +174,7 @@ class CartItems with ChangeNotifier {
             subscribe:data[i]['eligible_for_subscription'].toString(),
             paymentmode:data[i]['payment_mode'].toString(),
             addOn: int.parse(data[i]['addon']),
-
           ));//add each category values into _items
-
           Product products = Product(
               itemId: int.parse(data[i]['itemId'].toString()),
               varId: int.parse(data[i]['var_id'].toString()),
@@ -256,31 +195,25 @@ class CartItems with ChangeNotifier {
               veg_type : data[i]['veg_type'].toString(),
               type : data[i]['type'].toString(),
               eligible_for_express: Features.isExpressDelivery ? data[i]['eligible_for_express'].toString() : "1",
-
               delivery: data[i]['delivery'].toString(),
               duration: data[i]['duration'].toString(),
               durationType: data[i]['duration_type'].toString(),
               note: data[i]['note'].toString()
           );
-
           Hive.box<Product>(productBoxName).add(products);
         }
         cartBloc.cartitemSink.add(itemsList);
         for (int i = 0; i < data.length; i++) {
           if(int.parse(data[i]['mode'].toString()) == 1) {
-            PrefUtils.prefs.setString("membership", "1");
-            debugPrint("membership......cartscreen"+PrefUtils.prefs.getString("membership") );
+            PrefUtils.prefs!.setString("membership", "1");
           }
-
         }
-
       } else {
         await Hive.box<Product>(productBoxName).clear();
       }
       notifyListeners();
     } catch (error) {
       throw error;
-
     }
   }
 

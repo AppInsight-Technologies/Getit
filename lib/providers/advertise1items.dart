@@ -17,6 +17,7 @@ class Advertise1ItemsList with ChangeNotifier {
   List<Advertise1Fields> _footer = [];
   List<Advertise1Fields> _websiteSlider = [];
   List<Advertise1Fields> _itemBanner =[];
+  List<Advertise1Fields> _popupbanner = [];
 
   Future<void> fetchadvertisecategory1 () async { // imp feature in adding async is the it automatically wrap into Future.
     bool _isWeb = false;
@@ -33,7 +34,7 @@ class Advertise1ItemsList with ChangeNotifier {
 
     try {
       _items.clear();
-      final response = await http.get(Api.getAdsTwo + PrefUtils.prefs.getString('branch'));
+      final response = await http.get(Api.getAdsTwo + PrefUtils.prefs!.getString('branch')!);
       final responseJson = json.decode(utf8.decode(response.bodyBytes));
       List data = [];
       responseJson.asMap().forEach((index, value) =>
@@ -86,7 +87,7 @@ class Advertise1ItemsList with ChangeNotifier {
 
     try {
       _items2.clear();
-      final response = await http.get(Api.getAdsNine  + PrefUtils.prefs.getString('branch'));
+      final response = await http.get(Api.getAdsNine  + PrefUtils.prefs!.getString('branch')!);
       final responseJson = json.decode(utf8.decode(response.bodyBytes));
       List data = [];
       responseJson.asMap().forEach((index, value) =>
@@ -134,6 +135,7 @@ class Advertise1ItemsList with ChangeNotifier {
         url,
       );
       final responseJson = json.decode(utf8.decode(response.bodyBytes));
+      debugPrint('page...'+responseJson.toString());
       List data = [];
       responseJson.asMap().forEach((index, value) =>
           data.add(responseJson[index] as Map<String, dynamic>)
@@ -165,7 +167,7 @@ class Advertise1ItemsList with ChangeNotifier {
     }
     try {
       _itemBanner.clear();
-      final response = await http.get(Api.getAdsFifteen + PrefUtils.prefs.getString('branch'));
+      final response = await http.get(Api.getAdsFifteen + PrefUtils.prefs!.getString('branch')!);
       final responseJson = json.decode(utf8.decode(response.bodyBytes));
       _itemBanner.clear();
       debugPrint("mainBanner.."+responseJson.toString());
@@ -206,6 +208,61 @@ class Advertise1ItemsList with ChangeNotifier {
     }
   }
 
+  Future<void> fetchPopupBanner () async {
+    bool _isWeb = false;
+
+    try {
+      if (Platform.isIOS) {
+        _isWeb = false;
+      } else {
+        _isWeb = false;
+      }
+    } catch (e) {
+      _isWeb = true;
+    }
+
+    try {
+      _popupbanner.clear();
+      final response = await http.get(Api.getPopupBanner + PrefUtils.prefs!.getString('branch')!);
+      final responseJson = json.decode(utf8.decode(response.bodyBytes));
+      debugPrint("responseJson..."+responseJson.toString());
+      List data = [];
+      responseJson.asMap().forEach((index, value) =>
+          data.add(responseJson[index] as Map<String, dynamic>)
+      );
+      for (int i = 0; i < data.length; i++){
+        if(_isWeb){
+          if(data[i]['display_for'].toString().contains("0")){//web
+            _popupbanner.add(Advertise1Fields(
+              id: data[i]['id'].toString(),
+              imageUrl: IConstants.API_IMAGE + "banners/banner/" + data[i]['banner_image'].toString(),
+              bannerFor: data[i]['banner_for'].toString(),
+              bannerData: data[i]['data'].toString(),
+              clickLink: data[i]['click_link'].toString(),
+              displayFor: data[i]['display_for'].toString(),
+              description: data[i]['description'].toString(),
+            ));
+          }
+        } else {
+          if(data[i]['display_for'].toString().contains("1")){//App
+            _popupbanner.add(Advertise1Fields(
+              id: data[i]['id'].toString(),
+              imageUrl: IConstants.API_IMAGE + "banners/banner/" + data[i]['banner_image'].toString(),
+              bannerFor: data[i]['banner_for'].toString(),
+              bannerData: data[i]['data'].toString(),
+              clickLink: data[i]['click_link'].toString(),
+              displayFor: data[i]['display_for'].toString(),
+              description: data[i]['description'].toString(),
+            ));
+          }
+        }
+      }
+      notifyListeners();
+    } catch (error) {
+      throw error;
+    }
+  }
+
   Future<void> fetchAdvertisecategory3 () async { // imp feature in adding async is the it automatically wrap into Future.
     bool _isWeb = false;
 
@@ -221,7 +278,7 @@ class Advertise1ItemsList with ChangeNotifier {
 
     try {
       _items3.clear();
-      final response = await http.get(Api.getAdsTen + PrefUtils.prefs.getString('branch'));
+      final response = await http.get(Api.getAdsTen + PrefUtils.prefs!.getString('branch')!);
       final responseJson = json.decode(utf8.decode(response.bodyBytes));
       List data = [];
       responseJson.asMap().forEach((index, value) =>
@@ -274,7 +331,7 @@ class Advertise1ItemsList with ChangeNotifier {
 
     try {
       _items1.clear();
-      final response = await http.get(Api.getAdsFive + PrefUtils.prefs.getString('branch'));
+      final response = await http.get(Api.getAdsFive + PrefUtils.prefs!.getString('branch')!);
       final responseJson = json.decode(utf8.decode(response.bodyBytes));
       List data = [];
       responseJson.asMap().forEach((index, value) =>
@@ -326,7 +383,7 @@ class Advertise1ItemsList with ChangeNotifier {
 
     try {
       _items4.clear();
-      final response = await http.get(Api.getAdsEleven + PrefUtils.prefs.getString('branch'));
+      final response = await http.get(Api.getAdsEleven + PrefUtils.prefs!.getString('branch')!);
       final responseJson = json.decode(utf8.decode(response.bodyBytes));
       List data = [];
       responseJson.asMap().forEach((index, value) =>
@@ -378,7 +435,7 @@ class Advertise1ItemsList with ChangeNotifier {
 
     try {
       _footer.clear();
-      final response = await http.get(Api.getFooter + PrefUtils.prefs.getString('branch'));
+      final response = await http.get(Api.getFooter + PrefUtils.prefs!.getString('branch')!);
       final responseJson = json.decode(utf8.decode(response.bodyBytes));
       List data = [];
       if(responseJson.toString() != "[]") {
@@ -454,7 +511,7 @@ class Advertise1ItemsList with ChangeNotifier {
 
     try {
       _websiteSlider.clear();
-      final response = await http.get(Api.getAdsThree + PrefUtils.prefs.getString('branch'));
+      final response = await http.get(Api.getAdsThree + PrefUtils.prefs!.getString('branch')!);
       final responseJson = json.decode(utf8.decode(response.bodyBytes));
       if(responseJson.toString() != "[]") {
         List data = [];
@@ -504,5 +561,8 @@ class Advertise1ItemsList with ChangeNotifier {
   }
   List<Advertise1Fields> get itemBanner {
     return [..._itemBanner];
+  }
+  List<Advertise1Fields> get popupbanner {
+    return [..._popupbanner];
   }
 }

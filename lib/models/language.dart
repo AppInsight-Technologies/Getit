@@ -1,12 +1,12 @@
 import '../utils/prefUtils.dart';
 
 class Language {
-  String id;
-  String localName;
-  String branch;
-  String status;
-  String code;
-  bool selected;
+  String? id;
+  String? localName;
+  String? branch;
+  String? status;
+  String? code;
+  bool? selected;
 
   Language({this.id, this.localName, this.branch, this.status, this.code,this.selected = false});
 
@@ -30,22 +30,21 @@ class Language {
 }
 
 class LanguagesList {
-  Language language =  new Language(code: "en", localName: "English", status: "0", id: "", branch: PrefUtils.prefs.getString("branch"));
+  Language language =  new Language(code: "en", localName: "English", status: "0", id: "", branch: PrefUtils.prefs!.getString("branch"));
+  List<Language>? _languages=[];
 
-  List<Language> _languages;
-
-  LanguagesList({List<Language> languages}) {
+  LanguagesList({List<Language>? languages}) {
     this._languages = languages;
   }
 
-  List<Language> get languages => _languages;
+  List<Language> get languages => _languages!;
   set languages(List<Language> languages) => _languages = languages;
 
   LanguagesList.fromJson(Map<String, dynamic> json) {
     if (json['languages'] != null) {
-      _languages = new List<Language>();
+      _languages = <Language>[];
       json['languages'].forEach((v) {
-        _languages.add(new Language.fromJson(v));
+        _languages!.add(new Language.fromJson(v));
       });
     }
   }
@@ -53,7 +52,7 @@ class LanguagesList {
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = new Map<String, dynamic>();
     if (this._languages != null) {
-      data['languages'] = this._languages.map((v) => v.toJson()).toList();
+      data['languages'] = this._languages!.map((v) => v.toJson()).toList();
     }
     return data;
   }

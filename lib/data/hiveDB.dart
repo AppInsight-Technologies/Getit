@@ -44,7 +44,7 @@ class Product extends HiveObject {
   String itemImage;
 
   @HiveField(13)
-  double itemWeight;
+  double? itemWeight;
 
   @HiveField(14)
   int itemLoyalty;
@@ -74,13 +74,13 @@ class Product extends HiveObject {
   String durationType;
 
   @HiveField(23)
-  String note;
+  String? note;
 
-  Product({this.itemId, this.varId, this.varName, this.varMinItem,
-      this.varMaxItem, this.varStock, this.varMrp, this.itemName,
-      this.itemQty, this.itemPrice, this.membershipPrice, this.itemActualprice, this.itemImage,
-    this.itemWeight, this.itemLoyalty, this.membershipId, this.mode, this.veg_type, this.type,
-    this.eligible_for_express,this.delivery,this.duration,this.durationType,this.note
+  Product({required this.itemId, required this.varId, required this.varName, required this.varMinItem,
+      required this.varMaxItem, required this.varStock, required this.varMrp, required this.itemName,
+      required this.itemQty, required this.itemPrice, required this.membershipPrice, required this.itemActualprice, required this.itemImage,
+   this.itemWeight, required this.itemLoyalty, required this.membershipId, required this.mode, required this.veg_type, required this.type,
+    required this.eligible_for_express,required this.delivery,required this.duration,required this.durationType, this.note
   });
 
 }

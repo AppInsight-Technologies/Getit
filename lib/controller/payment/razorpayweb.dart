@@ -21,8 +21,9 @@ class WebRazorPaySdk{
   static const INCOMPATIBLE_PLUGIN = 4;
   static const UNKNOWN_ERROR = 100;
 
-  static Map<dynamic, dynamic> param;
-   EventEmitter _eventEmitter;
+  static Map<dynamic, dynamic>? param;
+
+   EventEmitter? _eventEmitter;
 WebRazorPaySdk(){
   _eventEmitter = new EventEmitter();
 }
@@ -52,7 +53,7 @@ WebRazorPaySdk(){
     EventCallback cb = (event, cont) {
       handler(event.eventData);
     };
-    _eventEmitter.on(event, null, cb);
+    _eventEmitter!.on(event, null, cb);
     // _resync();
   }
 
@@ -84,7 +85,7 @@ WebRazorPaySdk(){
             PaymentFailureResponse(UNKNOWN_ERROR, 'An unknown error occurred.');
     }
 
-    _eventEmitter.emit(eventName, null, payload);
+    _eventEmitter!.emit(eventName, null, payload);
   }
   static Map<String, dynamic> _validateOptions(Map<String, dynamic> options) {
     var key = options['key'];

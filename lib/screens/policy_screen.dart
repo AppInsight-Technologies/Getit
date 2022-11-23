@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_html/flutter_html.dart';
 import 'package:flutter_html/style.dart';
-import '../../screens/home_screen.dart';
-import '../../screens/profile_screen.dart';
+import '../../constants/features.dart';
+import '../../controller/mutations/address_mutation.dart';
+import '../../controller/mutations/home_screen_mutation.dart';
+import '../../controller/mutations/home_store_mutation.dart';
+import '../../models/VxModels/VxStore.dart';
+import '../../widgets/simmers/home_screen_shimmer.dart';
+import 'package:velocity_x/velocity_x.dart';
 import '../generated/l10n.dart';
+import '../rought_genrator.dart';
 import '../utils/prefUtils.dart';
 import '../screens/refer_screen.dart';
 import '../utils/ResponsiveLayout.dart';
@@ -17,16 +23,20 @@ import 'dart:io';
 
 class PolicyScreen extends StatefulWidget {
   static const routeName = '/policy-screen';
+
+  Map<String,String> params;
+  PolicyScreen(this.params);
   @override
   _PolicyScreenState createState() => _PolicyScreenState();
 }
 
-class _PolicyScreenState extends State<PolicyScreen> {
+class _PolicyScreenState extends State<PolicyScreen> with Navigations {
   bool _iscontactus = false;
   bool _isWeb =false;
-  MediaQueryData queryData;
-  double wid;
-  double maxwid;
+  late MediaQueryData queryData;
+  late double wid;
+  late double maxwid;
+
   void initState() {
     try {
       if (Platform.isIOS) {
@@ -43,42 +53,38 @@ class _PolicyScreenState extends State<PolicyScreen> {
         _isWeb = true;
       });
     }
-    // Future.delayed(Duration.zero, () async{
-    //   prefs = await SharedPreferences.getInstance();
-    // });
     super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
-    final routeArgs = ModalRoute
-        .of(context)
-        .settings
-        .arguments as Map<String, String>;
 
-    final title = routeArgs['title'];
-    final body = routeArgs['body'];
-    String businessname;
-    String address;
-    String contactnum;
-    String pemail;
-    String semail;
+    final title = widget.params['title'];
+    //final body = widget.params['body'];
+    String body = "";
 
+    if(title == "Refer") {
+      body = PrefUtils.prefs!.getString("refer")!;
+    } else if(title == S .of(context).term_and_condition) {
+      body = IConstants.restaurantTerms;
+    } else if(title == S .of(context).privacy || title == S .of(context).privacy_policy) {
+      body = PrefUtils.prefs!.getString("privacy")!;
+    } else if(title == S .of(context).returns) {
+      body = IConstants.returnsPolicy;
+    } else if(title == S .of(context).refund) {
+      body = IConstants.refundPolicy;
+    } else if(title == S .of(context).about_us) {
+      body = PrefUtils.prefs!.getString("description")!;
+    } else if(title == S .of(context).terms_of_use || title == S .of(context).terms_of_service) {
+      body = IConstants.restaurantTerms;
+    } else if(title == S .of(context).wallet) {
+      body = IConstants.walletPolicy;
+    }else if(title == S .of(context).faq){
+      body = IConstants.faquestions;
+    }
+print("titlede" + title.toString());
     if(title == "Contact Us") {
       _iscontactus = true;
-      businessname = routeArgs['businessname'];
-      address = routeArgs['address'];
-      contactnum = routeArgs['contactnum'];
-      pemail = routeArgs['pemail'];
-      semail = routeArgs['semail'];
-    }
-    else if(title == "Profile") {
-      _iscontactus = true;
-      businessname = routeArgs['businessname'];
-      address = routeArgs['address'];
-      contactnum = routeArgs['contactnum'];
-      pemail = routeArgs['pemail'];
-      semail = routeArgs['semail'];
     } else {
       _iscontactus = false;
     }
@@ -90,47 +96,40 @@ class _PolicyScreenState extends State<PolicyScreen> {
         elevation: (IConstants.isEnterprise)?0:1,
         automaticallyImplyLeading: false,
         leading: IconButton(
-            icon: Icon(Icons.arrow_back, color: ColorCodes.menuColor),
-            onPressed: () {
+            icon: Icon(Icons.arrow_back, color: ColorCodes.iconColor),
+            onPressed: () async {
               if(title == "Contact Us" || title == "About Us") {
-                Navigator.of(context).popUntil(
-                    ModalRoute.withName(AboutScreen.routeName,));
+                /*Navigator.of(context).popUntil(
+                    ModalRoute.withName(AboutScreen.routeName,));*/
+                Features.ismultivendor ? Navigation(context, navigatore: NavigatoreTyp.homenav) :
+                Navigation(context, name: Routename.AboutUs, navigatore: NavigatoreTyp.Push);
               }else if(title == "Refer" ){
-                Navigator.of(context).popUntil(
-                    ModalRoute.withName(ReferEarn.routeName,));
+                /*Navigator.of(context).popUntil(
+                    ModalRoute.withName(ReferEarn.routeName,));*/
+                Navigation(context, name:Routename.Refer,navigatore: NavigatoreTyp.homenav
+                );
               }else if(title == "Privacy"){
-                Navigator.of(context).popUntil(
-                    ModalRoute.withName(PrivacyScreen.routeName,));
-              }
-              else if(title == "Profile"){
-                Navigator.of(context).pushNamed(HomeScreen.routeName,);
+               /* Navigator.of(context).popUntil(
+                    ModalRoute.withName(PrivacyScreen.routeName,));*/
+                Navigation(context, name: Routename.Privacy, navigatore: NavigatoreTyp.Push);
               }
               else{
-               // Navigator.of(context).pop();
-                Navigator.of(context).pushNamed(HomeScreen.routeName);
+                Navigator.of(context).pop();
               }
               return Future.value(false);
             }
         ),
         titleSpacing: 0,
-        title: Text(title,
-        style: TextStyle(color: ColorCodes.menuColor, fontWeight: FontWeight.w800),),
+        title: Text(title!,
+          style: TextStyle(color: ColorCodes.iconColor, fontWeight: FontWeight.bold, fontSize: 18),),
         flexibleSpace: Container(
           decoration: BoxDecoration(
-              boxShadow: [
-                BoxShadow(
-                  color: ColorCodes.grey.withOpacity(0.2),
-                  spreadRadius: 5,
-                  blurRadius: 5,
-                  offset: Offset(0, 5),
-                )
-              ],
               gradient: LinearGradient(
                   begin: Alignment.topRight,
                   end: Alignment.bottomLeft,
                   colors: [
-                    ColorCodes.accentColor,
-                    ColorCodes.primaryColor
+                    ColorCodes.appbarColor,
+                    ColorCodes.appbarColor2
                   ]
               )
           ),
@@ -147,129 +146,173 @@ class _PolicyScreenState extends State<PolicyScreen> {
       maxwid=wid*0.90;
      return Expanded(
         child: SingleChildScrollView(
-          child: Container(
-            constraints: (_isWeb && !ResponsiveLayout.isSmallScreen(context))?BoxConstraints(maxWidth: maxwid):null,
+          child: Column(
+            children: [
+              Container(
+                constraints: (Vx.isWeb && !ResponsiveLayout.isSmallScreen(context))?BoxConstraints(maxWidth: maxwid):null,
 
-            child: Column(
-              children: <Widget>[
-                _iscontactus ?
-                Column(
+                child: Column(
                   children: <Widget>[
-                    SizedBox(height: 10.0,),
+                    _iscontactus ?
+                    Column(
+                      children: <Widget>[
+                        SizedBox(height: 10.0,),
+                        Row(
+                          children: <Widget>[
+                            SizedBox(width: 10.0,),
+                            Text(
+                                S .of(context).business_name,
+                              // "Business Name",
+                              style: TextStyle(
+                                fontSize: 16.0, fontWeight: FontWeight.bold),),
+                          ],
+                        ),
+                        SizedBox(height: 5.0,),
+                        Row(
+                          children: <Widget>[
+                            SizedBox(width: 10.0,),
+                            Text((Features.ismultivendor && IConstants.isEnterprise) ? IConstants.restaurantName : IConstants.APP_NAME, style: TextStyle(fontSize: 14.0),),
+                          ],
+                        ),
+                        SizedBox(height: 10.0,),
+                        Divider(),
+                        SizedBox(height: 10.0,),
+                        Row(
+                          children: <Widget>[
+                            SizedBox(width: 10.0,),
+                            Text(
+                              S .of(context).address,
+                              // "Address",
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 16.0),),
+                          ],
+                        ),
+                        SizedBox(height: 5.0,),
+                        Row(
+                          children: <Widget>[
+                            SizedBox(width: 10.0,),
+                            Expanded(child: Text(
+                              PrefUtils.prefs!.getString("restaurant_address")!, style: TextStyle(fontSize: 14.0),)),
+                          ],
+                        ),
+                        SizedBox(height: 10.0,),
+                        Divider(),
+                        SizedBox(height: 10.0,),
+                        Row(
+                          children: <Widget>[
+                            SizedBox(width: 10.0,),
+                            Text(
+                                S .of(context).contactnumber,
+                              // "Contact Number",
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 16.0),),
+                          ],
+                        ),
+                        SizedBox(height: 5.0,),
+                        Row(
+                          children: <Widget>[
+                            SizedBox(width: 10.0,),
+                            Text((Features.ismultivendor) ?IConstants.primaryMobileroot : IConstants.primaryMobile, style: TextStyle(fontSize: 14.0),),
+                          ],
+                        ),
+                        SizedBox(height: 10.0,),
+                        Divider(),
+                        SizedBox(height: 10.0,),
+                        Row(
+                          children: <Widget>[
+                            SizedBox(width: 10.0,),
+                            Text(
+                              S .of(context).email,
+                              // "Email",
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 16.0),),
+                          ],
+                        ),
+                        SizedBox(height: 5.0,),
+                        Row(
+                          children: <Widget>[
+                            SizedBox(width: 10.0,),
+                            Text((Features.ismultivendor) ?IConstants.primaryEmailroot : IConstants.primaryEmail.toUpperCase(), style: TextStyle(fontSize: 14.0),),
+                          ],
+                        ),
+                        SizedBox(height: 5.0,),
+                        Row(
+                          children: <Widget>[
+                            SizedBox(width: 10.0,),
+                            Text(IConstants.secondaryEmail, style: TextStyle(fontSize: 14.0),),
+                          ],
+                        ),
+                        SizedBox(height: 10.0,),
+                        Divider(),
+                      ],
+                    )
+                        :
                     Row(
                       children: <Widget>[
-                        SizedBox(width: 10.0,),
-                        Text(
-                            S.of(context).business_name,
-                          // "Business Name",
-                          style: TextStyle(
-                            fontSize: 16.0, fontWeight: FontWeight.bold),),
-                      ],
-                    ),
-                    SizedBox(height: 5.0,),
-                    Row(
-                      children: <Widget>[
-                        SizedBox(width: 10.0,),
-                        Text(businessname, style: TextStyle(fontSize: 14.0),),
-                      ],
-                    ),
-                    SizedBox(height: 10.0,),
-                    Divider(),
-                    SizedBox(height: 10.0,),
-                    Row(
-                      children: <Widget>[
-                        SizedBox(width: 10.0,),
-                        Text(
-                          S.of(context).address,
-                          // "Address",
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 16.0),),
-                      ],
-                    ),
-                    SizedBox(height: 5.0,),
-                    Row(
-                      children: <Widget>[
-                        SizedBox(width: 10.0,),
-                        Expanded(child: Text(
-                          address, style: TextStyle(fontSize: 14.0),)),
-                      ],
-                    ),
-                    SizedBox(height: 10.0,),
-                    Divider(),
-                    SizedBox(height: 10.0,),
-                    Row(
-                      children: <Widget>[
-                        SizedBox(width: 10.0,),
-                        Text(
-                            S.of(context).contactnumber,
-                          // "Contact Number",
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 16.0),),
-                      ],
-                    ),
-                    SizedBox(height: 5.0,),
-                    Row(
-                      children: <Widget>[
-                        SizedBox(width: 10.0,),
-                        Text(contactnum, style: TextStyle(fontSize: 14.0),),
-                      ],
-                    ),
-                    SizedBox(height: 10.0,),
-                    Divider(),
-                    SizedBox(height: 10.0,),
-                    Row(
-                      children: <Widget>[
-                        SizedBox(width: 10.0,),
-                        Text(
-                          S.of(context).email,
-                          // "Email",
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 16.0),),
-                      ],
-                    ),
-                    SizedBox(height: 5.0,),
-                    Row(
-                      children: <Widget>[
-                        SizedBox(width: 10.0,),
-                        Text(pemail, style: TextStyle(fontSize: 14.0),),
-                      ],
-                    ),
-                    SizedBox(height: 5.0,),
-                    Row(
-                      children: <Widget>[
-                        SizedBox(width: 10.0,),
-                        Text(semail, style: TextStyle(fontSize: 14.0),),
-                      ],
-                    ),
-                    SizedBox(height: 10.0,),
-                    Divider(),
-                  ],
-                )
-                    :
-                Row(
-                  children: <Widget>[
-                    SizedBox(width: 5.0,),
+                        Vx.isWeb?SizedBox.shrink(): SizedBox(width: 5.0,),
 //                  Expanded(child: Text(privacy)),
-                    Expanded(
-                        child: MediaQuery(
-                          data: MediaQuery.of(context).copyWith(
-                              textScaleFactor: 1.0),
-                          child: Html(data: body,
-                            style: {
-                              "span": Style(
-                                fontSize: FontSize(12.0),
-                                fontWeight: FontWeight.normal,
-                              )
-                            },
-                          ),
-                        )
+                       Vx.isWeb?
+                       MediaQuery(
+                         data: MediaQuery.of(context).copyWith(
+                             textScaleFactor: 1.0),
+                         child: Expanded(
+                           child: Html(data: body,
+                             shrinkWrap: true,
+                             style: {
+                               "span": Style(
+                                 fontSize: FontSize(14.0),
+                                 fontWeight: FontWeight.normal,
+                               )
+                             },
+                           ),
+                         ),
+                       )
+                        :Expanded(
+                            child: MediaQuery(
+                              data: MediaQuery.of(context).copyWith(
+                                  textScaleFactor: 1.0),
+                              child: Html(data: body,
+                                style: {
+                                  "span": Style(
+                                    fontSize: FontSize(12.0),
+                                    fontWeight: FontWeight.normal,
+                                  )
+                                },
+                              ),
+                            )
+                        ),
+                        // SizedBox(width: 5.0,),
+                      ],
                     ),
-                    // SizedBox(width: 5.0,),
+
+
+
                   ],
                 ),
-                  if(_isWeb) Footer(address: PrefUtils.prefs.getString("restaurant_address")),
-              ],
-            ),
+              ),
+              VxBuilder(
+                mutations: (Features.ismultivendor) ? {HomeStoreScreenController} : {HomeScreenController},
+                builder: (ctx, store, VxStatus? state) {
+
+                  if(VxStatus.success==state) {
+                    if (Vx.isWeb) return Footer(address: PrefUtils.prefs!
+                        .getString("restaurant_address")!);
+                  }
+                  else if(state==VxStatus.none){
+                    print("error loading screen");
+                    if((VxState.store as GroceStore).homescreen.toJson().isEmpty) {
+                      (Features.ismultivendor) ? HomeStoreScreenController(user: PrefUtils.prefs!.getString("apikey") ?? PrefUtils.prefs!.getString("ftokenid"), lat: (VxState.store as GroceStore).userData.latitude??PrefUtils.prefs!.getString("latitude"),
+                          long: (VxState.store as GroceStore).userData.longitude??PrefUtils.prefs!.getString("longitude")) :
+                      HomeScreenController(user: PrefUtils.prefs!.getString("apikey") ?? PrefUtils.prefs!.getString("ftokenid"), branch: PrefUtils.prefs!.getString("branch") ?? "999", rows: "0",);
+                      return SizedBox.shrink();
+                    }else{
+                      if(Vx.isWeb)return Footer(address: PrefUtils.prefs!.getString("restaurant_address")!);
+                    }
+                  }
+                  return SizedBox.shrink();
+                },
+              )
+            ],
           ),
         ),
       );
@@ -278,13 +321,11 @@ class _PolicyScreenState extends State<PolicyScreen> {
     return Scaffold(
       appBar: ResponsiveLayout.isSmallScreen(context) ?
       gradientappbarmobile() : null,
-      backgroundColor: Theme
-          .of(context)
-          .backgroundColor,
+      backgroundColor: ColorCodes.whiteColor,
       body: Column(
         children: <Widget>[
           if(_isWeb && !ResponsiveLayout.isSmallScreen(context))
-            Header(false, false),
+            Header(false),
           _body(),
         ],
       ),

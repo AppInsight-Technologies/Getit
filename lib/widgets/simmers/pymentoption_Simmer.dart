@@ -3,12 +3,12 @@ import '../../assets/ColorCodes.dart';
 import 'package:shimmer/shimmer.dart';
 
 class PaymnetOption extends StatelessWidget {
-  const PaymnetOption({Key key}) : super(key: key);
+  const PaymnetOption({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Shimmer.fromColors(
-      baseColor: ColorCodes.baseColor,
+      baseColor: ColorCodes.shimmerColor,
       highlightColor: ColorCodes.lightGreyWebColor,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -191,13 +191,102 @@ class PaymnetOption extends StatelessWidget {
           //   color: ColorCodes.dividerColor,
           //   thickness: 0.8,
           // ),
-          Padding(padding: const EdgeInsets.all(8.0), child: Container( height: 80, decoration: BoxDecoration(color: Colors.black, ),),),
-          Padding(padding: const EdgeInsets.all(8.0), child: Container( height: 80, decoration: BoxDecoration(color: Colors.black, ),),),
-          Padding(padding: const EdgeInsets.all(8.0), child: Container( height: 80, decoration: BoxDecoration(color: Colors.black, ),),),
-          Padding(padding: const EdgeInsets.all(8.0), child: Container( height: 80, decoration: BoxDecoration(color: Colors.black, ),),),
-          Padding(padding: const EdgeInsets.all(8.0), child: Container( height: 80, decoration: BoxDecoration(color: Colors.black, ),),),
-          Padding(padding: const EdgeInsets.all(8.0), child: Container( height: 80, decoration: BoxDecoration(color: Colors.black, ),),),
-          Padding(padding: const EdgeInsets.all(8.0), child: Container( height: 80, decoration: BoxDecoration(color: Colors.black, ),),),
+          Padding(padding: const EdgeInsets.all(8.0), child: Container( height: 100, decoration: BoxDecoration(color: ColorCodes.shimmerColor, ),),),
+          Padding(padding: const EdgeInsets.all(8.0), child: Container( height: 100, decoration: BoxDecoration(color: ColorCodes.shimmerColor, ),),),
+          Padding(padding: const EdgeInsets.all(8.0), child: Container( height: 100, decoration: BoxDecoration(color: ColorCodes.shimmerColor, ),),),
+          Padding(padding: const EdgeInsets.all(8.0),
+            child: Row(
+              children: [
+                Container(
+                  height: 30,
+                  width: MediaQuery.of(context).size.width/2,
+                  decoration: BoxDecoration(color: ColorCodes.shimmerColor, ),
+                ),
+                Container(
+                  height: 30,
+                  width: MediaQuery.of(context).size.width/2,
+                  decoration: BoxDecoration(color: ColorCodes.shimmerColor, ),
+                ),
+              ],
+            ),),
+          Padding(padding: const EdgeInsets.all(8.0),
+            child: Row(
+              children: [
+                Container(
+                  height: 30,
+                  width: MediaQuery.of(context).size.width/2,
+                  decoration: BoxDecoration(color: ColorCodes.shimmerColor, ),
+                ),
+                Container(
+                  height: 30,
+                  width: MediaQuery.of(context).size.width/2,
+                  decoration: BoxDecoration(color: ColorCodes.shimmerColor, ),
+                ),
+              ],
+            ),),
+          Padding(padding: const EdgeInsets.all(8.0),
+            child: Row(
+              children: [
+                Container(
+                  height: 30,
+                  width: MediaQuery.of(context).size.width/2,
+                  decoration: BoxDecoration(color: ColorCodes.shimmerColor, ),
+                ),
+                Container(
+                  height: 30,
+                  width: MediaQuery.of(context).size.width/2,
+                  decoration: BoxDecoration(color: ColorCodes.shimmerColor, ),
+                ),
+              ],
+            ),),
+          Padding(padding: const EdgeInsets.all(8.0),
+            child: Row(
+              children: [
+                Container(
+                  height: 30,
+                  width: MediaQuery.of(context).size.width/2,
+                  decoration: BoxDecoration(color: ColorCodes.shimmerColor, ),
+                ),
+                Container(
+                  height: 30,
+                  width: MediaQuery.of(context).size.width/2,
+                  decoration: BoxDecoration(color: ColorCodes.shimmerColor, ),
+                ),
+              ],
+            ),),
+          Padding(padding: const EdgeInsets.all(8.0),
+            child: Row(
+              children: [
+                Container(
+                  height: 30,
+                  width: MediaQuery.of(context).size.width/2,
+                  decoration: BoxDecoration(color: ColorCodes.shimmerColor, ),
+                ),
+                Container(
+                  height: 30,
+                  width: MediaQuery.of(context).size.width/2,
+                  decoration: BoxDecoration(color: ColorCodes.shimmerColor, ),
+                ),
+              ],
+            ),),
+          Padding(padding: const EdgeInsets.all(8.0),
+            child: Row(
+              children: [
+                Container(
+                  height: 30,
+                  width: MediaQuery.of(context).size.width/2,
+                  decoration: BoxDecoration(color: ColorCodes.shimmerColor, ),
+                ),
+                Container(
+                  height: 30,
+                  width: MediaQuery.of(context).size.width/2,
+                  decoration: BoxDecoration(color: ColorCodes.shimmerColor, ),
+                ),
+              ],
+            ),),
+          // Padding(padding: const EdgeInsets.all(8.0), child: Container( height: 80, decoration: BoxDecoration(color: Colors.black, ),),),
+          // Padding(padding: const EdgeInsets.all(8.0), child: Container( height: 80, decoration: BoxDecoration(color: Colors.black, ),),),
+          // Padding(padding: const EdgeInsets.all(8.0), child: Container( height: 80, decoration: BoxDecoration(color: Colors.black, ),),),
 
 
         ],

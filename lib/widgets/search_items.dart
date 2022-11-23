@@ -28,7 +28,7 @@ class _SearchItemsState extends State<SearchItems> {
             Icon(Icons.search, color: Theme.of(context).primaryColor, size: 30.0,),
 //            SizedBox(width: 20.0,),
             Text(
-              S.of(context).search_for_product,//"Search for the products...",
+              S .of(context).search_for_product,//"Search for the products...",
               style: TextStyle(
                 fontSize: 16.0,
                 color: Theme.of(context).primaryColor,

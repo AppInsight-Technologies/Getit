@@ -5,7 +5,7 @@ import '../../generated/l10n.dart';
 import 'package:shimmer/shimmer.dart';
 
 class CartScreenShimmer extends StatelessWidget {
-  const CartScreenShimmer({Key key}) : super(key: key);
+  const CartScreenShimmer({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -21,7 +21,7 @@ class CartScreenShimmer extends StatelessWidget {
                   width: 7,
                 ),
                 Text(
-                  S.of(context).bill_details,
+                  S .of(context).bill_details,
                   style: TextStyle(
                       fontWeight: FontWeight.bold, fontSize: 18),
                 ),
@@ -35,7 +35,7 @@ class CartScreenShimmer extends StatelessWidget {
                    width: 5,
                  ),
                  Text(
-                   S.of(context).add_to_list,
+                   S .of(context).add_to_list,
                    style: TextStyle(
                        fontWeight: FontWeight.bold,
                        fontSize: 13),
@@ -61,8 +61,8 @@ class CartScreenShimmer extends StatelessWidget {
                 margin: EdgeInsets.only(left: 10.0, bottom: 10.0),
                 width: MediaQuery.of(context).size.width * 0.6,
                 child: Shimmer.fromColors(
-                  baseColor: ColorCodes.baseColor,
-                  highlightColor: ColorCodes.lightGreyWebColor,
+                  baseColor:ColorCodes.shimmerColor,
+                  highlightColor:ColorCodes.shimmerColor,
                   child: Container(
                     height: 100.0,
                     color: Theme.of(context).buttonColor,
@@ -79,8 +79,8 @@ class CartScreenShimmer extends StatelessWidget {
               margin: EdgeInsets.only(left: 10.0, bottom: 10.0),
               width: MediaQuery.of(context).size.width * 0.6,
               child: Shimmer.fromColors(
-                baseColor: ColorCodes.baseColor,
-                highlightColor: ColorCodes.lightGreyWebColor,
+                baseColor: ColorCodes.shimmerColor,
+                highlightColor: ColorCodes.shimmerColor,
                 child: Container(
                   height: 30.0,
                   color: Theme.of(context).buttonColor,
@@ -96,8 +96,8 @@ class CartScreenShimmer extends StatelessWidget {
               margin: EdgeInsets.only(left: 10.0, bottom: 10.0),
               width: MediaQuery.of(context).size.width * 0.6,
               child: Shimmer.fromColors(
-                baseColor: ColorCodes.baseColor,
-                highlightColor: ColorCodes.lightGreyWebColor,
+                baseColor: ColorCodes.shimmerColor,
+                highlightColor: ColorCodes.shimmerColor,
                 child: Container(
                   height: 110.0,
                   color: Theme.of(context).buttonColor,

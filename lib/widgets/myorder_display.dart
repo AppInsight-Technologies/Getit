@@ -7,12 +7,15 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
+import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import '../../providers/myorderitems.dart';
+import '../../repository/authenticate/AuthRepo.dart';
+import 'package:velocity_x/velocity_x.dart';
 import '../constants/api.dart';
 import '../constants/features.dart';
 import '../generated/l10n.dart';
 import '../models/myordersfields.dart';
+import '../rought_genrator.dart';
 import '../screens/rate_order_screen.dart';
 import '../screens/orderhistory_screen.dart';
 import 'package:provider/provider.dart';
@@ -26,6 +29,7 @@ import '../assets/images.dart';
 import '../utils/ResponsiveLayout.dart';
 import '../utils/prefUtils.dart';
 import '../assets/ColorCodes.dart';
+import 'addresswidget/address_info.dart';
 
 
 extension StringCasingExtension on String {
@@ -47,21 +51,20 @@ class MyorderDisplay extends StatefulWidget {
 }
 
 
-class _MyorderDisplayState extends State<MyorderDisplay> {
+class _MyorderDisplayState extends State<MyorderDisplay> with Navigations{
   bool _showreorder = false;
   bool _showCancelled = false;
   bool _showReturn = false;
   int _groupValue = -1;
-  var orderitemData;
-  String extraAmount;
   var _message = TextEditingController();
   var _comment = TextEditingController();
   var _isWeb = false;
   int itemleftcount = 0;
   bool _rateorder = false;
   double ratings = 3.0;
-  int splitlength;
+  int? splitlength;
   List<List<MyordersFields>> myorders =[] ;
+  String comment = S .current.good;
 
   @override
   void initState() {
@@ -85,6 +88,7 @@ class _MyorderDisplayState extends State<MyorderDisplay> {
       _message.text = "";
       _comment.text = "";
 
+
     });
     super.initState();
   }
@@ -93,11 +97,348 @@ class _MyorderDisplayState extends State<MyorderDisplay> {
   Widget build(BuildContext context) {
     double orderamount = 0.0;
 double totalamount = 0.0;
+
+    Future<void> RateOrder(var rating,String orderid) async {
+      try {
+        final response = await http.post(Api.addRatings, body: {
+          // await keyword is used to wait to this operation is complete.
+          "user": PrefUtils.prefs!.getString('apikey'),
+          "order":orderid.toString(),
+          "star": rating.toString(),
+          "comment": comment.toString(),
+          "branch": PrefUtils.prefs!.getString('branch'),
+        });
+        final responseJson = json.decode(response.body);
+        Navigator.pop(context);
+        Navigator.pop(context);
+        if (responseJson['status'].toString() == "200") {
+          Navigation(context, name:Routename.MyOrders,navigatore: NavigatoreTyp.Push,
+          );
+        } else {
+          Fluttertoast.showToast(msg: S .current.something_went_wrong, fontSize: MediaQuery.of(context).textScaleFactor *13,);
+        }
+      } catch (error) {
+        Navigator.pop(context);
+
+        Fluttertoast.showToast(msg: S .current.something_went_wrong, fontSize: MediaQuery.of(context).textScaleFactor *13,);
+        throw error;
+      }
+    }
+
+    _dialogforProcessing(){
+      return showDialog(
+          context: context,
+          builder: (context) {
+            return StatefulBuilder(builder: (context, setState) {
+              return AbsorbPointer(
+                child: Container(
+                  color: Colors.transparent,
+                  height: double.infinity,
+                  width: double.infinity,
+                  alignment: Alignment.center,
+                  child: CircularProgressIndicator(),
+                ),
+              );
+            });
+          });
+    }
+
+    showModalRateOrder( BuildContext context , setState,String orderid ) {
+      (Vx.isWeb && !ResponsiveLayout.isSmallScreen(context))?
+      showDialog(
+          context: context,
+          builder: (context) {
+            return StatefulBuilder(builder: (context, setState) {
+              return ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width/4),
+                child: AlertDialog(
+                  insetPadding: EdgeInsets.symmetric(horizontal: 40),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.all(Radius.circular(10.0))),
+                  content: Wrap(
+                    children: [
+                      StatefulBuilder(builder: (context, setState1) {
+                        return
+                          SingleChildScrollView(
+                            child: Container(
+                              constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width/4),
+                              child: Center(
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 10.0,horizontal: 20),
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    crossAxisAlignment: CrossAxisAlignment.center,
+                                    children: [
+                                      Image.asset(Images.starimage,height:200,),
+                                      SizedBox(
+                                        height: 10.0,
+                                      ),
+                                      Text(
+                                        S .of(context).rate_your_order,
+                                        style: TextStyle(fontSize: 16.0,color: ColorCodes.blackColor),
+                                      ),
+                                      SizedBox(
+                                        height: 5.0,
+                                      ),
+
+                                      SizedBox(
+                                        height: 15.0,
+                                      ),
+                                      Text(
+                                        S .of(context).refund_orderid+ " : " + orderid.toString(),
+                                        style: TextStyle(fontSize: 20.0,color: ColorCodes.blackColor,fontWeight: FontWeight.bold),
+                                      ),
+
+                                      SizedBox(
+                                        height: 10.0,
+                                      ),
+                                      RatingBar.builder(
+
+                                        initialRating: ratings,
+                                        minRating: 1,
+                                        direction: Axis.horizontal,
+                                        allowHalfRating: true,
+                                        itemCount: 5,
+                                        itemSize: 30,
+                                        itemPadding: EdgeInsets.symmetric(horizontal: 4.0),
+                                        itemBuilder: (context, _) => Icon(
+                                          Icons.star_rate,
+                                          color: ColorCodes.primaryColor,
+                                        ),
+
+                                        onRatingUpdate: (rating) {
+                                          ratings = rating;
+                                          if(ratings == 5){
+                                            setState1(() {
+                                              comment = S .of(context).excellent;//"Excellent";
+                                            });
+
+                                          }
+                                          else if(ratings == 4){
+                                            setState1(() {
+                                              comment = S .of(context).good;//"Good";
+                                            });
+
+                                          }
+                                          else if(ratings == 3){
+                                            setState1(() {
+                                              comment = S .of(context).average;//"Average";
+                                            });
+
+                                          }
+                                          else if(ratings == 2){
+                                            setState1(() {
+                                              comment = S .of(context).bad;//"Bad";
+                                            });
+                                          }
+                                          else if(ratings == 1){
+                                            setState1(() {
+                                              comment = S .of(context).verybad;//"Very Bad";
+                                            });
+                                          }
+                                        },
+                                      ),
+
+                                      SizedBox(
+                                        height: 10.0,
+                                      ),
+                                      Text(
+                                        comment,
+                                        style: TextStyle(fontSize: 18.0,color: ColorCodes.blackColor),
+                                      ),
+                                      SizedBox(
+                                        height: 30.0,
+                                      ),
+                                      MouseRegion(
+                                        cursor: SystemMouseCursors.click,
+                                        child: GestureDetector(
+                                          onTap: () {
+                                            _dialogforProcessing();
+                                            RateOrder(ratings,orderid.toString());
+                                          },
+                                          child: Container(
+                                            height: 50,
+                                            width: MediaQuery.of(context).size.width,
+                                            //color: ColorCodes.greenColor,
+                                            decoration: BoxDecoration(
+                                              borderRadius: BorderRadius.circular(5),
+                                              color: ColorCodes.greenColor,
+                                              border: Border.all(
+                                                  color: ColorCodes.greenColor),
+                                            ),
+                                            child: Center(
+                                                child: Text(
+                                                  S .of(context).rate_order.toUpperCase(),
+                                                  style: TextStyle(
+                                                    fontSize: 13,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: ColorCodes
+                                                        .whiteColor, //Theme.of(context).buttonColor,
+                                                  ),
+                                                )),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                      }),
+                    ],
+                  ),
+                ),
+              );
+            });
+          }
+      )
+          :
+      showModalBottomSheet<dynamic>(
+          isScrollControlled: true,
+          context: context,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius. only(topLeft: Radius. circular(15.0), topRight: Radius. circular(15.0)),
+          ),
+          builder: (context1) {
+            return Wrap(
+              children: [
+                StatefulBuilder(builder: (context, setState1) {
+                  return
+                    SingleChildScrollView(
+                      child: Container(
+                        child: Center(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 20.0,horizontal: 20),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Image.asset(Images.starimage,height:200,),
+                                SizedBox(
+                                  height: 10.0,
+                                ),
+                                Text(
+                                  S .of(context).rate_your_order,
+                                  style: TextStyle(fontSize: 18.0,color: ColorCodes.blackColor),
+                                ),
+                                SizedBox(
+                                  height: 5.0,
+                                ),
+                                SizedBox(
+                                  height: 10.0,
+                                ),
+                                Text(
+                                  S .of(context).refund_orderid+ " : " + orderid.toString(),
+                                  style: TextStyle(fontSize: 20.0,color: ColorCodes.blackColor,fontWeight: FontWeight.bold),
+                                ),
+
+                                SizedBox(
+                                  height: 10.0,
+                                ),
+                                RatingBar.builder(
+
+                                  initialRating: ratings,
+                                  minRating: 1,
+                                  direction: Axis.horizontal,
+                                  allowHalfRating: true,
+                                  itemCount: 5,
+                                  itemSize: 30,
+                                  itemPadding: EdgeInsets.symmetric(horizontal: 4.0),
+                                  itemBuilder: (context, _) => Icon(
+                                    Icons.star_rate,
+                                    color: ColorCodes.primaryColor,
+                                  ),
+
+                                  onRatingUpdate: (rating) {
+                                    ratings = rating;
+                                    if(ratings == 5){
+                                      setState1(() {
+                                        comment = S .of(context).excellent;//"Excellent";
+                                      });
+
+                                    }
+                                    else if(ratings == 4){
+                                      setState1(() {
+                                        comment = S .of(context).good;//"Good";
+                                      });
+
+                                    }
+                                    else if(ratings == 3){
+                                      setState1(() {
+                                        comment = S .of(context).average;//"Average";
+                                      });
+
+                                    }
+                                    else if(ratings == 2){
+                                      setState1(() {
+                                        comment = S .of(context).bad;//"Bad";
+                                      });
+                                    }
+                                    else if(ratings == 1){
+                                      setState1(() {
+                                        comment = S .of(context).verybad;//"Very Bad";
+                                      });
+                                    }
+                                  },
+                                ),
+
+                                SizedBox(
+                                  height: 10.0,
+                                ),
+                                Text(
+                                  comment,
+                                  style: TextStyle(fontSize: 18.0,color: ColorCodes.blackColor),
+                                ),
+                                SizedBox(
+                                  height: 30.0,
+                                ),
+                                MouseRegion(
+                                  cursor: SystemMouseCursors.click,
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      _dialogforProcessing();
+                                      RateOrder(ratings,orderid.toString());
+                                    },
+                                    child: Container(
+                                      height: 50,
+                                      width: MediaQuery.of(context).size.width,
+                                      //color: ColorCodes.greenColor,
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(5),
+                                        color: ColorCodes.greenColor,
+                                        border: Border.all(
+                                            color: ColorCodes.greenColor),
+                                      ),
+                                      child: Center(
+                                          child: Text(
+                                            S .of(context).rate_order.toUpperCase(),
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.bold,
+                                              color: ColorCodes
+                                                  .whiteColor, //Theme.of(context).buttonColor,
+                                            ),
+                                          )),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                }),
+              ],
+            );
+          });
+    }
 return Column(
   children: [
     Container(
-      //height: MediaQuery.of(context).size.height / 3,
-      margin: EdgeInsets.only(left: 10, right: 10, top: 3, bottom:3),
+      color: ColorCodes.whiteColor,
+      margin: EdgeInsets.only(left: (Vx.isWeb && !ResponsiveLayout.isSmallScreen(context))?0:10,right: (Vx.isWeb && !ResponsiveLayout.isSmallScreen(context))?0:10,top: (Vx.isWeb && !ResponsiveLayout.isSmallScreen(context))?20:10),
 
       child: Column(
         children: [
@@ -107,12 +448,12 @@ return Column(
               children: [
               ...widget.splitorder.map((e)
               {
-                if (e.ostatus.toLowerCase() == "received" ||
-                    e.ostatus.toLowerCase() == "ready") {
+                if (e.ostatus!.toLowerCase() == "received" ||
+                    e.ostatus!.toLowerCase() == "ready") {
                   _showreorder = true;
                   _showCancelled = true;
-                } else if (e.ostatus.toLowerCase() == "delivered" ||
-                    e.ostatus.toLowerCase() == "completed") {
+                } else if (e.ostatus!.toLowerCase() == "delivered" ||
+                    e.ostatus!.toLowerCase() == "completed") {
                   setState(() {
                     _showreorder = true;
                     _rateorder = true;
@@ -121,17 +462,17 @@ return Column(
                   });
                 }
                 if(e.itemodelcharge !=0){
-                  orderamount= double.parse(e.itemoactualamount) +
-                      double.parse(e.itemodelcharge) - e.loyalty
-                      - double.parse(e.totalDiscount) + double.parse(e.dueamount);
+                  orderamount= double.parse(e.itemoactualamount!) +
+                      double.parse(e.itemodelcharge!) - e.loyalty!
+                      - double.parse(e.totalDiscount!) + double.parse(e.dueamount!);
                 }
                 else{
-                  orderamount= double.parse(e.itemoactualamount) - e.loyalty
-                      - double.parse(e.totalDiscount) + double.parse(e.dueamount);
+                  orderamount= double.parse(e.itemoactualamount!) - e.loyalty!
+                      - double.parse(e.totalDiscount!) + double.parse(e.dueamount!);
                 }
 
                 totalamount = totalamount + orderamount;
-                itemleftcount = int.parse(e.itemLeftCount) + 1;
+                itemleftcount = int.parse(e.itemLeftCount!) + 1;
 
                 Widget membershipImage() {
                   if (e.extraAmount == "888") {
@@ -194,131 +535,206 @@ return Column(
 
                 Future<void> cancelOrder() async {
                   try {
+                    debugPrint("respo....body"+{
+                      "id": e.oid,
+                      "note": _message.text,
+                      "branch": PrefUtils.prefs!.getString('branch'),
+                    }.toString());
                     final response = await http.post(Api.cancelOrder, body: {
                       "id": e.oid,
                       "note": _message.text,
-                      "branch": PrefUtils.prefs.getString('branch'),
+                      "branch": PrefUtils.prefs!.getString('branch'),
                     });
                     final responseJson = json.decode(response.body);
                     Navigator.pop(context);
                     Navigator.pop(context);
                     if (responseJson['status'].toString() == "200") {
-                      Navigator.of(context).pushReplacementNamed(
-                        MyorderScreen.routeName,
-                          arguments: {
-                            "orderhistory": ""
-                          }
-                      );
+                      auth.getuserProfile(onsucsess: (value){
+                      }, onerror: (){
+                      });
+                      Navigator.pop(context);
+                      Navigation(context, name:Routename.MyOrders,navigatore: NavigatoreTyp.Push,);
+
                     } else {
-                      return Fluttertoast.showToast(msg: S.current.something_went_wrong, fontSize: MediaQuery.of(context).textScaleFactor *13,);
+                       Fluttertoast.showToast(msg: S .current.something_went_wrong, fontSize: MediaQuery.of(context).textScaleFactor *13,);
                     }
                   } catch (error) {
                     Navigator.pop(context);
                     Navigator.pop(context);
-                    Fluttertoast.showToast(msg: S.current.something_went_wrong, fontSize: MediaQuery.of(context).textScaleFactor *13,);
+                    Fluttertoast.showToast(msg: S .current.something_went_wrong, fontSize: MediaQuery.of(context).textScaleFactor *13,);
                     throw error;
                   }
                 }
 
-                Widget _myRadioButton({String title, int value, Function onChanged}) {
+                Widget _myRadioButton({String? title, int? value, required Function(int?) onChanged}) {
                   final addressitemsData =
                   Provider.of<AddressItemsList>(context, listen: false);
 
                   if (_groupValue == 0) {
-                    PrefUtils.prefs.setString("return_type", "0"); // 0 => Return
+                    PrefUtils.prefs!.setString("return_type", "0"); // 0 => Return
                     Future.delayed(Duration.zero, () async {
                       Navigator.pop(context);
                       _groupValue = -1;
 
                       if (addressitemsData.items.length > 0) {
-                        Navigator.of(context).pushNamed(ReturnScreen.routeName, arguments: {
-                          'orderid':e.oid,
-                        });
+                        Navigation(context, name:Routename.Return,navigatore: NavigatoreTyp.Push,
+                            parms: {
+                              'orderid':e.oid!,
+                            });
                       } else {
-                        PrefUtils.prefs.setString("addressbook", "myorderdisplay");
-                        Navigator.of(context).pushNamed(AddressScreen.routeName, arguments: {
-                          'addresstype': "new",
-                          'addressid': "",
-                          'delieveryLocation': "",
-                        });
-                      }
+              PrefUtils.prefs!.setString("addressbook", "myorderdisplay");
+              if(Vx.isWeb && !ResponsiveLayout.isSmallScreen(context)){
+              AddressWeb(context,
+                addresstype: "new",
+                addressid: "",
+                delieveryLocation: "",);
+              }
+              else {
+              Navigation(context, name: Routename.AddressScreen, navigatore: NavigatoreTyp.Push,
+                  qparms: {
+                  'addresstype': "new",
+                  'addressid': "",
+                  'delieveryLocation': "",
+                  });
+                }
+              }
                     });
                   } else if (_groupValue == 1) {
-                    PrefUtils.prefs.setString("return_type", "1"); // 1 => Exchange
+                    PrefUtils.prefs!.setString("return_type", "1"); // 1 => Exchange
                     Future.delayed(Duration.zero, () async {
                       Navigator.pop(context);
                       _groupValue = -1;
                       if (addressitemsData.items.length > 0) {
-                        Navigator.of(context).pushNamed(ReturnScreen.routeName, arguments: {
-                          'orderid': e.oid,
-                        });
+                        Navigation(context, name:Routename.Return,navigatore: NavigatoreTyp.Push,
+                            parms: {
+                              'orderid':e.oid!,
+                            });
                       } else {
-                        PrefUtils.prefs.setString("addressbook", "myorderdisplay");
-                        Navigator.of(context).pushNamed(AddressScreen.routeName, arguments: {
-                          'addresstype': "new",
-                          'addressid': "",
-                          'orderid': e.oid,
-                          'delieveryLocation': "",
-                        });
+                        PrefUtils.prefs!.setString(
+                            "addressbook", "myorderdisplay");
+                        if (Vx.isWeb &&
+                            !ResponsiveLayout.isSmallScreen(context)) {
+                          // _dialogforaddress(context);
+                          AddressWeb(context,
+                            addresstype: "new",
+                            addressid: "",
+                            delieveryLocation: "",
+                            orderid: e.oid,
+                          );
+                        }
+                        else {
+                          Navigation(context, name: Routename.AddressScreen,
+                              navigatore: NavigatoreTyp.Push,
+                              qparms: {
+                                'addresstype': "new",
+                                'addressid': "",
+                                'delieveryLocation': "",
+                                'orderid': e.oid,
+                              });
+                        }
                       }
                     });
                   }
 
-                  return RadioListTile(
+                  return RadioListTile<int>(
                     activeColor: Theme.of(context).primaryColor,
-                    value: value,
+                    value: value!,
                     groupValue: _groupValue,
                     onChanged: onChanged,
-                    title: Text(title),
+                    title: Text(title!),
                   );
-                }
-                _dialogforReturn(BuildContext context) {
-                  return showDialog(
-                      context: context,
-                      builder: (context) {
-                        return StatefulBuilder(builder: (context, setState) {
-                          return Dialog(
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(3.0)),
-                            child: Container(
-                                width: (_isWeb && !ResponsiveLayout.isSmallScreen(context))?MediaQuery.of(context).size.width*0.40:MediaQuery.of(context).size.width,
-                                height: 150.0,
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: <Widget>[
-                                    SizedBox(
-                                      height: 10.0,
-                                    ),
-                                    Text( S.of(context).do_you_want_return_exchange,
-                                      // "Do you want to return or exchange",
-                                      style: TextStyle(
-                                        color: Colors.black,
-                                      ),
-                                    ),
-                                    _myRadioButton(
-                                      title: S.of(context).returns,
-                                      // "Return",
-                                      value: 0,
-                                      onChanged: (newValue) =>
-                                          setState(() => _groupValue = newValue),
-                                    ),
-                                    _myRadioButton(
-                                      title: S.of(context).exchange,
-                                      //"Exchange",
-                                      value: 1,
-                                      onChanged: (newValue) =>
-                                          setState(() => _groupValue = newValue),
-                                    ),
-                                  ],
-                                )),
-                          );
-                        });
-                      });
                 }
 
                 _dialogforCancel(BuildContext context) {
-                  return showDialog(
+
+                 return (Vx.isWeb && !ResponsiveLayout.isSmallScreen(context))?
+                  showDialog(
+                      context: context,
+                      builder: (context) {
+                        return StatefulBuilder(builder: (context, setState) {
+                          return ConstrainedBox(
+                            constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width/3),
+                            child: AlertDialog(
+                              insetPadding: EdgeInsets.symmetric(horizontal: 40),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.all(Radius.circular(10.0))),
+                              content: Wrap(
+                                children: [
+                                  StatefulBuilder(builder: (context, setState1) {
+                                    return
+                                      SingleChildScrollView(
+                                        child: Container(
+                                          constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width/3),
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.center,
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: <Widget>[
+                                              SizedBox(
+                                                height: 10.0,
+                                              ),
+                                              Text(  S .of(context).ordered_ID
+                                                  // "Order ID: "
+                                                  + e.oid!,
+                                                style: TextStyle(
+                                                    color: Colors.black,
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 18.0),
+                                              ),
+                                              SizedBox(
+                                                height: 10.0,
+                                              ),
+                                              TextField(
+                                                controller: _message,
+                                                decoration: InputDecoration(
+                                                  hintText:
+                                                  S .of(context).reason_optionla,
+                                                  //"Reasons (Optional)",
+                                                  contentPadding: EdgeInsets.all(16),
+                                                  border: OutlineInputBorder(),
+                                                ),
+                                                minLines: 3,
+                                                maxLines: 5,
+                                              ),
+                                              SizedBox(
+                                                height: 10.0,
+                                              ),
+                                              GestureDetector(
+                                                onTap: (){
+                                                  _dialogforProcessing();
+                                                  cancelOrder();
+                                                },
+                                                child: Container(
+                                                  margin: EdgeInsets.only(left: 50,right: 50,top:30),
+                                                  height: 50,
+                                                  decoration: BoxDecoration(borderRadius: BorderRadius.all(Radius.circular(5)),
+                                                    color: Theme.of(context).primaryColor,),
+                                                  width: MediaQuery.of(context).size.width,
+                                                  child: Center(
+                                                    child: Text(  S .of(context).next,
+                                                      //"Next",
+                                                      style: TextStyle(
+                                                        fontSize: 16,
+                                                        color: Colors.white,
+                                                        fontWeight: FontWeight.bold
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          )
+                                        ),
+                                      );
+                                  }),
+                                ],
+                              ),
+                            ),
+                          );
+                        });
+                      }
+                  )
+                      :
+                   showDialog(
                       context: context,
                       builder: (context) {
                         return StatefulBuilder(builder: (context, setState) {
@@ -336,9 +752,9 @@ return Column(
                                     SizedBox(
                                       height: 10.0,
                                     ),
-                                    Text(  S.of(context).ordered_ID
+                                    Text(  S .of(context).ordered_ID
                                         // "Order ID: "
-                                        + e.oid,
+                                        + e.oid!,
                                       style: TextStyle(
                                           color: Colors.black,
                                           fontWeight: FontWeight.bold,
@@ -351,7 +767,7 @@ return Column(
                                       controller: _message,
                                       decoration: InputDecoration(
                                         hintText:
-                                        S.of(context).reason_optionla,
+                                        S .of(context).reason_optionla,
                                         //"Reasons (Optional)",
                                         contentPadding: EdgeInsets.all(16),
                                         border: OutlineInputBorder(),
@@ -367,7 +783,7 @@ return Column(
                                         _dialogforProcessing();
                                         cancelOrder();
                                       },
-                                      child: Text(  S.of(context).next,
+                                      child: Text(  S .of(context).next,
                                         //"Next",
                                         style: TextStyle(
                                           fontSize: 12,
@@ -383,708 +799,528 @@ return Column(
                       });
                 }
 
-               return Container(
-                 decoration: BoxDecoration(
-                   borderRadius: BorderRadius.all(Radius.circular(10.0)),
-                 boxShadow: [
-                   BoxShadow(
-                     color: ColorCodes.grey.withOpacity(0.2),
-                     spreadRadius: 4,
-                     blurRadius: 5,
-                     offset: Offset(0, 2),
-                   )
-                 ],
-
-                 color: Colors.white,
-                 // borderRadius: BorderRadius.circular(12)
-               ),
-                 child: Padding(
-                   padding: const EdgeInsets.symmetric(
-                       vertical: 5.0, horizontal: 15),
-                   child: GestureDetector(
-                     onTap: () {
-                       if (e.odelivery == "DELIVERY ON") {
-                       } else {}
-                       /*Navigator.of(context).pushNamed(OrderhistoryScreen.routeName,
-                                      arguments: {
-                                        'orderid' : widget.oid,
-                                        'fromScreen' : "myOrders",
-                                      }
-                                  );*/
-                       if(_isWeb){
-                         Navigator.pushNamedAndRemoveUntil(context, OrderhistoryScreen.routeName, (route) => false,
-                             arguments: {
-                               'orderid': e.oid,
-                               'orderStatus': e.ostatus,
-                               'fromScreen': "webmyOrders",
-                             });
-
-                       }else{
-                         Navigator.of(context).pushNamed(
-                             OrderhistoryScreen.routeName,
-                             arguments: {
-                               'orderid': e.oid,
-                               'orderStatus': e.ostatus,
-                               'fromScreen': "myOrders",
-                             });
-                       }
-
-                     },
-                     child: Column(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
-                          SizedBox(
-                            height: 10,
+               return Padding(
+                 padding:  EdgeInsets.symmetric(
+                     vertical: 8.0, horizontal: 16),
+                 child: Column(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Row(
+                        children: [
+                          Text(
+                            S .of(context).refund_orderid + ": ",
+                            style: TextStyle(
+                                color: ColorCodes.greenColor,
+                                //Theme.of(context).primaryColor,
+                                fontSize: (Vx.isWeb && !ResponsiveLayout.isSmallScreen(context))?16:14.0,
+                                fontWeight: FontWeight.bold),
                           ),
-                          Row(
+                          SizedBox(
+                            width: 5,
+                          ),
+                          Text(
+                            "#" + e.oid!,
+                            style: TextStyle(
+                                color: ColorCodes.greenColor,
+                                //Theme.of(context).primaryColor,
+                                fontSize: (Vx.isWeb && !ResponsiveLayout.isSmallScreen(context))?16:14.0,
+                                fontWeight: FontWeight.bold),
+                          ),
+                          Spacer(),
+                          (e.orderType!.toLowerCase() == "pickup")
+                              ? Row(
                             children: [
                               Text(
-                                S.of(context).refund_orderid + ": ",
-                                style: TextStyle(
-                                    //color: ColorCodes.greenColor,
-                                    //Theme.of(context).primaryColor,
-                                    color: ColorCodes.mediumBlackColor,
-                                    fontSize: 13.0,
-                                    fontWeight: FontWeight.bold),
-                              ),
+                                  e.ostatus
+                                      !.toLowerCase()
+                                      .toCapitalized(),
+                                  style: TextStyle(
+                                      color: ColorCodes.greyColor,
+                                      fontSize: 14.0,
+                                      fontWeight: FontWeight.bold)),
+                            ],
+                          )
+                              : (e.returnStatus == "" ||
+                              e.returnStatus == "null")
+                              ?
+
+                          //
+                          (e.ostatus == "CANCELLED")
+                              ? Text(
+                              e.ostatus
+                                  !.toLowerCase()
+                                  .toCapitalized(),
+                              style: TextStyle(
+                                  color: ColorCodes.redColor,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold))
+                              : Row(
+                            children: [
+                              Text(
+                                  e.ostatus
+                                      !.toLowerCase()
+                                      .toCapitalized(),
+                                  style: TextStyle(
+                                      color: ColorCodes
+                                          .greyColor,
+                                      fontSize: 14.0,
+                                      fontWeight:
+                                      FontWeight.bold)),
                               SizedBox(
                                 width: 5,
                               ),
-                              Text(
-                                "#" + e.oid,
-                                style: TextStyle(
-                                  //color: ColorCodes.greenColor,
-                                    //Theme.of(context).primaryColor,
-                                  color: ColorCodes.mediumBlackColor,
-                                    fontSize: 13.0,
-                                    fontWeight: FontWeight.bold),
-                              ),
-                              Spacer(),
-                              Text(e.odate,
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                              SizedBox(
-                                height: 10.0,
-                              ),
+                              if (e.ostatus!.toLowerCase() ==
+                                  "delivered" ||
+                                  e.ostatus!.toLowerCase() ==
+                                      "completed")
+                                Image.asset(Images.delivered,
+                                    height: 25.0,
+                                    width: 25.0),
+                              if (e.ostatus!.toLowerCase() ==
+                                  "received")
+                                Image.asset(Images.received,
+                                    height: 25.0,
+                                    width: 25.0),
+                              if (e.ostatus!.toLowerCase() ==
+                                  "dispatched" ||
+                                  e.ostatus!.toLowerCase() ==
+                                      "out for delivery")
+                                Image.asset(
+                                    Images.outdelivery,
+                                    height: 25.0,
+                                    width: 25.0),
                             ],
-                          ),
-
+                          )
+                              : Text(e.returnStatus!.toUpperCase(),
+                              style: TextStyle(
+                                  color: ColorCodes.redColor,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold)),
                           SizedBox(
-                            height: 10,
+                            height: 10.0,
                           ),
+                        ],
+                      ),
 
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            children: [
-                              Container(
-                                  child:e.extraAmount == "888"? Image.asset(Images.membershipImg,
-                                    color: Theme.of(context).primaryColor,
-                                    width: 95,
-                                    height: 110,
-                                    fit: BoxFit.cover,
-                                  ): ClipRRect(
-                                    borderRadius: BorderRadius.circular(6.0),
-                                    child: CachedNetworkImage(
-                                      imageUrl: e.itemImage,
-                                      placeholder: (context, url) => Image.asset(Images.defaultProductImg,
-                                          width: 95,
-                                          height: 110,),
-                                      errorWidget: (context, url, error) => Image.asset(Images.defaultProductImg,
-                                        width: 95,
-                                        height: 110,),
-                                      width: 95,
-                                      height: 110,
-                                      fit: BoxFit.cover,
-                                    ),
-                                  )
-                              ),
-                              SizedBox(width: 10),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisAlignment: MainAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    e.itemname,
-                                    overflow: TextOverflow.ellipsis,
-                                    maxLines: 2,
-                                    style: TextStyle(fontSize: 15,fontWeight: FontWeight.w800),),
-                                  SizedBox(height: 5),
-                                  Text(
-                                    //"+ " +
-                                    itemleftcount.toString() +
-                                        " " +
-                                        S.of(context).items,
-                                    //   " more items",
-                                    style: TextStyle(fontSize: 12,color: ColorCodes.greyColor),
-                                  ),
-                                  SizedBox(height: 15,),
-                                  (e.orderType.toLowerCase() == "pickup")
-                                      ? Row(
-                                    children: [
-                                      Text(
-                                          e.ostatus
-                                              .toLowerCase()
-                                              .toCapitalized(),
-                                          style: TextStyle(
-                                              color: ColorCodes.greyColor,
-                                              fontSize: 14.0,
-                                              fontWeight: FontWeight.bold)),
-                                    ],
-                                  )
-                                      : (e.returnStatus == "" ||
-                                      e.returnStatus == "null")
-                                      ?
-                                  (e.ostatus == "CANCELLED")
-                                      ? Row(
-                                        children: [
-                                          Image.asset(Images.received,
-                                              color: ColorCodes.redColor,
-                                              height: 16.0,
-                                              width: 16.0),
-                                          SizedBox(width: 3),
-                                          Text(
-                                          e.ostatus
-                                              .toLowerCase()
-                                              .toCapitalized(),
-                                          style: TextStyle(
-                                              color: ColorCodes.redColor,
-                                              fontSize: 13,
-                                              fontWeight: FontWeight.bold)),
-                                        ],
-                                      )
-                                      : Row(
-                                    children: [
-                                      if (e.ostatus.toLowerCase() ==
-                                          "delivered" ||
-                                          e.ostatus.toLowerCase() ==
-                                              "completed")
-                                        Image.asset(Images.delivered,
-                                            color: ColorCodes.greenColor,
-                                            height: 20.0,
-                                            width: 20.0),
-                                      if (e.ostatus.toLowerCase() ==
-                                          "received")
-                                        Image.asset(Images.received,
-                                            color: ColorCodes.discountoff,
-                                            height: 16.0,
-                                            width: 16.0),
-                                      if (e.ostatus.toLowerCase() ==
-                                          "dispatched" ||
-                                          e.ostatus.toLowerCase() ==
-                                              "out for delivery")
-                                        Image.asset(
-                                            Images.outdelivery,
-                                            color: ColorCodes.discountoff,
-                                            height: 25.0,
-                                            width: 25.0),
-                                      SizedBox(
-                                        width: 3,
-                                      ),
-                                      Text(
-                                          e.ostatus
-                                              .toLowerCase()
-                                              .toCapitalized(),
-                                          style: TextStyle(
-                                              color: ColorCodes
-                                                  .greyColor,
-                                              fontSize: 13.0,
-                                              fontWeight:
-                                              FontWeight.bold)),
+                      SizedBox(
+                        height: (Vx.isWeb && !ResponsiveLayout.isSmallScreen(context))?5:10,
+                      ),
 
-                                    ],
-                                  )
-                                      : Text(e.returnStatus.toUpperCase(),
-                                      style: TextStyle(
-                                          color: ColorCodes.redColor,
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.bold)),
-                                  SizedBox(height: 15),
-                                  if (e.ostatus != "CANCELLED")
-                                    Row(
-                                      children: [
-                                        Image.asset(Images.Standard,
-                                          height: 25,
-                                          width: 25,
-                                          color: ColorCodes.discountoff,
-                                        ),
-                                        SizedBox(width: 3),
-                                        Text(
-                                          "Exp:",
-                                          // S
-                                          //     .of(context)
-                                          //     .scheduled_delivery, //widget.odelivery,
-                                          style: TextStyle(fontWeight: FontWeight.bold),
-                                        ),
-                                        SizedBox(
-                                          width: 5,
-                                        ),
-                                        Text(
-                                          e.odate,
-                                          textAlign: TextAlign.right,
-                                          style: TextStyle(fontWeight: FontWeight.bold),
-                                        ),
-                                        /*SizedBox(
-                                          width: 5,
-                                        ),
-                                        Text(
-                                          e.odeltime,
-                                          style: TextStyle(
-                                              color: ColorCodes.darkGrey,
-                                              //Theme.of(context).primaryColor,
-                                              fontSize: 12.0,
-                                              fontWeight: FontWeight.bold),
-                                        ),*/
-                                        // (ResponsiveLayout.isSmallScreen(context)|| ResponsiveLayout.isMediumScreen(context))?
-                                        // SizedBox(
-                                        //   width: 45,
-                                        // ):
-                                        // SizedBox(
-                                        //   width: MediaQuery.of(context).size.width - 400,
-                                        // ),
-                                        // Text(
-                                        //   widget.odate,
-                                        //   textAlign: TextAlign.right,
-                                        //   style: TextStyle(
-                                        //       color: Theme.of(context).primaryColor,
-                                        //       fontSize: 12.0,
-                                        //       fontWeight: FontWeight.bold
-                                        //   ),
-                                        // )
-                                      ],
-                                    ),
+                      Row(
+                        children: [
+                          Text(
+                            //"+ " +
+                            itemleftcount.toString() +
+                                " " +
+                                S .of(context).items,
+                            //   " more items",
+                            style: TextStyle(color: ColorCodes.greyColor),
+                          ),
+                          Spacer(),
+                          if (e.orderType == "express")
+                            Row(
+                              children: [
+                                Text(
+                                  e.orderType!.toCapitalized(),
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: ColorCodes.greyColor),
+                                ),
+                                SizedBox(
+                                  width: 5,
+                                ),
+                                Image.asset(Images.expressdelivery,
+                                    height: 25.0, width: 25.0),
+                              ],
+                            ),
+                        ],
+                      ),
+                      SizedBox(
+                        height: (Vx.isWeb && !ResponsiveLayout.isSmallScreen(context))?5:10,
+                      ),
+                      Text(
+                        Features.iscurrencyformatalign?
+                        orderamount.toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit) + ' ' + IConstants.currencyFormat:
+                      IConstants.currencyFormat + ' ' + orderamount.toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: ColorCodes.greyColor),
+                      ),
 
-                                ],
-                              ),
-                              Spacer(),
-                              if (e.orderType == "express")
-                                Row(
-                                  children: [
-                                    Text(
-                                      e.orderType.toCapitalized(),
+                      SizedBox(
+                        height: (Vx.isWeb && !ResponsiveLayout.isSmallScreen(context))?5:10,
+                      ),
+                      (Vx.isWeb && !ResponsiveLayout.isSmallScreen(context))?
+                      Row(
+                        children: [
+                          Text(
+                                      (e.paymentType == "cod".toLowerCase()
+                                          ? S .of(context).cash_delivery
+                                          : e.paymentType!.toCapitalized()),
                                       style: TextStyle(
                                           fontWeight: FontWeight.bold,
                                           color: ColorCodes.greyColor),
                                     ),
-                                    SizedBox(
-                                      width: 5,
+                           Spacer(),
+                          MouseRegion(
+                            cursor: SystemMouseCursors.click,
+                            child: GestureDetector(
+                              onTap: () {
+                                if (e.odelivery == "DELIVERY ON") {
+                                } else {}
+                                if(_isWeb){
+                                  (Vx.isWeb && !ResponsiveLayout.isSmallScreen(context))?
+                                      OrderhistoryWeb(context,orderid: e.oid,orderstattus: e.ostatus,fromscreen: "webmyOrders")
+                                      :
+                                  Navigation(context, name:Routename.OrderHistory,navigatore: NavigatoreTyp.Push,
+                                      qparms: {
+                                        'orderid': e.oid!,
+                                        'orderStatus': e.ostatus!,
+                                        'fromScreen': "webmyOrders",
+                                      });
+
+                                }else{
+                                  debugPrint("e.oid!.....1.."+e.oid!);
+                                  Navigation(context, name:Routename.OrderHistory,navigatore: NavigatoreTyp.Push,
+                                      qparms: {
+                                        'orderid': e.oid!,
+                                        'orderStatus': e.ostatus!,
+                                        'fromScreen': "myOrders",
+                                      });
+                                }
+
+                              },
+                              child: Container(
+                                height: 35,
+                                child: Row(
+                                  children: [
+                                    Text(
+                                      S .of(context).view_details_order,
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.bold,
+                                        color: ColorCodes
+                                            .greenColor, //Theme.of(context).buttonColor,
+                                      ),
                                     ),
-                                    Image.asset(Images.expressdelivery,
-                                        height: 25.0, width: 25.0),
+                                    SizedBox(width:5),
+                                    Icon(Icons.arrow_forward_ios_outlined,color: ColorCodes.primaryColor,size: 15,),
+
                                   ],
                                 ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ):
+                      Text(
+                        (e.paymentType == "cod".toLowerCase()
+                            ? S .of(context).cash_delivery
+                            : e.paymentType!.toCapitalized()),
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: ColorCodes.greyColor),
+                      ),
+
+                      SizedBox(
+                        height: (Vx.isWeb && !ResponsiveLayout.isSmallScreen(context))?5:10,
+                      ),
+                      DottedLine(
+                        dashColor: ColorCodes.lightGreyColor,
+                      ),
+                      if (e.ostatus == "CANCELLED")
+                        SizedBox(
+                          height: (Vx.isWeb && !ResponsiveLayout.isSmallScreen(context))?5:10,
+                        ),
+                      if (e.ostatus != "CANCELLED")
+                        SizedBox(
+                          height: (Vx.isWeb && !ResponsiveLayout.isSmallScreen(context))?5:10,
+                        ),
+                      if (e.ostatus != "CANCELLED")
+                        Row(
+                          children: [
+                            Text(
+                              S .of(context).scheduled_delivery, //widget.odelivery,
+                              style: TextStyle(
+                                  color: ColorCodes.greyColor,
+                                  //Theme.of(context).primaryColor,
+                                  fontSize: 12.0,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                            SizedBox(
+                              width: 5,
+                            ),
+                            Text(
+                              e.odate!,
+                              textAlign: TextAlign.right,
+                              style: TextStyle(
+                                  color: ColorCodes.darkGrey,
+                                  //Theme.of(context).primaryColor,
+                                  fontSize: 12.0,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                            SizedBox(
+                              width: 5,
+                            ),
+                            Text(
+                              e.odeltime!,
+                              style: TextStyle(
+                                  color: ColorCodes.darkGrey,
+                                  //Theme.of(context).primaryColor,
+                                  fontSize: 12.0,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                            if(Vx.isWeb && !ResponsiveLayout.isSmallScreen(context)) Spacer(),
+
+                            (Vx.isWeb && !ResponsiveLayout.isSmallScreen(context))?
+                            (e.ostatus!.toLowerCase() == "received" ||
+                                e.ostatus!.toLowerCase() == "ready")
+                                ? Row(
+                              children: [
+                                MouseRegion(
+                                  cursor: SystemMouseCursors.click,
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      _dialogforCancel(context);
+                                    },
+                                    child: Container(
+                                      //width: 140.0,
+                                      height: 35.0,
+                                      margin: EdgeInsets.only(top: 5.0),
+                                      child: Center(
+                                          child: Text(
+                                            S .of(context).cancel_order,
+                                            /*'Re-order',*/
+                                            textAlign: TextAlign.center,
+                                            style: TextStyle(
+                                                fontSize: 14,
+                                                color: ColorCodes.primaryColor,
+                                                fontWeight:
+                                                FontWeight.bold),
+                                          )),
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(width: 10,)
+                              ],
+                            )
+                                :
+                            Features.isRateOrderModule?
+                            (e.ostatus!.toLowerCase() == "delivered" ||
+                                e.ostatus!.toLowerCase() == "completed")
+                                ? Row(
+                              children: [
+                                MouseRegion(
+                                  cursor: SystemMouseCursors.click,
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      showModalRateOrder(context, setState,e.oid!);
+                                    },
+                                    child: Container(
+                                      //width: 140.0,
+                                      height: 35.0,
+                                      margin:
+                                      EdgeInsets.only(top: 5.0),
+
+                                      child: Center(
+                                          child: Text(
+                                            S .of(context).rate_order,
+                                            textAlign: TextAlign.center,
+                                            style: TextStyle(
+                                                fontSize: 14,
+                                                color: ColorCodes.primaryColor,// color: Theme.of(context)
+                                                //     .primaryColor,
+                                                fontWeight:
+                                                FontWeight.bold),
+                                          )),
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(width: 10,)
+                              ],
+                            )
+                                : SizedBox.shrink()
+                                :SizedBox.shrink():SizedBox.shrink(),
+                          ],
+                        ),
+                      if(ResponsiveLayout.isSmallScreen(context))
+                      if (e.ostatus != "CANCELLED")
+                        SizedBox(
+                          height: (Vx.isWeb && !ResponsiveLayout.isSmallScreen(context))?5:20,
+                        ),
+                      if(ResponsiveLayout.isSmallScreen(context))
+                      Row(
+                        children: [
+
+                          MouseRegion(
+                            cursor: SystemMouseCursors.click,
+                            child: GestureDetector(
+                              onTap: () {
+                                if (e.odelivery == "DELIVERY ON") {
+                                } else {}
+                                if(_isWeb){
+                                  Navigation(context, name:Routename.OrderHistory,navigatore: NavigatoreTyp.Push,
+                                      qparms: {
+                                        'orderid': e.oid!,
+                                        'orderStatus': e.ostatus!,
+                                        'fromScreen': "webmyOrders",
+                                      });
+
+                                }else{
+                                  debugPrint("e.oid!.....2.."+e.oid!);
+                                  Navigation(context, name:Routename.OrderHistory,navigatore: NavigatoreTyp.Push,
+                                      qparms: {
+                                        'orderid': e.oid!,
+                                        'orderStatus': e.ostatus!,
+                                        'fromScreen': "myOrders",
+                                      });
+                                }
+
+                              },
+                              child: Container(
+                                height: 35,
+                                width: 125,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(3),
+                                  border: Border.all(
+                                      color: ColorCodes.greenColor),
+                                ),
+                                child: Center(
+                                    child: Text(
+                                      S .of(context).view_details_order,
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.bold,
+                                        color: ColorCodes
+                                            .greenColor, //Theme.of(context).buttonColor,
+                                      ),
+                                    )),
+                              ),
+                            ),
+                          ),
+                          Spacer(),
+                          
+                          (e.ostatus!.toLowerCase() == "received" ||
+                              e.ostatus!.toLowerCase() == "ready")
+                              ? Row(
+                            children: [
+                              MouseRegion(
+                                cursor: SystemMouseCursors.click,
+                                child: GestureDetector(
+                                  onTap: () {
+                                    _dialogforCancel(context);
+                                  },
+                                  child: Container(
+                                    width: 140.0,
+                                    height: 35.0,
+                                    margin: EdgeInsets.only(top: 5.0),
+                                    decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius:
+                                        BorderRadius.circular(
+                                            3.0),
+                                        border: Border(
+                                          top: BorderSide(
+                                            width: 1.0,
+                                            color: ColorCodes.blackColor,
+                                          ),
+                                          bottom: BorderSide(
+                                            width: 1.0,
+                                            color: ColorCodes.blackColor,
+                                          ),
+                                          left: BorderSide(
+                                            width: 1.0,
+                                            color: ColorCodes.blackColor,
+                                          ),
+                                          right: BorderSide(
+                                            width: 1.0,
+                                            color: ColorCodes.blackColor,
+                                          ),
+                                        )),
+                                    child: Center(
+                                        child: Text(
+                                          S .of(context).cancel_order,
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(
+                                              fontSize: 14,
+                                              color: ColorCodes.blackColor,
+                                              // color: Theme.of(context)
+                                              //     .primaryColor,
+                                              fontWeight:
+                                              FontWeight.bold),
+                                        )),
+                                  ),
+                                ),
+                              ),
                             ],
-                          ),
-                          // SizedBox(
-                          //   height: 10,
-                          // ),
-                          // Text(
-                          //   IConstants.currencyFormat + ' ' + orderamount.toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),
-                          //   style: TextStyle(
-                          //       fontWeight: FontWeight.bold,
-                          //       color: ColorCodes.greyColor),
-                          // ),
-
-                          // SizedBox(
-                          //   height: 10,
-                          // ),
-                          // Text(
-                          //             (e.paymentType == "cod".toLowerCase()
-                          //                 ? S.of(context).cash_delivery
-                          //                 : e.paymentType.toCapitalized())??"",
-                          //             style: TextStyle(
-                          //                 fontWeight: FontWeight.bold,
-                          //                 color: ColorCodes.greyColor),
-                          //           ),
-                          SizedBox(
-                            height: 10,
-                          ),
-
-                          // if (e.ostatus != "CANCELLED")
-                          //   SizedBox(
-                          //     height: 20,
-                          //   ),
-                          // Row(
-                          //   children: [
-                          //     MouseRegion(
-                          //       cursor: SystemMouseCursors.click,
-                          //       child: GestureDetector(
-                          //         onTap: () {
-                          //           if (e.odelivery == "DELIVERY ON") {
-                          //           } else {}
-                          //           /*Navigator.of(context).pushNamed(OrderhistoryScreen.routeName,
-                          //               arguments: {
-                          //                 'orderid' : widget.oid,
-                          //                 'fromScreen' : "myOrders",
-                          //               }
-                          //           );*/
-                          //           if(_isWeb){
-                          //             Navigator.pushNamedAndRemoveUntil(context, OrderhistoryScreen.routeName, (route) => false,
-                          //                 arguments: {
-                          //                   'orderid': e.oid,
-                          //                   'orderStatus': e.ostatus,
-                          //                   'fromScreen': "webmyOrders",
-                          //                 });
-                          //
-                          //           }else{
-                          //             Navigator.of(context).pushNamed(
-                          //                 OrderhistoryScreen.routeName,
-                          //                 arguments: {
-                          //                   'orderid': e.oid,
-                          //                   'orderStatus': e.ostatus,
-                          //                   'fromScreen': "myOrders",
-                          //                 });
-                          //           }
-                          //
-                          //         },
-                          //         child: Container(
-                          //           height: 35,
-                          //           width: 125,
-                          //           decoration: BoxDecoration(
-                          //             borderRadius: BorderRadius.circular(3),
-                          //             border: Border.all(
-                          //                 color: ColorCodes.greenColor),
-                          //             // color: Theme.of(context).primaryColor
-                          //           ),
-                          //           child: Center(
-                          //               child: Text(
-                          //                 S.of(context).view_details_order,
-                          //                 style: TextStyle(
-                          //                   fontSize: 13,
-                          //                   fontWeight: FontWeight.bold,
-                          //                   color: ColorCodes
-                          //                       .greenColor, //Theme.of(context).buttonColor,
-                          //                 ),
-                          //               )),
-                          //         ),
-                          //       ),
-                          //     ),
-                          //     Spacer(),
-                          //     // MouseRegion(
-                          //     //  cursor: SystemMouseCursors.click,
-                          //     //      child: GestureDetector(
-                          //     //     onTap: () {
-                          //     //       Navigator.of(context).pushNamed(
-                          //     //         HelpScreen.routeName,
-                          //     //       );
-                          //     //     },
-                          //     //     child: Container(
-                          //     //       height: 35,
-                          //     //       width: 125,
-                          //     //       decoration: BoxDecoration(
-                          //     //           borderRadius: BorderRadius.circular(3),
-                          //     //           border:
-                          //     //               Border.all(color: Theme.of(context).primaryColor),
-                          //     //           color: Theme.of(context).buttonColor),
-                          //     //       child: Center(
-                          //     //           child: Text(
-                          //     //             S.of(context).help,
-                          //     //             style: TextStyle(fontSize: 13,
-                          //     //                 color: Theme.of(context).primaryColor,
-                          //     //                 fontWeight: FontWeight.bold),
-                          //     //           )),
-                          //     //     ),
-                          //     //   ),
-                          //     // ),
-                          //     (e.ostatus.toLowerCase() == "received" ||
-                          //         e.ostatus.toLowerCase() == "ready")
-                          //         ? Row(
-                          //       children: [
-                          //         MouseRegion(
-                          //           cursor: SystemMouseCursors.click,
-                          //           child: GestureDetector(
-                          //             onTap: () {
-                          //               _dialogforCancel(context);
-                          //             },
-                          //             child: Container(
-                          //               width: 140.0,
-                          //               height: 35.0,
-                          //               margin: EdgeInsets.only(top: 5.0),
-                          //               decoration: BoxDecoration(
-                          //                   color: Colors.white,
-                          //                   borderRadius:
-                          //                   BorderRadius.circular(
-                          //                       3.0),
-                          //                   border: Border(
-                          //                     top: BorderSide(
-                          //                       width: 1.0,
-                          //                       color: Theme.of(context)
-                          //                           .primaryColor,
-                          //                     ),
-                          //                     bottom: BorderSide(
-                          //                       width: 1.0,
-                          //                       color: Theme.of(context)
-                          //                           .primaryColor,
-                          //                     ),
-                          //                     left: BorderSide(
-                          //                       width: 1.0,
-                          //                       color: Theme.of(context)
-                          //                           .primaryColor,
-                          //                     ),
-                          //                     right: BorderSide(
-                          //                       width: 1.0,
-                          //                       color: Theme.of(context)
-                          //                           .primaryColor,
-                          //                     ),
-                          //                   )),
-                          //               child: Center(
-                          //                   child: Text(
-                          //                     S.of(context).cancel_order,
-                          //                     /*'Re-order',*/
-                          //                     textAlign: TextAlign.center,
-                          //                     style: TextStyle(
-                          //                         fontSize: 14,
-                          //                         color: Theme.of(context)
-                          //                             .primaryColor,
-                          //                         fontWeight:
-                          //                         FontWeight.bold),
-                          //                   )),
-                          //             ),
-                          //           ),
-                          //         ),
-                          //       ],
-                          //     )
-                          //         :
-                          //     Features.isRateOrderModule?
-                          //       (e.ostatus.toLowerCase() == "delivered" ||
-                          //         e.ostatus.toLowerCase() == "completed")
-                          //         ? Row(
-                          //       children: [
-                          //         MouseRegion(
-                          //           cursor: SystemMouseCursors.click,
-                          //           child: GestureDetector(
-                          //             onTap: () {
-                          //               Navigator.of(context).pushNamed(RateOrderScreen.routeName,arguments: {
-                          //                 "orderid":e.oid,
-                          //               });
-                          //              // _dialogforRateOrder(context);
-                          //             },
-                          //             child: Container(
-                          //               width: 140.0,
-                          //               height: 35.0,
-                          //               margin:
-                          //               EdgeInsets.only(top: 5.0),
-                          //               decoration: BoxDecoration(
-                          //                   color: Colors.white,
-                          //                   borderRadius:
-                          //                   BorderRadius.circular(
-                          //                       3.0),
-                          //                   border: Border(
-                          //                     top: BorderSide(
-                          //                       width: 1.0,
-                          //                       color:
-                          //                       Theme.of(context)
-                          //                           .primaryColor,
-                          //                     ),
-                          //                     bottom: BorderSide(
-                          //                       width: 1.0,
-                          //                       color:
-                          //                       Theme.of(context)
-                          //                           .primaryColor,
-                          //                     ),
-                          //                     left: BorderSide(
-                          //                       width: 1.0,
-                          //                       color:
-                          //                       Theme.of(context)
-                          //                           .primaryColor,
-                          //                     ),
-                          //                     right: BorderSide(
-                          //                       width: 1.0,
-                          //                       color:
-                          //                       Theme.of(context)
-                          //                           .primaryColor,
-                          //                     ),
-                          //                   )),
-                          //               child: Center(
-                          //                   child: Text(
-                          //                     S.of(context).rate_order,
-                          //                     /*'Re-order',*/
-                          //                     textAlign: TextAlign.center,
-                          //                     style: TextStyle(
-                          //                         fontSize: 14,
-                          //                         color: Theme.of(context)
-                          //                             .primaryColor,
-                          //                         fontWeight:
-                          //                         FontWeight.bold),
-                          //                   )),
-                          //             ),
-                          //           ),
-                          //         ),
-                          //       ],
-                          //     )
-                          //         : SizedBox.shrink()
-                          //     :SizedBox.shrink(),
-                          //   ],
-                          // ),
-                          // SizedBox(
-                          //   height: 10,
-                          // ),
-                          //             Divider(
-                          //               color: Color(0xffA9A9A9),
-                          //             ),
-                          //             SizedBox(
-                          //               height: 10,
-                          //             ),
-                          //             (widget.orderType.toLowerCase() == "pickup")
-                          //                 ? Row(
-                          //               children: [
-                          //                 Text(widget.ostatustext, style: TextStyle(color: Colors.black, fontSize: 14.0, fontWeight: FontWeight.bold,),),
-                          //                 Spacer(),
-                          //                 Text(widget.ostatus, style: TextStyle(color: Theme.of(context).primaryColor, fontSize: 14.0, fontWeight: FontWeight.bold)),
-                          //               ],
-                          //             )
-                          //             /* : Row(
-                          //                         children: [
-                          //                           MouseRegion(
-                          //                             cursor: SystemMouseCursors.click,
-                          //                              child: GestureDetector(
-                          //                               onTap: () {
-                          //                                 _dialogforReturn(context);
-                          //                               },
-                          //                               child: Container(
-                          //                                 height: 35,
-                          //                                 width: 125,
-                          //                                 margin: EdgeInsets.only(top: 5.0),
-                          //                                 decoration: BoxDecoration(
-                          //                                     color: Colors.white,
-                          //                                     borderRadius: BorderRadius.circular(3.0),
-                          //                                     border: Border(
-                          //                                       top: BorderSide(
-                          //                                         width: 1.0,
-                          //                                         color: Theme.of(context).primaryColor,
-                          //                                       ),
-                          //                                       bottom: BorderSide(
-                          //                                         width: 1.0,
-                          //                                         color: Theme.of(context).primaryColor,
-                          //                                       ),
-                          //                                       left: BorderSide(
-                          //                                         width: 1.0,
-                          //                                         color: Theme.of(context).primaryColor,
-                          //                                       ),
-                          //                                       right: BorderSide(
-                          //                                         width: 1.0,
-                          //                                         color: Theme.of(context).primaryColor,
-                          //                                       ),
-                          //                                     )),
-                          //                                 child: Center(
-                          //                                     child: Text(
-                          //                                   'Return or Exchange',
-                          //                                   *//*'Re-order',*//*
-                          //                                   textAlign: TextAlign.center,
-                          //                                   style: TextStyle(
-                          //                                       color: Theme.of(context).primaryColor,
-                          //                                       fontWeight: FontWeight.bold,
-                          //                                       fontSize: 13.0),
-                          //                                 )),
-                          //                               ),
-                          //                             ),
-                          //                           ),
-                          //                         ],
-                          //                       )*/
-                          //                 :
-                          //             _showCancelled
-                          //                 ? Row(
-                          //               children: [
-                          //                 MouseRegion(
-                          //                   cursor: SystemMouseCursors.click,
-                          //                   child: GestureDetector(
-                          //                     onTap: () {
-                          //                       _dialogforCancel(context);
-                          //                     },
-                          //                     child: Container(
-                          //                       width: 140.0,
-                          //                       height: 35.0,
-                          //                       margin: EdgeInsets.only(top: 5.0),
-                          //                       decoration: BoxDecoration(
-                          //                           color: Colors.white,
-                          //                           borderRadius: BorderRadius.circular(3.0),
-                          //                           border: Border(
-                          //                             top: BorderSide(
-                          //                               width: 1.0,
-                          //                               color: Theme.of(context).primaryColor,
-                          //                             ),
-                          //                             bottom: BorderSide(
-                          //                               width: 1.0,
-                          //                               color: Theme.of(context).primaryColor,
-                          //                             ),
-                          //                             left: BorderSide(
-                          //                               width: 1.0,
-                          //                               color: Theme.of(context).primaryColor,
-                          //                             ),
-                          //                             right: BorderSide(
-                          //                               width: 1.0,
-                          //                               color: Theme.of(context).primaryColor,
-                          //                             ),
-                          //                           )),
-                          //                       child: Center(
-                          //                           child: Text(
-                          //                             S.of(context).cancel,
-                          //                             /*'Re-order',*/
-                          //                             textAlign: TextAlign.center,
-                          //                             style: TextStyle(
-                          //                                 fontSize: 14,
-                          //                                 color: Theme.of(context).primaryColor,
-                          //                                 fontWeight: FontWeight.bold),
-                          //                           )),
-                          //                     ),
-                          //                   ),
-                          //                 ),
-                          //
-                          //
-                          //               ],
-                          //             )
-                          //                 :
-                          //             (widget.returnStatus==""||widget.returnStatus=="null")?
-                          //             Row(
-                          //               children: [
-                          // //                  Text(widget.ostatustext, style: TextStyle(color: Colors.black, fontSize: 16.0),),
-                          //                 Text(
-                          //                   S.of(context).order_status,
-                          //                   style:
-                          //                   TextStyle(fontSize: 14,
-                          //                       color: Theme.of(context).primaryColor,
-                          //                       fontWeight: FontWeight.bold),
-                          //                 ),
-                          //                 Spacer(),
-                          //                 if (widget.ostatus == "CANCELLED")
-                          //                   Text(widget.ostatus,
-                          //                       style: TextStyle(
-                          //                           color: ColorCodes.redColor,
-                          //                           fontSize: 14,
-                          //                           fontWeight: FontWeight.bold)),
-                          //                 if (widget.ostatus != "CANCELLED")
-                          //                   Text(widget.ostatus,
-                          //                       style: TextStyle(
-                          //                           color: ColorCodes.greenColor,
-                          //                           fontSize: 14.0,
-                          //                           fontWeight: FontWeight.bold)),
-                          //               ],
-                          //             ):
-                          //             Row(
-                          //               children: [
-                          // //                  Text(widget.ostatustext, style: TextStyle(color: Colors.black, fontSize: 16.0),),
-                          //                 Text(
-                          //                         S.of(context).return_status,
-                          //                         style:
-                          //                         TextStyle(fontSize: 14,
-                          //                             color: Theme.of(context).primaryColor,
-                          //                             fontWeight: FontWeight.bold),
-                          //                       ),
-                          //                       Spacer(),
-                          //                 Text(widget.returnStatus.toUpperCase(),
-                          //                     style: TextStyle(
-                          //                         color: ColorCodes.redColor,
-                          //                         fontSize: 14,
-                          //                         fontWeight: FontWeight.bold)),
-                          //               ],
-                          //             ) ,
-                          //             SizedBox(
-                          //               height: 10.0,
-                          //             ),
+                          )
+                              :
+                          Features.isRateOrderModule?
+                            (e.ostatus!.toLowerCase() == "delivered" ||
+                              e.ostatus!.toLowerCase() == "completed")
+                              ? Row(
+                            children: [
+                              MouseRegion(
+                                cursor: SystemMouseCursors.click,
+                                child: GestureDetector(
+                                  onTap: () {
+                                    showModalRateOrder(context, setState,e.oid!);
+                                  },
+                                  child: Container(
+                                    width: 140.0,
+                                    height: 35.0,
+                                    margin:
+                                    EdgeInsets.only(top: 5.0),
+                                    decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius:
+                                        BorderRadius.circular(
+                                            3.0),
+                                        border: Border(
+                                          top: BorderSide(
+                                            width: 1.0,
+                                            color:ColorCodes.badgecolor,
+                                          ),
+                                          bottom: BorderSide(
+                                            width: 1.0,
+                                            color:ColorCodes.badgecolor,
+                                          ),
+                                          left: BorderSide(
+                                            width: 1.0,
+                                            color:ColorCodes.badgecolor,
+                                          ),
+                                          right: BorderSide(
+                                            width: 1.0,
+                                            color:ColorCodes.badgecolor,
+                                          ),
+                                        )),
+                                    child: Center(
+                                        child: Text(
+                                          S .of(context).rate_order,
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(
+                                              fontSize: 14,
+                                              color: ColorCodes.badgecolor,// color: Theme.of(context)
+                                              //     .primaryColor,
+                                              fontWeight:
+                                              FontWeight.bold),
+                                        )),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          )
+                              : SizedBox.shrink()
+                          :SizedBox.shrink(),
                         ],
                       ),
-                   ),
-                 ),
+                      if(ResponsiveLayout.isSmallScreen(context))
+                      SizedBox(
+                        height: 10,
+                      ),
+                    ],
+                  ),
                );
               }).toList(),
 
@@ -1100,7 +1336,7 @@ return Column(
               child: Row(
                 children: [
                   Text(
-                    S.of(context).total_order_amount + ": ",
+                    S .of(context).total_order_amount + ": ",
                     style: TextStyle(
                         color: ColorCodes.greenColor,
                         //Theme.of(context).primaryColor,
@@ -1111,6 +1347,8 @@ return Column(
                     width: 5,
                   ),
                   Text(
+                    Features.iscurrencyformatalign?
+                     totalamount.toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit) + ' ' + IConstants.currencyFormat:
                     IConstants.currencyFormat + ' ' + totalamount.toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),
                     style: TextStyle(
                         color: ColorCodes.greenColor,
@@ -1124,6 +1362,8 @@ return Column(
               ),
             ),
           ),
+          if(ResponsiveLayout.isSmallScreen(context))
+          Divider(),
         ],
       ),
     )
@@ -1131,545 +1371,6 @@ return Column(
   ],
 );
 
-//
-//
-//       ListView.builder(
-//           physics: NeverScrollableScrollPhysics(),
-//           shrinkWrap: true,
-//           itemCount: myorders.length,
-//           itemBuilder: (ctx, i)
-//           {
-//
-//           return
-//             Container(
-//             height:MediaQuery.of(context).size.height/3,
-//               margin: EdgeInsets.all(12),
-//               color: Colors.white,
-//               child: Padding(
-//                 padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16),
-//                 child: Column(
-//                   mainAxisAlignment: MainAxisAlignment.start,
-//                   crossAxisAlignment: CrossAxisAlignment.start,
-//                   children: <Widget>[
-//                     SizedBox(
-//                       height: 10,
-//                     ),
-//                     Row(
-//                       children: [
-//                         Text(
-//                           S.of(context).refund_orderid + ": ",
-//                           style: TextStyle(
-//                               color: ColorCodes.greenColor,//Theme.of(context).primaryColor,
-//                               fontSize: 14.0,
-//                               fontWeight: FontWeight.bold),
-//                         ),
-//                         SizedBox(
-//                           width: 5,
-//                         ),
-//                         Text(
-//                           "#"+myorders.elementAt(i).oid,
-//                           style: TextStyle(
-//                               color: ColorCodes.greenColor,//Theme.of(context).primaryColor,
-//                               fontSize: 14.0,
-//                               fontWeight: FontWeight.bold),
-//                         ),
-//                         Spacer(),
-//
-//                         (widget.orderType.toLowerCase() == "pickup")
-//                             ?
-//                         Row(
-//                           children: [
-//                             Text(widget.ostatus.toLowerCase().toCapitalized(), style: TextStyle(color: ColorCodes.greyColor, fontSize: 14.0, fontWeight: FontWeight.bold)),
-//
-//                           ],
-//                         )
-//                             :
-//                         (widget.returnStatus==""||widget.returnStatus=="null")?
-//
-// //
-//                         (widget.ostatus == "CANCELLED")?
-//                         Text(widget.ostatus.toLowerCase().toCapitalized(),
-//                             style: TextStyle(
-//                                 color: ColorCodes.redColor,
-//                                 fontSize: 14,
-//                                 fontWeight: FontWeight.bold))
-//                             :
-//                         Row(
-//                           children: [
-//                             Text(widget.ostatus.toLowerCase().toCapitalized(),
-//                                 style: TextStyle(
-//                                     color: ColorCodes.greyColor,
-//                                     fontSize: 14.0,
-//                                     fontWeight: FontWeight.bold)),
-//                             SizedBox(width: 5,),
-//                             if(widget.ostatus.toLowerCase() == "delivered"||widget.ostatus.toLowerCase() == "completed")Image.asset(Images.delivered, height: 25.0, width: 25.0),
-//                             if(widget.ostatus.toLowerCase() == "received")Image.asset(Images.received, height: 25.0, width: 25.0),
-//                             if(widget.ostatus.toLowerCase() == "dispatched"||widget.ostatus.toLowerCase() == "out for delivery")Image.asset(Images.outdelivery, height: 25.0, width: 25.0),
-//                           ],
-//                         )
-//
-//                             :
-//
-//                         Text(widget.returnStatus.toUpperCase(),
-//                             style: TextStyle(
-//                                 color: ColorCodes.redColor,
-//                                 fontSize: 14,
-//                                 fontWeight: FontWeight.bold)),
-//
-//                         SizedBox(
-//                           height: 10.0,
-//                         ),
-//                       ],
-//                     ),
-//
-//                     SizedBox(
-//                       height: 10,
-//                     ),
-//
-//                     Row(
-//                       children: [
-//                         Text(
-//                           //"+ " +
-//                           itemleftcount.toString()
-//                               + " " + S.of(context).items,
-//                           //   " more items",
-//                           style: TextStyle(color: ColorCodes.greyColor),
-//                         ),
-//                         Spacer(),
-//                         if(widget.orderType == "express")Row(
-//                           children: [
-//                             Text(widget.orderType.toCapitalized(),
-//                               style: TextStyle(fontWeight: FontWeight.bold,color: ColorCodes.greyColor),
-//                             ),
-//                             SizedBox(width: 5,),
-//                             Image.asset(Images.expressdelivery, height: 25.0, width: 25.0),
-//                           ],
-//                         ),
-//                       ],
-//                     ),
-//                     SizedBox(
-//                       height: 10,
-//                     ),
-//                     Text(IConstants.currencyFormat + ' ' + widget.itemPrice,
-//                       style: TextStyle(fontWeight: FontWeight.bold,color: ColorCodes.greyColor),
-//                     ),
-//
-//                     SizedBox(
-//                       height: 10,
-//                     ),
-//                     Text( widget.paymenttype == "cod".toLowerCase()?S.of(context).cash_delivery:widget.paymenttype.toCapitalized(),
-//                       style: TextStyle(fontWeight: FontWeight.bold,color: ColorCodes.greyColor),
-//                     ),
-//
-//                     SizedBox(
-//                       height: 10,
-//                     ),
-//                     DottedLine(dashColor: ColorCodes.lightGreyColor,),
-//                     if (widget.ostatus == "CANCELLED")
-//                       SizedBox(
-//                         height: 10,
-//                       ),
-//                     if (widget.ostatus != "CANCELLED")
-//                       SizedBox(
-//                         height: 10,
-//                       ),
-//                     if (widget.ostatus != "CANCELLED")
-//                       Row(
-//                         children: [
-//                           Text(
-//                             S.of(context).scheduled_delivery,//widget.odelivery,
-//                             style: TextStyle(
-//                                 color: ColorCodes.greyColor,//Theme.of(context).primaryColor,
-//                                 fontSize: 12.0,
-//                                 fontWeight: FontWeight.bold),
-//                           ),
-//                           SizedBox(
-//                             width: 5,
-//                           ),
-//                           Text(
-//                             widget.odate,
-//                             textAlign: TextAlign.right,
-//                             style: TextStyle(
-//                                 color: ColorCodes.darkGrey,//Theme.of(context).primaryColor,
-//                                 fontSize: 12.0,
-//                                 fontWeight: FontWeight.bold
-//                             ),
-//                           ),
-//                           SizedBox(
-//                             width: 5,
-//                           ),
-//                           Text(
-//                             widget.odeltime,
-//                             style: TextStyle(
-//                                 color: ColorCodes.darkGrey,//Theme.of(context).primaryColor,
-//                                 fontSize: 12.0,
-//                                 fontWeight: FontWeight.bold),
-//                           ),
-//                           // (ResponsiveLayout.isSmallScreen(context)|| ResponsiveLayout.isMediumScreen(context))?
-//                           // SizedBox(
-//                           //   width: 45,
-//                           // ):
-//                           // SizedBox(
-//                           //   width: MediaQuery.of(context).size.width - 400,
-//                           // ),
-//                           // Text(
-//                           //   widget.odate,
-//                           //   textAlign: TextAlign.right,
-//                           //   style: TextStyle(
-//                           //       color: Theme.of(context).primaryColor,
-//                           //       fontSize: 12.0,
-//                           //       fontWeight: FontWeight.bold
-//                           //   ),
-//                           // )
-//                         ],
-//                       ),
-//                     if (widget.ostatus != "CANCELLED")
-//                       SizedBox(
-//                         height: 20,
-//                       ),
-//                     Row(
-//                       children: [
-//                         MouseRegion(
-//                           cursor: SystemMouseCursors.click,
-//                           child: GestureDetector(
-//                             onTap: () {
-//                               if (widget.odelivery == "DELIVERY ON") {
-//                               } else {}
-//                               /*Navigator.of(context).pushNamed(OrderhistoryScreen.routeName,
-//                           arguments: {
-//                             'orderid' : widget.oid,
-//                             'fromScreen' : "myOrders",
-//                           }
-//                       );*/
-//                               Navigator.of(context).pushNamed(
-//                                   OrderhistoryScreen.routeName,
-//                                   arguments: {
-//                                     'orderid': widget.oid,
-//                                     'orderStatus':widget.ostatus,
-//                                     'fromScreen': "myOrders",
-//                                   });
-//                             },
-//                             child: Container(
-//                               height: 35,
-//                               width: 125,
-//                               decoration: BoxDecoration(
-//                                 borderRadius: BorderRadius.circular(3),
-//                                 border:
-//                                 Border.all(color: ColorCodes.greenColor),
-//                                 // color: Theme.of(context).primaryColor
-//                               ),
-//                               child: Center(
-//                                   child: Text(
-//                                     S.of(context).view_details_order,
-//                                     style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: ColorCodes.greenColor,//Theme.of(context).buttonColor,
-//                                     ),
-//                                   )),
-//                             ),
-//                           ),
-//                         ),
-//                         Spacer(),
-//                         // MouseRegion(
-//                         //  cursor: SystemMouseCursors.click,
-//                         //      child: GestureDetector(
-//                         //     onTap: () {
-//                         //       Navigator.of(context).pushNamed(
-//                         //         HelpScreen.routeName,
-//                         //       );
-//                         //     },
-//                         //     child: Container(
-//                         //       height: 35,
-//                         //       width: 125,
-//                         //       decoration: BoxDecoration(
-//                         //           borderRadius: BorderRadius.circular(3),
-//                         //           border:
-//                         //               Border.all(color: Theme.of(context).primaryColor),
-//                         //           color: Theme.of(context).buttonColor),
-//                         //       child: Center(
-//                         //           child: Text(
-//                         //             S.of(context).help,
-//                         //             style: TextStyle(fontSize: 13,
-//                         //                 color: Theme.of(context).primaryColor,
-//                         //                 fontWeight: FontWeight.bold),
-//                         //           )),
-//                         //     ),
-//                         //   ),
-//                         // ),
-//                         _showCancelled
-//                             ?
-//                         Row(
-//                           children: [
-//                             MouseRegion(
-//                               cursor: SystemMouseCursors.click,
-//                               child: GestureDetector(
-//                                 onTap: () {
-//                                   _dialogforCancel(context);
-//                                 },
-//                                 child: Container(
-//                                   width: 140.0,
-//                                   height: 35.0,
-//                                   margin: EdgeInsets.only(top: 5.0),
-//                                   decoration: BoxDecoration(
-//                                       color: Colors.white,
-//                                       borderRadius: BorderRadius.circular(3.0),
-//                                       border: Border(
-//                                         top: BorderSide(
-//                                           width: 1.0,
-//                                           color: Theme.of(context).primaryColor,
-//                                         ),
-//                                         bottom: BorderSide(
-//                                           width: 1.0,
-//                                           color: Theme.of(context).primaryColor,
-//                                         ),
-//                                         left: BorderSide(
-//                                           width: 1.0,
-//                                           color: Theme.of(context).primaryColor,
-//                                         ),
-//                                         right: BorderSide(
-//                                           width: 1.0,
-//                                           color: Theme.of(context).primaryColor,
-//                                         ),
-//                                       )),
-//                                   child: Center(
-//                                       child: Text(
-//                                         S.of(context).cancel_order,
-//                                         /*'Re-order',*/
-//                                         textAlign: TextAlign.center,
-//                                         style: TextStyle(
-//                                             fontSize: 14,
-//                                             color: Theme.of(context).primaryColor,
-//                                             fontWeight: FontWeight.bold),
-//                                       )),
-//                                 ),
-//                               ),
-//                             ),
-//
-//
-//                           ],
-//                         )
-//                             :_rateorder?
-//                         Row(
-//                           children: [
-//                             MouseRegion(
-//                               cursor: SystemMouseCursors.click,
-//                               child: GestureDetector(
-//                                 onTap: () {
-//                                   _dialogforCancel(context);
-//                                 },
-//                                 child: Container(
-//                                   width: 140.0,
-//                                   height: 35.0,
-//                                   margin: EdgeInsets.only(top: 5.0),
-//                                   decoration: BoxDecoration(
-//                                       color: Colors.white,
-//                                       borderRadius: BorderRadius.circular(3.0),
-//                                       border: Border(
-//                                         top: BorderSide(
-//                                           width: 1.0,
-//                                           color: Theme.of(context).primaryColor,
-//                                         ),
-//                                         bottom: BorderSide(
-//                                           width: 1.0,
-//                                           color: Theme.of(context).primaryColor,
-//                                         ),
-//                                         left: BorderSide(
-//                                           width: 1.0,
-//                                           color: Theme.of(context).primaryColor,
-//                                         ),
-//                                         right: BorderSide(
-//                                           width: 1.0,
-//                                           color: Theme.of(context).primaryColor,
-//                                         ),
-//                                       )),
-//                                   child: Center(
-//                                       child: Text(
-//                                         S.of(context).rate_order,
-//                                         /*'Re-order',*/
-//                                         textAlign: TextAlign.center,
-//                                         style: TextStyle(
-//                                             fontSize: 14,
-//                                             color: Theme.of(context).primaryColor,
-//                                             fontWeight: FontWeight.bold),
-//                                       )),
-//                                 ),
-//                               ),
-//                             ),
-//
-//
-//                           ],
-//                         ):
-//                         SizedBox.shrink(),
-//                       ],
-//                     ),
-//                     SizedBox(
-//                       height: 10,
-//                     ),
-// //             Divider(
-// //               color: Color(0xffA9A9A9),
-// //             ),
-// //             SizedBox(
-// //               height: 10,
-// //             ),
-// //             (widget.orderType.toLowerCase() == "pickup")
-// //                 ? Row(
-// //               children: [
-// //                 Text(widget.ostatustext, style: TextStyle(color: Colors.black, fontSize: 14.0, fontWeight: FontWeight.bold,),),
-// //                 Spacer(),
-// //                 Text(widget.ostatus, style: TextStyle(color: Theme.of(context).primaryColor, fontSize: 14.0, fontWeight: FontWeight.bold)),
-// //               ],
-// //             )
-// //             /* : Row(
-// //                         children: [
-// //                           MouseRegion(
-// //                             cursor: SystemMouseCursors.click,
-// //                              child: GestureDetector(
-// //                               onTap: () {
-// //                                 _dialogforReturn(context);
-// //                               },
-// //                               child: Container(
-// //                                 height: 35,
-// //                                 width: 125,
-// //                                 margin: EdgeInsets.only(top: 5.0),
-// //                                 decoration: BoxDecoration(
-// //                                     color: Colors.white,
-// //                                     borderRadius: BorderRadius.circular(3.0),
-// //                                     border: Border(
-// //                                       top: BorderSide(
-// //                                         width: 1.0,
-// //                                         color: Theme.of(context).primaryColor,
-// //                                       ),
-// //                                       bottom: BorderSide(
-// //                                         width: 1.0,
-// //                                         color: Theme.of(context).primaryColor,
-// //                                       ),
-// //                                       left: BorderSide(
-// //                                         width: 1.0,
-// //                                         color: Theme.of(context).primaryColor,
-// //                                       ),
-// //                                       right: BorderSide(
-// //                                         width: 1.0,
-// //                                         color: Theme.of(context).primaryColor,
-// //                                       ),
-// //                                     )),
-// //                                 child: Center(
-// //                                     child: Text(
-// //                                   'Return or Exchange',
-// //                                   *//*'Re-order',*//*
-// //                                   textAlign: TextAlign.center,
-// //                                   style: TextStyle(
-// //                                       color: Theme.of(context).primaryColor,
-// //                                       fontWeight: FontWeight.bold,
-// //                                       fontSize: 13.0),
-// //                                 )),
-// //                               ),
-// //                             ),
-// //                           ),
-// //                         ],
-// //                       )*/
-// //                 :
-// //             _showCancelled
-// //                 ? Row(
-// //               children: [
-// //                 MouseRegion(
-// //                   cursor: SystemMouseCursors.click,
-// //                   child: GestureDetector(
-// //                     onTap: () {
-// //                       _dialogforCancel(context);
-// //                     },
-// //                     child: Container(
-// //                       width: 140.0,
-// //                       height: 35.0,
-// //                       margin: EdgeInsets.only(top: 5.0),
-// //                       decoration: BoxDecoration(
-// //                           color: Colors.white,
-// //                           borderRadius: BorderRadius.circular(3.0),
-// //                           border: Border(
-// //                             top: BorderSide(
-// //                               width: 1.0,
-// //                               color: Theme.of(context).primaryColor,
-// //                             ),
-// //                             bottom: BorderSide(
-// //                               width: 1.0,
-// //                               color: Theme.of(context).primaryColor,
-// //                             ),
-// //                             left: BorderSide(
-// //                               width: 1.0,
-// //                               color: Theme.of(context).primaryColor,
-// //                             ),
-// //                             right: BorderSide(
-// //                               width: 1.0,
-// //                               color: Theme.of(context).primaryColor,
-// //                             ),
-// //                           )),
-// //                       child: Center(
-// //                           child: Text(
-// //                             S.of(context).cancel,
-// //                             /*'Re-order',*/
-// //                             textAlign: TextAlign.center,
-// //                             style: TextStyle(
-// //                                 fontSize: 14,
-// //                                 color: Theme.of(context).primaryColor,
-// //                                 fontWeight: FontWeight.bold),
-// //                           )),
-// //                     ),
-// //                   ),
-// //                 ),
-// //
-// //
-// //               ],
-// //             )
-// //                 :
-// //             (widget.returnStatus==""||widget.returnStatus=="null")?
-// //             Row(
-// //               children: [
-// // //                  Text(widget.ostatustext, style: TextStyle(color: Colors.black, fontSize: 16.0),),
-// //                 Text(
-// //                   S.of(context).order_status,
-// //                   style:
-// //                   TextStyle(fontSize: 14,
-// //                       color: Theme.of(context).primaryColor,
-// //                       fontWeight: FontWeight.bold),
-// //                 ),
-// //                 Spacer(),
-// //                 if (widget.ostatus == "CANCELLED")
-// //                   Text(widget.ostatus,
-// //                       style: TextStyle(
-// //                           color: ColorCodes.redColor,
-// //                           fontSize: 14,
-// //                           fontWeight: FontWeight.bold)),
-// //                 if (widget.ostatus != "CANCELLED")
-// //                   Text(widget.ostatus,
-// //                       style: TextStyle(
-// //                           color: ColorCodes.greenColor,
-// //                           fontSize: 14.0,
-// //                           fontWeight: FontWeight.bold)),
-// //               ],
-// //             ):
-// //             Row(
-// //               children: [
-// // //                  Text(widget.ostatustext, style: TextStyle(color: Colors.black, fontSize: 16.0),),
-// //                 Text(
-// //                         S.of(context).return_status,
-// //                         style:
-// //                         TextStyle(fontSize: 14,
-// //                             color: Theme.of(context).primaryColor,
-// //                             fontWeight: FontWeight.bold),
-// //                       ),
-// //                       Spacer(),
-// //                 Text(widget.returnStatus.toUpperCase(),
-// //                     style: TextStyle(
-// //                         color: ColorCodes.redColor,
-// //                         fontSize: 14,
-// //                         fontWeight: FontWeight.bold)),
-// //               ],
-// //             ) ,
-// //             SizedBox(
-// //               height: 10.0,
-// //             ),
-//                   ],
-//                 ),
-//               ),
-//             );
-//           });
 
   }
 }

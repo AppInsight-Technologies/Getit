@@ -2,14 +2,14 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 class LoyaltyFields with ChangeNotifier {
-  final String id;
-  final String status;
-  final String type;
-  final String minimumOrderAmount;
-  final String points;
-  final String maximumRedeem;
-  final String discount;
-  final String note;
+  final String? id;
+  final String? status;
+  final String? type;
+  final String? minimumOrderAmount;
+  final String? points;
+  final String? maximumRedeem;
+  final String? discount;
+  final String? note;
 
   LoyaltyFields({
     this.id,

@@ -9,28 +9,24 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter/src/widgets/framework.dart';
-import '../../widgets/bottom_navigation.dart';
+import '../../constants/features.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/src/widgets/will_pop_scope.dart';
-import '../widgets/footer.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import '../../providers/itemslist.dart';
-import '../../providers/sellingitems.dart';
-import '../../screens/MySubscriptionScreen.dart';
-import 'package:intl/intl.dart';
 import '../constants/api.dart';
 import '../generated/l10n.dart';
-import '../screens/pause_subscriptionScreen.dart';
 import '../assets/ColorCodes.dart';
+import '../rought_genrator.dart';
+import '../screens/MySubscriptionScreen.dart';
 import '../screens/View_Subscription_Details.dart';
 import 'package:provider/provider.dart';
 import 'package:http/http.dart' as http;
 import '../providers/myorderitems.dart';
 import '../constants/IConstants.dart';
-import '../screens/myorder_screen.dart';
 import '../assets/images.dart';
 import '../utils/ResponsiveLayout.dart';
 import '../utils/prefUtils.dart';
+import 'bottom_navigation.dart';
 
 class MysubscriptionDisply extends StatefulWidget {
   final String subid;
@@ -55,6 +51,7 @@ class MysubscriptionDisply extends StatefulWidget {
   final String name;
   final String image;
   final String variation_name;
+  final String subscription_delivery_charge;
 
   MysubscriptionDisply(
       this.subid,
@@ -79,6 +76,7 @@ class MysubscriptionDisply extends StatefulWidget {
       this.name,
       this.image,
       this.variation_name,
+      this.subscription_delivery_charge
       );
 
 
@@ -88,7 +86,7 @@ class MysubscriptionDisply extends StatefulWidget {
 }
 
 
-class _MysubscriptionDisplyState extends State<MysubscriptionDisply> {
+class _MysubscriptionDisplyState extends State<MysubscriptionDisply> with Navigations {
 
   var _message = TextEditingController();
   var _isWeb = false;
@@ -97,9 +95,12 @@ class _MysubscriptionDisplyState extends State<MysubscriptionDisply> {
   final TextEditingController datecontroller1 = new TextEditingController();
 
   final now = new DateTime.now();
-  DateTime _selectedDate;
-  DateTime _selectedDate1 = DateTime.now().add(Duration(days: 1));
+  DateTime? _selectedDate;
+  DateTime? _selectedDate1 ;
+  String? enddatestart;
 
+  double total = 0.0;
+  String? finaltotal;
   bool _isLoading = true;
   @override
   void initState() {
@@ -121,8 +122,12 @@ class _MysubscriptionDisplyState extends State<MysubscriptionDisply> {
 
     Future.delayed(Duration.zero, () async {
       _message.text = "";
+      if(Features.isdeliverychargesubscription)
+      total = double.parse(widget.amount) + double.parse(widget.subscription_delivery_charge);
+      //print("total....."+total.toString());
     });
 
+    //print("deivery charge subsc...."+widget.subscription_delivery_charge.toString());
     super.initState();
   }
 
@@ -136,15 +141,16 @@ class _MysubscriptionDisplyState extends State<MysubscriptionDisply> {
       final responseJson = json.decode(utf8.decode(response.bodyBytes));
       Navigator.pop(context);
       if (responseJson['status'].toString() == "200") {
-        Navigator.of(context).pushReplacementNamed(
+      /*  Navigator.of(context).pushReplacementNamed(
           MySubscriptionScreen.routeName,
-        );
+        );*/
+        Navigation(context, name: Routename.MySubscription, navigatore: NavigatoreTyp.Push,);
       } else {
-        return Fluttertoast.showToast(msg: S.current.something_went_wrong, fontSize: MediaQuery.of(context).textScaleFactor *13,);
+        Fluttertoast.showToast(msg: S .current.something_went_wrong, fontSize: MediaQuery.of(context).textScaleFactor *13,);
       }
     } catch (error) {
       Navigator.pop(context);
-      Fluttertoast.showToast(msg: S.current.something_went_wrong, fontSize: MediaQuery.of(context).textScaleFactor *13,);
+      Fluttertoast.showToast(msg: S .current.something_went_wrong, fontSize: MediaQuery.of(context).textScaleFactor *13,);
       throw error;
     }
   }
@@ -169,7 +175,7 @@ class _MysubscriptionDisplyState extends State<MysubscriptionDisply> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Center(
-                  child: Text(S.of(context).Resumemsg +" "+ date,
+                  child: Text(S .of(context).Resumemsg +" "+ date,
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 14,fontWeight: FontWeight.w400),
                   ),
@@ -179,11 +185,12 @@ class _MysubscriptionDisplyState extends State<MysubscriptionDisply> {
             actions: <Widget>[
               FlatButton(
                 child: Text(
-                  S.of(context).ok,
+                  S .of(context).ok,
                   style: TextStyle(fontSize: 14,fontWeight: FontWeight.bold,color: ColorCodes.greenColor),
                 ),
                 onPressed: () async {
-                  Navigator.of(context).pushReplacementNamed(MySubscriptionScreen.routeName);
+                 // Navigator.of(context).pushReplacementNamed(MySubscriptionScreen.routeName);
+                  Navigation(context, name: Routename.MySubscription, navigatore: NavigatoreTyp.Push);
                 },
               ),
             ],
@@ -194,33 +201,37 @@ class _MysubscriptionDisplyState extends State<MysubscriptionDisply> {
   }
 
   Future<void> ResumeSubscription (String subscriptionid) async{
-    final now = new DateTime.now().add(Duration(days: 1));
+    final now = new DateTime.now();
     final date = DateFormat("yyyy-MM-dd").format(now);
     try {
+    debugPrint("resume...."+{
+      "paused_date": PrefUtils.prefs!.getString('pauseStartDate'),
+      "user": PrefUtils.prefs!.getString('apikey'),
+      "id": subscriptionid,
+      "date": date,
+      "resumeddate":date,
+      "hihi":widget.startdate
+    }.toString());
       final response = await http.post(Api.resumeSubscription, body: {
-        "paused_date": PrefUtils.prefs.getString('pauseStartDate'),
-        "user": PrefUtils.prefs.getString('apikey'),
+        "paused_date": widget.startdate,
+        "user": PrefUtils.prefs!.getString('apikey'),
         "id": subscriptionid,
         "date": date,
+       "resumeddate":date,
       });
-      debugPrint("resume...."+{
-        "paused_date": PrefUtils.prefs.getString('pauseStartDate'),
-        "user": PrefUtils.prefs.getString('apikey'),
-        "id": subscriptionid,
-        "date": date,
-      }.toString());
+
       final responseJson = json.decode(utf8.decode(response.bodyBytes));
       debugPrint("resume...."+responseJson.toString());
       //Navigator.pop(context);
       if (responseJson['status'].toString() == "200") {
-       // Fluttertoast.showToast(msg: S.current.Resumemsg, fontSize: MediaQuery.of(context).textScaleFactor *13,);
-        ShowpopupforResume(date);
+       // Fluttertoast.showToast(msg: S .current.Resumemsg, fontSize: MediaQuery.of(context).textScaleFactor *13,);
+        ShowpopupforResume(DateFormat("dd-MM-yyyy").format(now));
       } else {
-        return Fluttertoast.showToast(msg: S.current.something_went_wrong, fontSize: MediaQuery.of(context).textScaleFactor *13,);
+        Fluttertoast.showToast(msg: S .current.something_went_wrong, fontSize: MediaQuery.of(context).textScaleFactor *13,);
       }
     } catch (error) {
-    //  Navigator.pop(context);
-      Fluttertoast.showToast(msg: S.current.something_went_wrong, fontSize: MediaQuery.of(context).textScaleFactor *13,);
+      Navigator.pop(context);
+      Fluttertoast.showToast(msg: S .current.something_went_wrong, fontSize: MediaQuery.of(context).textScaleFactor *13,);
       throw error;
     }
   }
@@ -245,12 +256,12 @@ class _MysubscriptionDisplyState extends State<MysubscriptionDisply> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Center(
-                      child: Text(S.of(context).pauseTitle,
+                      child: Text(S .of(context).pauseTitle,
                         style: TextStyle(fontSize: 18,fontWeight: FontWeight.bold,color: ColorCodes.greenColor),)
                   ),
                   SizedBox(height: 10,),
                   Center(
-                    child: Text(S.of(context).pauseNote,
+                    child: Text(S .of(context).pauseNote,
                       textAlign: TextAlign.center,
                       style: TextStyle(fontSize: 14,fontWeight: FontWeight.w400),
                     ),
@@ -260,11 +271,12 @@ class _MysubscriptionDisplyState extends State<MysubscriptionDisply> {
               actions: <Widget>[
                FlatButton(
                   child: Text(
-                    S.of(context).ok,
+                    S .of(context).ok,
                     style: TextStyle(fontSize: 14,fontWeight: FontWeight.bold,color: ColorCodes.greenColor),
                   ),
                   onPressed: () async {
-                    Navigator.of(context).pushReplacementNamed(MySubscriptionScreen.routeName);
+                   // Navigator.of(context).pushReplacementNamed(MySubscriptionScreen.routeName);
+                    Navigation(context, name: Routename.MySubscription, navigatore: NavigatoreTyp.Push);
                   },
                 ),
               ],
@@ -274,19 +286,21 @@ class _MysubscriptionDisplyState extends State<MysubscriptionDisply> {
     );
   }
 
-  Future<void> pauseSubscription(String subId, String date,context) async {
+  Future<void> pauseSubscription(String subId, String date,String enddate,context) async {
     debugPrint("date...."+date);
-    PrefUtils.prefs.setString('pauseStartDate',date);
+    PrefUtils.prefs!.setString('pauseStartDate',date);
     try {
       final response = await http.post(Api.pauseSubscription, body: {
         "id": subId,
         "date": date,
-        "user": PrefUtils.prefs.getString('apikey')
+        "user": PrefUtils.prefs!.getString('apikey'),
+        "enddate": enddate,
       });
       debugPrint("response...."+{
         "id": subId,
         "date": date,
-        "user": PrefUtils.prefs.getString('apikey')
+        "user": PrefUtils.prefs!.getString('apikey'),
+        "enddate": enddate,
       }.toString());
       final responseJson = json.decode(response.body);
 
@@ -295,13 +309,13 @@ class _MysubscriptionDisplyState extends State<MysubscriptionDisply> {
         ShowpopupforPause();
         // Navigator.of(context).pushReplacementNamed(MySubscriptionScreen.routeName);
       } else {
-        return Fluttertoast.showToast(msg: S.of(context).something_went_wrong,//"Something went wrong!!!",
+        Fluttertoast.showToast(msg: S .of(context).something_went_wrong,//"Something went wrong!!!",
           fontSize: MediaQuery.of(context).textScaleFactor *13,);
       }
     } catch (error) {
 
       Navigator.pop(context);
-      Fluttertoast.showToast(msg: S.of(context).something_went_wrong,//"Something went wrong!!!",
+      Fluttertoast.showToast(msg: S .of(context).something_went_wrong,//"Something went wrong!!!",
         fontSize: MediaQuery.of(context).textScaleFactor *13,);
       throw error;
     }
@@ -325,7 +339,7 @@ class _MysubscriptionDisplyState extends State<MysubscriptionDisply> {
                     children: <Widget>[
                       Center(
                         child: Text(
-                          S.of(context).are_you_want_delete_subscription,//'Are you sure you want to delete this Subscription?',
+                          S .of(context).are_you_want_delete_subscription,//'Are you sure you want to delete this Subscription?',
                           textAlign: TextAlign.center,
                           style: TextStyle(fontSize: 16.0),
                         ),
@@ -341,7 +355,7 @@ class _MysubscriptionDisplyState extends State<MysubscriptionDisply> {
                                 Navigator.of(context).pop(true);
                               },
                               child: Text(
-                                S.of(context).no,//'NO',
+                                S .of(context).no,//'NO',
                                 style: TextStyle(
                                     color: Theme.of(context).primaryColor,
                                     fontSize: 14.0),
@@ -354,7 +368,7 @@ class _MysubscriptionDisplyState extends State<MysubscriptionDisply> {
                                 deleteSubscription(subscriptionid,context);
                               },
                               child: Text(
-                                S.of(context).yes,//'YES',
+                                S .of(context).yes,//'YES',
                                 style: TextStyle(
                                     color: Theme.of(context).primaryColor,
                                     fontSize: 14.0),
@@ -377,10 +391,16 @@ class _MysubscriptionDisplyState extends State<MysubscriptionDisply> {
 
   @override
   Widget build(BuildContext context) {
+    if(Features.isdeliverychargesubscription)
     final orderitemData = Provider.of<MyorderList>(
       context,
       listen: false,
     ).findBySubId(widget.subid);
+    Features.isdeliverychargesubscription?
+        widget.paymenttype.toString() == "Paytm"?
+        total = double.parse(widget.amount):
+    total = double.parse(widget.amount) + double.parse(widget.subscription_delivery_charge):
+    total = double.parse(widget.amount);
 
     debugPrint("_PauseSubsciption...1");
     Widget membershipImage() {
@@ -389,7 +409,7 @@ class _MysubscriptionDisplyState extends State<MysubscriptionDisply> {
           child: Column(
             children: [
               CachedNetworkImage(
-                imageUrl: IConstants.API_IMAGE + '/items/images/' + widget.image,
+                imageUrl: IConstants.BaseDomain  +  widget.image,
                 placeholder: (context, url) => Image.asset(
                   Images.defaultProductImg,
                   width: 75,
@@ -415,11 +435,21 @@ class _MysubscriptionDisplyState extends State<MysubscriptionDisply> {
       if(DateFormat("yyyy-MM-dd").parse(widget.startdate).difference(DateTime.now()).inDays >= 0){
         _selectedDate = DateFormat("yyyy-MM-dd").parse(widget.startdate);
       }else{
-        _selectedDate = DateTime.now();
+        _selectedDate = DateTime.now().add(Duration(days: 1));
       }
 
+      enddatestart = _selectedDate.toString();
+      debugPrint("end..."+enddatestart!);
+
+      _selectedDate1 = DateFormat("yyyy-MM-dd").parse(enddatestart!);
+
+
+      debugPrint("_selectedDate1..."+_selectedDate.toString()+"   "+widget.startdate+"  "+enddatestart!);
+    //  _selectedDate1 = DateFormat("yyyy-MM-dd").parse(_selectedDate);
       debugPrint("_selectedDate...."+_selectedDate.toString());
-      datecontroller.text = DateFormat("dd-MM-yyyy").format(_selectedDate);
+      datecontroller.text = DateFormat("dd-MM-yyyy").format(_selectedDate!);
+      debugPrint("date cont....."+datecontroller.text);
+      datecontroller1.text = DateFormat("dd-MM-yyyy").format(_selectedDate1!);
       return StatefulBuilder(
           builder: (context, setState1)
         {
@@ -444,7 +474,7 @@ class _MysubscriptionDisplyState extends State<MysubscriptionDisply> {
                         child: Container(
                           width: 80,
                           child: CachedNetworkImage(
-                            imageUrl: IConstants.API_IMAGE + '/items/images/' + widget.image,
+                            imageUrl: IConstants.BaseDomain + widget.image,
                             placeholder: (context, url) => Image.asset(
                               Images.defaultProductImg,
                               width: 80,
@@ -483,6 +513,17 @@ class _MysubscriptionDisplyState extends State<MysubscriptionDisply> {
                                             color: Colors.black),
                                       ),
                                     ),
+                                    Expanded(
+                                      child: Text(
+                                        Features.iscurrencyformatalign?
+                                        total.toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit) + " " + IConstants.currencyFormat:
+                                        IConstants.currencyFormat + " " + total.toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),
+                                        style: TextStyle(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.black),
+                                      ),
+                                    ),
                                   ],
                                 ),
                                 SizedBox(
@@ -496,27 +537,17 @@ class _MysubscriptionDisplyState extends State<MysubscriptionDisply> {
                                         style: TextStyle(
                                             fontSize: 15,
                                             fontWeight: FontWeight.w600,
-                                            color: Colors.black),
+                                            color: ColorCodes.primaryColor),
                                       ),
                                     ),
+
+
                                   ],
                                 ),
                                 SizedBox(
                                   height: 5,
                                 ),
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        IConstants.currencyFormat + " " + double.parse(widget.amount).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),
-                                        style: TextStyle(
-                                            fontSize: 15,
-                                            fontWeight: FontWeight.w600,
-                                            color: Colors.black),
-                                      ),
-                                    ),
-                                  ],
-                                ),
+
 
                               ])),
                     ],
@@ -527,7 +558,7 @@ class _MysubscriptionDisplyState extends State<MysubscriptionDisply> {
                   width: MediaQuery.of(context).size.width - 20,
                   //height: 50,
                  // alignment: Alignment.centerLeft,
-                  child: Text(S.of(context).Pause_Subscription,
+                  child: Text(S .of(context).Pause_Subscription,
                       style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold,color: ColorCodes.greenColor)),
                 ),
 
@@ -536,7 +567,7 @@ class _MysubscriptionDisplyState extends State<MysubscriptionDisply> {
                  // height:30,
                  // alignment: Alignment.centerLeft,
                   padding: EdgeInsets.only(left: 15,right: 15,top: 5),
-                  child: Text(S.of(context).All_Subscription,//"Select Dates",
+                  child: Text(S .of(context).All_Subscription,//"Select Dates",
                       style: TextStyle(fontSize: 16, fontWeight: FontWeight.w400,color: ColorCodes.grey)),
                 ),
                 SizedBox(height: 20,),
@@ -556,7 +587,7 @@ class _MysubscriptionDisplyState extends State<MysubscriptionDisply> {
                               Icon(Icons.calendar_today_outlined, color: ColorCodes.blackColor,size: 20,),
                               SizedBox(width: 12,),
                               Container(
-                                  child: Text(S.of(context).select_dates,//"From Date",
+                                  child: Text(S .of(context).select_dates,//"From Date",
                                     style: TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.bold,
@@ -575,7 +606,7 @@ class _MysubscriptionDisplyState extends State<MysubscriptionDisply> {
                             child: Row(
                              // mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text(S.of(context).from_dates,//"From Date",
+                                Text(S .of(context).from_dates,//"From Date",
                                   style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,
@@ -583,7 +614,7 @@ class _MysubscriptionDisplyState extends State<MysubscriptionDisply> {
                                   ),),
                                 Spacer(),
                                 Text(
-                                  DateFormat("dd-MM-yyyy").format(_selectedDate), style: TextStyle(
+                                  DateFormat("dd-MM-yyyy").format(_selectedDate!), style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
                                   color: ColorCodes.greenColor,
@@ -594,8 +625,38 @@ class _MysubscriptionDisplyState extends State<MysubscriptionDisply> {
                               ],
                             ),
                           ),
-                          SizedBox(height: 5,),
+                          SizedBox(height: 10),
+                          DottedLine(dashColor: ColorCodes.greylight),
+                          SizedBox(height: 10),
 
+                          GestureDetector(
+                            behavior: HitTestBehavior.translucent,
+                            onTap: (){
+                              _selectDate1(setState1,DateFormat("dd-MM-yyyy").format(_selectedDate1!));
+                            },
+                            child: Row(
+                              // mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(S .of(context).to_date,//"From Date",
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: ColorCodes.blackColor,
+                                  ),),
+                                Spacer(),
+                                Text(
+                                  DateFormat("dd-MM-yyyy").format(_selectedDate1!), style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: ColorCodes.greenColor,
+                                ),),
+                                SizedBox(width: 10,),
+                                Icon(Icons.arrow_forward_ios, color: ColorCodes.greenColor,size: 20,),
+                                SizedBox(width: 12,)
+                              ],
+                            ),
+                          ),
+                          SizedBox(height: 5,),
                         ],
                       ),
                     ],
@@ -603,11 +664,11 @@ class _MysubscriptionDisplyState extends State<MysubscriptionDisply> {
                 ),
                 BottomNaviagation(
                   itemCount: "0",
-                  title: S.of(context).pause,
+                  title: S .of(context).pause,
                   total: "0",
                   onPressed: (){
                     setState(() {
-                      pauseSubscription(widget.subid,DateFormat("yyyy-MM-dd").format(_selectedDate),context);
+                      pauseSubscription(widget.subid,DateFormat("yyyy-MM-dd").format(_selectedDate!),DateFormat("yyyy-MM-dd").format(_selectedDate1!),context);
                     });
                   },
                 ),
@@ -632,7 +693,7 @@ class _MysubscriptionDisplyState extends State<MysubscriptionDisply> {
           //                   ),
           //                   Center(
           //                       child: Text(
-          //                           S.of(context).pause_subscription,//"Pause Subscription",
+          //                           S .of(context).pause_subscription,//"Pause Subscription",
           //                           style: TextStyle(
           //                               color: Colors.white,
           //                               fontWeight: FontWeight.bold),
@@ -663,19 +724,9 @@ class _MysubscriptionDisplyState extends State<MysubscriptionDisply> {
         padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16),
         child: Column(
           children: <Widget>[
-            Row(
-              children: [
-                Text(
-                  widget.type,
-                  style: TextStyle(
-                      color: ColorCodes.greenColor,
-                      fontSize: 14.0,
-                      fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
+
             SizedBox(
-              height: 10,
+              height: 5,
             ),
             Row(
               children: [
@@ -706,96 +757,72 @@ class _MysubscriptionDisplyState extends State<MysubscriptionDisply> {
                             ),
                           ),
                           Spacer(),
-                          (widget.status == "1")?
-                          MouseRegion(
-                            cursor: SystemMouseCursors.click,
-                            child: GestureDetector(
-                              behavior: HitTestBehavior.translucent,
-                              onTap: () {
-                               // _dialogforResumeSubscription( context, widget.subid);
-                                ResumeSubscription(widget.subid);
-
-                              },
-                              child: Center(
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.start,
-
-                                  children: [
-                                    Text(
-                                      S.of(context).resume,//'resume',
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                          fontSize: 14,
-                                          color: ColorCodes.indigo,
-                                          fontWeight: FontWeight.bold),
-                                    ),
-                                    SizedBox(width: 10,),
-                                    Icon( Icons.play_circle_fill,
-                                      color: ColorCodes.indigo,),
-
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ):
-                          (widget.status == "4")?
                           Text(
-                              S.of(context).failure,
-                              style: TextStyle(
-                                  color: ColorCodes.greyColor,
-                                  fontSize: 14.0,
-                                  fontWeight: FontWeight.bold)):
-                          MouseRegion(
-                            cursor: SystemMouseCursors.click,
-                            child: GestureDetector(
-                              behavior: HitTestBehavior.translucent,
-                              onTap: () {
-                                showModalBottomSheet<dynamic>(
-                                    isScrollControlled: true,
-                                    context: context,
-                                    //backgroundColor: ColorCodes.lightGreyWebColor,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius. only(topLeft: Radius. circular(30.0), topRight: Radius. circular(30.0)),
-                                    ),
-                                    builder: (context) {
-                                      return _PauseSubsciption(context);
-                                    });
-                                /*showBottomSheet(context: context, builder: (context){
-                                  return _PauseSubsciption();
-                                });*/
-                                // Navigator.of(context).pushReplacementNamed(
-                                //     PauseSubscriptionScreen.routeName,
-                                //     arguments: {
-                                //       'orderid': widget.subid,
-                                //       'image': IConstants.API_IMAGE + '/items/images/' + widget.image,
-                                //       'name': widget.name,
-                                //       'quantity': widget.quantity,
-                                //       'price': widget.amount
-                                //     }
-                                // );
-                              },
-                              child: Center(
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.start,
+                            widget.type,
+                            style: TextStyle(
+                                color: ColorCodes.badgecolor,
+                                fontSize: 14.0,
+                                fontWeight: FontWeight.bold),
+                          ),
 
-                                  children: [
-                                    Text(
-                                      S.of(context).pause,//'Pause',
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                          fontSize: 14,
-                                          color: ColorCodes.indigo,
-                                          fontWeight: FontWeight.bold),
-                                    ),
-                                    SizedBox(width: 10,),
-                                    Icon( Icons.pause_circle_outline,
-                                      color: ColorCodes.indigo,),
-
-                                  ],
-                                ),
-                              ),
-                            ),
-                          )
+                          // Text(
+                          //   widget.type,
+                          //   style: TextStyle(
+                          //       color: ColorCodes.badgecolor,
+                          //       fontSize: 14.0,
+                          //       fontWeight: FontWeight.bold),
+                          // ),
+                          // MouseRegion(
+                          //   cursor: SystemMouseCursors.click,
+                          //   child: GestureDetector(
+                          //     behavior: HitTestBehavior.translucent,
+                          //     onTap: () {
+                          //       showModalBottomSheet<dynamic>(
+                          //           isScrollControlled: true,
+                          //           context: context,
+                          //           //backgroundColor: ColorCodes.lightGreyWebColor,
+                          //           shape: RoundedRectangleBorder(
+                          //             borderRadius: BorderRadius. only(topLeft: Radius. circular(30.0), topRight: Radius. circular(30.0)),
+                          //           ),
+                          //           builder: (context) {
+                          //             return _PauseSubsciption(context);
+                          //           });
+                          //       /*showBottomSheet(context: context, builder: (context){
+                          //         return _PauseSubsciption();
+                          //       });*/
+                          //       // Navigator.of(context).pushReplacementNamed(
+                          //       //     PauseSubscriptionScreen.routeName,
+                          //       //     arguments: {
+                          //       //       'orderid': widget.subid,
+                          //       //       'image': IConstants.API_IMAGE + '/items/images/' + widget.image,
+                          //       //       'name': widget.name,
+                          //       //       'quantity': widget.quantity,
+                          //       //       'price': widget.amount
+                          //       //     }
+                          //       // );
+                          //     },
+                          //     child: Center(
+                          //       child: Row(
+                          //         mainAxisAlignment: MainAxisAlignment.start,
+                          //
+                          //         children: [
+                          //           Text(
+                          //             S .of(context).pause,//'Pause',
+                          //             textAlign: TextAlign.center,
+                          //             style: TextStyle(
+                          //                 fontSize: 14,
+                          //                 color: ColorCodes.indigo,
+                          //                 fontWeight: FontWeight.bold),
+                          //           ),
+                          //           SizedBox(width: 10,),
+                          //           Icon( Icons.pause_circle_outline,
+                          //             color: ColorCodes.indigo,),
+                          //
+                          //         ],
+                          //       ),
+                          //     ),
+                          //   ),
+                          // )
                         ],
                       ),
                       SizedBox(
@@ -821,7 +848,9 @@ class _MysubscriptionDisplyState extends State<MysubscriptionDisply> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                IConstants.currencyFormat + ' ' + double.parse(widget.amount).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),
+                                Features.iscurrencyformatalign?
+                                total.toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit) + ' ' + IConstants.currencyFormat:
+                                IConstants.currencyFormat + ' ' + total.toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),
                                 style: TextStyle(fontWeight: FontWeight.bold),
                               ),
                             ],
@@ -837,7 +866,7 @@ class _MysubscriptionDisplyState extends State<MysubscriptionDisply> {
                                 children: [
 
                                   Text(
-                                    S.of(context).expired,
+                                    S .of(context).expired,
                                     textAlign: TextAlign.center,
                                     style: TextStyle(
                                         fontSize: 14,
@@ -862,11 +891,11 @@ class _MysubscriptionDisplyState extends State<MysubscriptionDisply> {
                                   children: [
 
                                     Text(
-                                      S.of(context).subscription_delete,//'Delete',
+                                      S .of(context).subscription_delete,//'Delete',
                                       textAlign: TextAlign.center,
                                       style: TextStyle(
                                           fontSize: 14,
-                                          color: ColorCodes.orangeColor,
+                                          color: ColorCodes.blackColor,
                                           fontWeight: FontWeight.bold),
                                     ),
                                     SizedBox(width: 10,),
@@ -921,7 +950,7 @@ class _MysubscriptionDisplyState extends State<MysubscriptionDisply> {
 
                                   children: [
                                     Text(
-                                      S.of(context).resume,//'resume',
+                                      S .of(context).resume,//'resume',
                                       textAlign: TextAlign.center,
                                       style: TextStyle(
                                           fontSize: 14,
@@ -939,7 +968,7 @@ class _MysubscriptionDisplyState extends State<MysubscriptionDisply> {
                           ):
                           (widget.status == "4")?
                           Text(
-                              S.of(context).failure,
+                              S .of(context).failure,
                               style: TextStyle(
                                   color: ColorCodes.greyColor,
                                   fontSize: 14.0,
@@ -979,7 +1008,7 @@ class _MysubscriptionDisplyState extends State<MysubscriptionDisply> {
 
                                   children: [
                                     Text(
-                                      S.of(context).pause,//'Pause',
+                                      S .of(context).pause,//'Pause',
                                       textAlign: TextAlign.center,
                                       style: TextStyle(
                                           fontSize: 14,
@@ -1020,7 +1049,9 @@ class _MysubscriptionDisplyState extends State<MysubscriptionDisply> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                IConstants.currencyFormat + ' ' + double.parse(widget.amount).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),
+                                Features.iscurrencyformatalign?
+                                total.toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit) + ' ' + IConstants.currencyFormat:
+                                IConstants.currencyFormat + ' ' + total.toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),
                                 style: TextStyle(fontWeight: FontWeight.bold),
                               ),
                             ],
@@ -1036,7 +1067,7 @@ class _MysubscriptionDisplyState extends State<MysubscriptionDisply> {
                                 children: [
 
                                   Text(
-                                    S.of(context).expired,
+                                    S .of(context).expired,
                                     textAlign: TextAlign.center,
                                     style: TextStyle(
                                         fontSize: 14,
@@ -1061,7 +1092,7 @@ class _MysubscriptionDisplyState extends State<MysubscriptionDisply> {
                                   children: [
 
                                     Text(
-                                      S.of(context).subscription_delete,//'Delete',
+                                      S .of(context).subscription_delete,//'Delete',
                                       textAlign: TextAlign.center,
                                       style: TextStyle(
                                           fontSize: 14,
@@ -1125,7 +1156,7 @@ class _MysubscriptionDisplyState extends State<MysubscriptionDisply> {
                                 color: ColorCodes.grey,),
                               SizedBox(width: 10,),
                               Text(
-                                S.of(context).pause,//'Pause',
+                                S .of(context).pause,//'Pause',
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                     fontSize: 14,
@@ -1154,7 +1185,7 @@ class _MysubscriptionDisplyState extends State<MysubscriptionDisply> {
                                         color: ColorCodes.grey,),
                                       SizedBox(width: 10,),
                                       Text(
-                                        S.of(context).subscription_delete,//'Delete',
+                                        S .of(context).subscription_delete,//'Delete',
                                         textAlign: TextAlign.center,
                                         style: TextStyle(
                                             fontSize: 14,
@@ -1172,37 +1203,160 @@ class _MysubscriptionDisplyState extends State<MysubscriptionDisply> {
               ],
             ),*/
                      SizedBox(height: 13,),
-                     GestureDetector(
-                       behavior: HitTestBehavior.translucent,
-                       onTap: () {
-                         Navigator.of(context).pushNamed(
-                             ViewSubscriptionDetails.routeName,
-                             arguments: {
-                               'orderid': widget.subid,
-                               "fromScreen" : "",
-                             });
-                       },
-                       child: Container(
-                         padding: EdgeInsets.only(left: 3,right: 3),
-                         height: 50,
-                        // width: MediaQuery.of(context).size.width,
-                         decoration: BoxDecoration(
+                     Row(
+                       children: [
+                         GestureDetector(
+                           behavior: HitTestBehavior.translucent,
+                           onTap: () {
+                           /*  Navigator.of(context).pushNamed(
+                                 ViewSubscriptionDetails.routeName,
+                                 arguments: {
+                                   'orderid': widget.subid,
+                                   "fromScreen" : "",
+                                 });*/
+                             Navigation(context, name:Routename.ViewSubscriptionDetails,navigatore: NavigatoreTyp.Push,
+                                 qparms: {
+                                   'orderid': widget.subid,
+                                   "fromScreen" : "",
+                                 });
+                           },
+                           child: Container(
+                             padding: EdgeInsets.only(left: 3,right: 3),
+                             height: 50,
+                             width: MediaQuery.of(context).size.width/2.5,
+                             decoration: BoxDecoration(
+                                 borderRadius: BorderRadius.circular(3),
+                                 border:
+                                 Border.all(color: ColorCodes.greenColor),
+                               /*  color: Theme.of(context).primaryColorColorCodes.whiteColor*/),
+                             child: Center(
+                               child: Text(
+                                 S .of(context).view_details_order,//"View Subscription Details",
+                                 textAlign: TextAlign.center,
+                                 //maxLines: 2,
+                                 style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: ColorCodes.greenColor,),
+                               ),
+                             ),
+                            ),
+
+
+
+                         ),
+                         Spacer(),
+
+                         (widget.status == "1")?
+                         MouseRegion(
+                           cursor: SystemMouseCursors.click,
+                           child: GestureDetector(
+                             behavior: HitTestBehavior.translucent,
+                             onTap: () {
+                               // _dialogforResumeSubscription( context, widget.subid);
+                               ResumeSubscription(widget.subid);
+
+                             },
+                             child: Container(
+                               padding: EdgeInsets.only(left: 3,right: 3),
+                               height: 50,
+                               width: MediaQuery.of(context).size.width/2.5,
+                               decoration: BoxDecoration(
+                                 borderRadius: BorderRadius.circular(3),
+                                 border:
+                                 Border.all(color: ColorCodes.badgecolor),
+                                 /*  color: Theme.of(context).primaryColorColorCodes.whiteColor*/),
+                               child: Center(
+                                 child: Row(
+                                   mainAxisAlignment: MainAxisAlignment.center,
+
+                                   children: [
+                                     Text(
+                                       S .of(context).resume,//'resume',
+                                       textAlign: TextAlign.center,
+                                       style: TextStyle(
+                                           fontSize: 14,
+                                           color: ColorCodes.badgecolor,
+                                           fontWeight: FontWeight.bold),
+                                     ),
+                                     SizedBox(width: 10,),
+                                     Icon( Icons.play_circle_fill,
+                                       color: ColorCodes.badgecolor,),
+
+                                   ],
+                                 ),
+                               ),
+                             ),
+                           ),
+                         ):
+                         (widget.status == "4")?
+                         Container(
+                           padding: EdgeInsets.only(left: 3,right: 3),
+                           height: 50,
+                           width: MediaQuery.of(context).size.width/2.5,
+                           decoration: BoxDecoration(
                              borderRadius: BorderRadius.circular(3),
                              border:
-                             Border.all(color: ColorCodes.greenColor),
-                           /*  color: Theme.of(context).primaryColorColorCodes.whiteColor*/),
-                         child: Center(
-                           child: Text(
-                             S.of(context).view_subscription_detail,//"View Subscription Details",
-                             textAlign: TextAlign.center,
-                             //maxLines: 2,
-                             style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: ColorCodes.greenColor,),
+                             Border.all(color: ColorCodes.redColor),
+                             /*  color: Theme.of(context).primaryColorColorCodes.whiteColor*/),
+                           child: Row(
+                             mainAxisAlignment: MainAxisAlignment.center,
+                             children: [
+                               Text(
+                                   S .of(context).failure,
+                                   style: TextStyle(
+                                       color: ColorCodes.redColor,
+                                       fontSize: 14.0,
+                                       fontWeight: FontWeight.bold)),
+                             ],
                            ),
+                         ):
+                         GestureDetector(
+                           behavior: HitTestBehavior.translucent,
+                           onTap: () {
+                             showModalBottomSheet<dynamic>(
+                                 isScrollControlled: true,
+                                 context: context,
+                                 //backgroundColor: ColorCodes.lightGreyWebColor,
+                                 shape: RoundedRectangleBorder(
+                                   borderRadius: BorderRadius. only(topLeft: Radius. circular(30.0), topRight: Radius. circular(30.0)),
+                                 ),
+                                 builder: (context) {
+                                   return _PauseSubsciption(context);
+                                 });
+                           },
+                           child: Container(
+                             padding: EdgeInsets.only(left: 3,right: 3),
+                             height: 50,
+                              width: MediaQuery.of(context).size.width/2.5,
+                             decoration: BoxDecoration(
+                               borderRadius: BorderRadius.circular(3),
+                               border:
+                               Border.all(color: ColorCodes.greenColor),
+                               /*  color: Theme.of(context).primaryColorColorCodes.whiteColor*/),
+                             child: Center(
+                               child: Row(
+                                 mainAxisAlignment: MainAxisAlignment.center,
+
+                                 children: [
+                                   Text(
+                                     S .of(context).pause,//'Pause',
+                                     textAlign: TextAlign.center,
+                                     style: TextStyle(
+                                         fontSize: 14,
+                                         color: ColorCodes.primaryColor,
+                                         fontWeight: FontWeight.bold),
+                                   ),
+                                   SizedBox(width: 10,),
+                                   Icon( Icons.pause,
+                                     color: ColorCodes.primaryColor,),
+
+                                 ],
+                               ),
+                             ),
+                           ),
+
+
+
                          ),
-                        ),
-
-
-
+                       ],
                      ),
 
                    ],
@@ -1219,10 +1373,10 @@ class _MysubscriptionDisplyState extends State<MysubscriptionDisply> {
 
   Future<void> _selectDate(setState, String startdate) async {
     var now = new DateTime.now();
-    final DateTime picked = await showDatePicker(
+    final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: (DateFormat("yyyy-MM-dd").parse(widget.startdate).difference(DateTime.now()).inDays >= 0) ?DateFormat("yyyy-MM-dd").parse(startdate) : DateTime.now(),
-      firstDate: (DateFormat("yyyy-MM-dd").parse(widget.startdate).difference(DateTime.now()).inDays >= 0) ?DateFormat("yyyy-MM-dd").parse(startdate) : DateTime.now(),
+      initialDate: (DateFormat("yyyy-MM-dd").parse(widget.startdate).difference(DateTime.now()).inDays >= 0) ?DateFormat("yyyy-MM-dd").parse(startdate) : DateTime.now().add(Duration(days: 1)),
+      firstDate: (DateFormat("yyyy-MM-dd").parse(widget.startdate).difference(DateTime.now()).inDays >= 0) ?DateFormat("yyyy-MM-dd").parse(startdate) : DateTime.now().add(Duration(days: 1)),
       lastDate: new DateTime(now.year, now.month + 10, now.day),
       builder: (context, child) {
         return Theme(
@@ -1230,17 +1384,47 @@ class _MysubscriptionDisplyState extends State<MysubscriptionDisply> {
             primaryColor:  Theme.of(context).accentColor,//Head background
             accentColor: Theme.of(context).accentColor,//selection color
           ),// This will change to light theme.
-          child: child,
+          child: child!,
         );
       },
     );
     if (picked != null && picked != _selectedDate)
       setState(() {
         _selectedDate = picked;
+        _selectedDate1 = picked;
         datecontroller
-          ..text = DateFormat("dd-MM-yyyy").format(_selectedDate)
+          ..text = DateFormat("dd-MM-yyyy").format(_selectedDate!)
           ..selection = TextSelection.fromPosition(TextPosition(
               offset: datecontroller.text.length,
+              affinity: TextAffinity.upstream));
+      });
+  }
+
+  Future<void> _selectDate1(setState, String startdate) async {
+    var now = new DateTime.now();
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate:_selectedDate1! ,
+      firstDate: _selectedDate1!,
+      lastDate: new DateTime(now.year, now.month + 10, now.day),
+      builder: (context, child) {
+        return Theme(
+          data: ThemeData.light().copyWith(
+            primaryColor:  Theme.of(context).accentColor,//Head background
+            accentColor: Theme.of(context).accentColor,//selection color
+          ),// This will change to light theme.
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null && picked != _selectedDate1)
+      setState(() {
+        _selectedDate1 = picked;
+        datecontroller1
+          ..text = DateFormat("dd-MM-yyyy").format(_selectedDate1!)
+          ..selection = TextSelection.fromPosition(TextPosition(
+              offset: datecontroller1.text.length,
               affinity: TextAffinity.upstream));
       });
   }

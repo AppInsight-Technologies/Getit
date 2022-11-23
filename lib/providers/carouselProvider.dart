@@ -15,7 +15,7 @@ class CarouselItems with ChangeNotifier {
   List<BrandsFields> _featureAdsFour = [];
   List<BrandsFields> _footer = [];
 
-  BrandsFields resultfinal;
+  BrandsFields? resultfinal;
 
   Future<List<BrandsFields>> fetchBanner() async {
     // imp feature in adding async is the it automatically wrap into Future.
@@ -33,7 +33,7 @@ class CarouselItems with ChangeNotifier {
 
     try {
       _items.clear();
-      final response = await http.get(Api.getAdsOne + PrefUtils.prefs.getString('branch'));
+      final response = await http.get(Api.getAdsOne + PrefUtils.prefs!.getString('branch')!);
       final responseJson = json.decode(utf8.decode(response.bodyBytes));
 
       if(responseJson.toString() != "[]") {
@@ -43,10 +43,10 @@ class CarouselItems with ChangeNotifier {
           resultfinal = BrandsFields.fromJson(resdata);
           if (_isWeb) {
             if (resdata["display_for"].toString().contains("0")) //web
-              _items.add(resultfinal);
+              _items.add(resultfinal!);
           } else {
             if (resdata["display_for"].toString().contains("1")) //App
-              _items.add(resultfinal);
+              _items.add(resultfinal!);
           }
         });
       }
@@ -71,7 +71,7 @@ class CarouselItems with ChangeNotifier {
 
     try {
       _advertiseOne.clear();
-      final response = await http.get(Api.getAdsTwo + PrefUtils.prefs.getString('branch'));
+      final response = await http.get(Api.getAdsTwo + PrefUtils.prefs!.getString('branch')!);
       final responseJson = json.decode(utf8.decode(response.bodyBytes));
 
       if(responseJson.toString() != "[]") {
@@ -81,11 +81,11 @@ class CarouselItems with ChangeNotifier {
           resultfinal = BrandsFields.fromJson(resdata);
           if (_isWeb) {
             if (resdata["display_for"].toString().contains("0")) { //web
-              _advertiseOne.add(resultfinal);
+              _advertiseOne.add(resultfinal!);
             }
           } else {
             if (resdata["display_for"].toString().contains("1")) { //App
-              _advertiseOne.add(resultfinal);
+              _advertiseOne.add(resultfinal!);
             }
           }
         });
@@ -111,7 +111,7 @@ class CarouselItems with ChangeNotifier {
 
     try {
       _featureAdsOne.clear();
-      final response = await http.get(Api.getAdsFive + PrefUtils.prefs.getString('branch'));
+      final response = await http.get(Api.getAdsFive + PrefUtils.prefs!.getString('branch')!);
       final responseJson = json.decode(utf8.decode(response.bodyBytes));
 
       if(responseJson.toString() != "[]") {
@@ -121,11 +121,11 @@ class CarouselItems with ChangeNotifier {
           resultfinal = BrandsFields.fromJson(resdata);
           if (_isWeb) {
             if (resdata["display_for"].toString().contains("0")) { //web
-              _featureAdsOne.add(resultfinal);
+              _featureAdsOne.add(resultfinal!);
             }
           } else {
             if (resdata["display_for"].toString().contains("1")) { //App
-              _featureAdsOne.add(resultfinal);
+              _featureAdsOne.add(resultfinal!);
             }
           }
         });
@@ -152,7 +152,7 @@ class CarouselItems with ChangeNotifier {
 
     try {
       _featureAdsTwo.clear();
-      final response = await http.get(Api.getAdsNine  + PrefUtils.prefs.getString('branch'));
+      final response = await http.get(Api.getAdsNine  + PrefUtils.prefs!.getString('branch')!);
       final responseJson = json.decode(utf8.decode(response.bodyBytes));
 
       if(responseJson.toString() != "[]") {
@@ -162,11 +162,11 @@ class CarouselItems with ChangeNotifier {
           resultfinal = BrandsFields.fromJson(resdata);
           if (_isWeb) {
             if (resdata["display_for"].toString().contains("0")) { //web
-              _featureAdsTwo.add(resultfinal);
+              _featureAdsTwo.add(resultfinal!);
             }
           } else {
             if (resdata["display_for"].toString().contains("1")) { //App
-              _featureAdsTwo.add(resultfinal);
+              _featureAdsTwo.add(resultfinal!);
             }
           }
         });
@@ -192,7 +192,7 @@ class CarouselItems with ChangeNotifier {
 
     try {
       _featureAdsThree.clear();
-      final response = await http.get(Api.getAdsTen + PrefUtils.prefs.getString('branch'));
+      final response = await http.get(Api.getAdsTen + PrefUtils.prefs!.getString('branch')!);
       final responseJson = json.decode(utf8.decode(response.bodyBytes));
 
       if(responseJson.toString() != "[]") {
@@ -202,11 +202,11 @@ class CarouselItems with ChangeNotifier {
           resultfinal = BrandsFields.fromJson(resdata);
           if (_isWeb) {
             if (resdata["display_for"].toString().contains("0")) { //web
-              _featureAdsThree.add(resultfinal);
+              _featureAdsThree.add(resultfinal!);
             }
           } else {
             if (resdata["display_for"].toString().contains("1")) { //App
-              _featureAdsThree.add(resultfinal);
+              _featureAdsThree.add(resultfinal!);
             }
           }
         });
@@ -232,7 +232,7 @@ class CarouselItems with ChangeNotifier {
 
     try {
       _featureAdsFour.clear();
-      final response = await http.get(Api.getAdsEleven + PrefUtils.prefs.getString('branch'));
+      final response = await http.get(Api.getAdsEleven + PrefUtils.prefs!.getString('branch')!);
       final responseJson = json.decode(utf8.decode(response.bodyBytes));
       if(responseJson.toString() != "[]") {
         Map<String, dynamic> resdata;
@@ -241,11 +241,11 @@ class CarouselItems with ChangeNotifier {
           resultfinal = BrandsFields.fromJson(resdata);
           if (_isWeb) {
             if (resdata["display_for"].toString().contains("0")) { //web
-              _featureAdsFour.add(resultfinal);
+              _featureAdsFour.add(resultfinal!);
             }
           } else {
             if (resdata["display_for"].toString().contains("1")) { //App
-              _featureAdsFour.add(resultfinal);
+              _featureAdsFour.add(resultfinal!);
             }
           }
         });
@@ -271,7 +271,7 @@ class CarouselItems with ChangeNotifier {
 
     try {
       _footer.clear();
-      final response = await http.get(Api.getFooter + PrefUtils.prefs.getString('branch'));
+      final response = await http.get(Api.getFooter + PrefUtils.prefs!.getString('branch')!);
       final responseJson = json.decode(utf8.decode(response.bodyBytes));
       if(responseJson.toString() != "[]") {
         Map<String, dynamic> resdata;
@@ -280,15 +280,17 @@ class CarouselItems with ChangeNotifier {
           resultfinal= BrandsFields.fromJson(resdata);
           if (_isWeb) {
             if(resdata["display_for"].toString().contains("0")) { //web
-              _footer.add(resultfinal);
+              _footer.add(resultfinal!);
             }
           } else {
             if(resdata["display_for"].toString().contains("1")) { //App
-              _footer.add(resultfinal);
+              _footer.add(resultfinal!);
             }
           }
         });
         return _footer;
+      }else{
+        return [];
       }
       notifyListeners();
     } catch (error) {

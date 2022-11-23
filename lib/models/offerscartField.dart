@@ -2,19 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 
 class offerCartFields with ChangeNotifier {
-  final int itemId;
-  final int varId;
-  final String varName;
-  final int varMinItem;
-  final int varMaxItem;
-  final int varStock;
-  final double varMrp;
-  final String itemName;
-  final int itemQty;
-  final double itemPrice;
-  final String membershipPrice;
-  final double itemActualprice;
-  final String itemImage;
+  final int? itemId;
+  final int? varId;
+  final String? varName;
+  final int? varMinItem;
+  final int? varMaxItem;
+  final int? varStock;
+  final double? varMrp;
+  final String? itemName;
+  final int? itemQty;
+  final double? itemPrice;
+  final String? membershipPrice;
+  final double? itemActualprice;
+  final String? itemImage;
 
   offerCartFields({
     this.itemId,

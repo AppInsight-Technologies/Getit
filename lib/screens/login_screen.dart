@@ -5,6 +5,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import '../../constants/features.dart';
 import '../constants/api.dart';
 import 'package:new_gradient_app_bar/new_gradient_app_bar.dart';
 
@@ -15,6 +16,7 @@ import 'package:sms_autofill/sms_autofill.dart';
 
 import '../constants/IConstants.dart';
 import '../providers/branditems.dart';
+import '../rought_genrator.dart';
 import '../screens/otpconfirm_screen.dart';
 import '../assets/images.dart';
 import '../assets/ColorCodes.dart';
@@ -23,14 +25,23 @@ import '../utils/prefUtils.dart';
 class LoginScreen extends StatefulWidget {
   static const routeName = '/login-screen';
 
+  String prev = "";
+  Map<String,String>? loginscreen;
+
+  LoginScreen(Map<String, String> params){
+    this.loginscreen= params;
+    this.prev = params["prev"]??"" ;
+
+  }
+
   @override
   LoginScreenState createState() => LoginScreenState();
 }
 
-class LoginScreenState extends State<LoginScreen> {
+class LoginScreenState extends State<LoginScreen> with Navigations{
   final _form = GlobalKey<FormState>();
-  List<String> countrycodelist;
-  String countryName = "India";
+  late List<String> countrycodelist;
+  String countryName = CountryPickerUtils.getCountryByPhoneCode(IConstants.countryCode.split('+')[1]).name;
 
   @override
   void initState() {
@@ -43,33 +54,37 @@ class LoginScreenState extends State<LoginScreen> {
   }
 
   addMobilenumToSF(String value) async {
-    PrefUtils.prefs.setString('Mobilenum', value);
+    PrefUtils.prefs!.setString('Mobilenum', value);
   }
 
   _saveForm() async {
     final signcode = SmsAutoFill().getAppSignature;
-    final isValid = _form.currentState.validate();
+    final isValid = _form.currentState!.validate();
     if (!isValid) {
       return;
     } //it will check all validators
-    _form.currentState.save();
+    _form.currentState!.save();
 
-    if (PrefUtils.prefs.getString('prevscreen') == "signingoogle" ||
-        PrefUtils.prefs.getString('prevscreen') == "signInApple" ||
-        PrefUtils.prefs.getString('prevscreen') == "signinfacebook") {
+    if (PrefUtils.prefs!.getString('prevscreen') == "signingoogle" ||
+        PrefUtils.prefs!.getString('prevscreen') == "signInApple" ||
+        PrefUtils.prefs!.getString('prevscreen') == "signinfacebook") {
       checkMobilenum();
     } else {
       final signcode = await SmsAutoFill().getAppSignature;
-      PrefUtils.prefs.setString('signature', signcode);
+      PrefUtils.prefs!.setString('signature', signcode);
       Provider.of<BrandItemsList>(context,listen: false).LoginUser();
       Navigator.of(context).pop();
-      final routeArgs = ModalRoute.of(context).settings.arguments as Map<String, String>;
-      return Navigator.of(context).pushNamed(
+      final routeArgs = ModalRoute.of(context)!.settings.arguments as Map<String, String>;
+      return /*Navigator.of(context).pushNamed(
         OtpconfirmScreen.routeName,
           arguments: {
             "prev": routeArgs['prev'].toString(),
           }
-      );
+      );*/
+        Navigation(context, name: Routename.OtpConfirm, navigatore: NavigatoreTyp.Push,
+            qparms: {
+              "prev":/*routeArgs['prev'].toString()*/widget.prev,
+            });
     }
 
 //    return LoginUser();
@@ -78,31 +93,35 @@ class LoginScreenState extends State<LoginScreen> {
   Future<void> checkMobilenum() async {
     try {
       final response = await http.post(Api.mobileCheck, body: {
-        "mobileNumber": PrefUtils.prefs.getString('Mobilenum'),
+        "mobileNumber": PrefUtils.prefs!.getString('Mobilenum'),
       });
       final responseJson = json.decode(utf8.decode(response.bodyBytes));
 
       if (responseJson['status'].toString() == "true") {
         if (responseJson['type'].toString() == "old") {
           Navigator.of(context).pop();
-          Fluttertoast.showToast(msg: S.of(context).mobile_exists,//"Mobile number already exists!!!",
+          Fluttertoast.showToast(msg: S .of(context).mobile_exists,//"Mobile number already exists!!!",
             fontSize: MediaQuery.of(context).textScaleFactor *13,);
         } else if (responseJson['type'].toString() == "new") {
           final signcode = await SmsAutoFill().getAppSignature;
-          PrefUtils.prefs.setString('signature', signcode);
+          PrefUtils.prefs!.setString('signature', signcode);
           Provider.of<BrandItemsList>(context,listen: false).LoginUser();
-          Navigator.of(context).pop();
-          final routeArgs = ModalRoute.of(context).settings.arguments as Map<String, String>;
-          return Navigator.of(context).pushNamed(
+         // Navigator.of(context).pop();
+          final routeArgs = ModalRoute.of(context)!.settings.arguments as Map<String, String>;
+          /* Navigator.of(context).pushNamed(
             OtpconfirmScreen.routeName,
               arguments: {
                 "prev": routeArgs['prev'].toString(),
               }
-          );
+          );*/
+          Navigation(context, name: Routename.OtpConfirm, navigatore: NavigatoreTyp.Push,
+              qparms: {
+                "prev":widget.prev,//routeArgs['prev'].toString(),
+              });
         }
       } else {
         Navigator.of(context).pop();
-        return Fluttertoast.showToast(msg: S.of(context).something_went_wrong,//"Something went wrong!!!",
+         Fluttertoast.showToast(msg: S .of(context).something_went_wrong,//"Something went wrong!!!",
           fontSize: MediaQuery.of(context).textScaleFactor *13,);
       }
     } catch (error) {
@@ -142,16 +161,16 @@ class LoginScreenState extends State<LoginScreen> {
             begin: Alignment.topRight,
             end: Alignment.bottomLeft,
             colors: [
-              ColorCodes.accentColor,
-              ColorCodes.primaryColor
+              ColorCodes.appbarColor,
+              ColorCodes.appbarColor2
             ]),
         elevation:  (IConstants.isEnterprise)?0:1,
         title: Text(
-          S.of(context).signup,//'Signup',
-          style: TextStyle(color:ColorCodes.menuColor,fontWeight: FontWeight.normal),
+          S .of(context).signup,//'Signup',
+          style: TextStyle(color: ColorCodes.iconColor, fontWeight: FontWeight.bold, fontSize: 18),
         ),
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: ColorCodes.menuColor),
+          icon: Icon(Icons.arrow_back, color:ColorCodes.iconColor),
           onPressed: () {
             Navigator.of(context).pop();
           },
@@ -165,7 +184,7 @@ class LoginScreenState extends State<LoginScreen> {
               margin: EdgeInsets.only(top: 40.0, bottom: 20.0),
               child: Align(
                   alignment: Alignment.centerLeft,
-                  child: Text( S.of(context).please_enter_your_mobile,//'Please enter your mobile number',
+                  child: Text( S .of(context).please_enter_your_mobile,//'Please enter your mobile number',
                     style: TextStyle(color: ColorCodes.mediumBlackWebColor, fontWeight: FontWeight.bold, fontSize: 18),))),
           Container(
             width: MediaQuery.of(context).size.width / 1.2,
@@ -190,7 +209,7 @@ class LoginScreenState extends State<LoginScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     Text(
-                        S.of(context).country_region,//"Country/Region",
+                        S .of(context).country_region,//"Country/Region",
                         style: TextStyle(
                           color: ColorCodes.greyColor,
                         )),
@@ -224,29 +243,29 @@ class LoginScreenState extends State<LoginScreen> {
                       child: TextFormField(
                         style: TextStyle(fontSize: 16.0),
                         textAlign: TextAlign.left,
-                        inputFormatters: [FilteringTextInputFormatter.allow(RegExp('[0-9]'))],
+                        inputFormatters: [LengthLimitingTextInputFormatter(12)],
                         cursorColor: Theme.of(context).primaryColor,
-                          keyboardType: TextInputType.numberWithOptions(signed: true, decimal: true),
+                        keyboardType: TextInputType.number,
                         //autofocus: true,
                         decoration: new InputDecoration.collapsed(
-                            hintText: S.of(context).enter_yor_mobile_number,//'Enter Your Mobile Number',
+                            hintText: S .of(context).enter_yor_mobile_number,//'Enter Your Mobile Number',
                             hintStyle: TextStyle(
                               color: Colors.black12,
                             )),
                         validator: (value) {
                           String patttern = r'(^(?:[+0]9)?[0-9]{6,10}$)';
                           RegExp regExp = new RegExp(patttern);
-                          if (value.isEmpty) {
+                          if (value!.isEmpty) {
                             Navigator.of(context).pop();
-                            return S.of(context).please_enter_phone_number;//'Please enter a Mobile number.';
+                            return S .of(context).please_enter_phone_number;//'Please enter a Mobile number.';
                           } else if (!regExp.hasMatch(value)) {
                             Navigator.of(context).pop();
-                            return S.of(context).valid_phone_number;//'Please enter valid mobile number';
+                            return S .of(context).valid_phone_number;//'Please enter valid mobile number';
                           }
                           return null;
                         }, //it means user entered a valid input
                         onSaved: (value) {
-                          addMobilenumToSF(value);
+                          addMobilenumToSF(value!);
                         },
                       ),
                     ))
@@ -258,7 +277,7 @@ class LoginScreenState extends State<LoginScreen> {
             height: 60.0,
             margin: EdgeInsets.only(top: 8.0, bottom: 36.0),
             child: Text(
-              S.of(context).we_will_call_or_text,//"We'll call or text you to confirm your number. Standard message data rates apply.",
+              S .of(context).we_will_call_or_text,//"We'll call or text you to confirm your number. Standard message data rates apply.",
               style: TextStyle(fontSize: 13, color: ColorCodes.mediumBlackWebColor),
             ),
           ),
@@ -287,7 +306,7 @@ class LoginScreenState extends State<LoginScreen> {
                           height: 60.0,
                           child: Center(
                             child: Text(
-                              S.of(context).signup_otp,//"SIGNUP USING OTP",
+                              S .of(context).signup_otp,//"SIGNUP USING OTP",
                               style: TextStyle(
                                 fontSize: 18.0,
                                 color: Theme.of(context).buttonColor,

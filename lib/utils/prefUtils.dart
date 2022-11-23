@@ -5,7 +5,7 @@ class PrefUtils {
   //static PrefUtils _storageUtil;
   // static SharedPreferences _preferences;//=await SharedPreferences.getInstance();
   //static Future<SharedPreferences> get _instance async => _prefsInstance ??= await SharedPreferences.getInstance();
-  static SharedPreferences prefs;
+  static SharedPreferences? prefs;
 
   PrefUtils._();
 

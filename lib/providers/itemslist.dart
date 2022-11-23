@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import '../../assets/ColorCodes.dart';
 import '../constants/features.dart';
 import '../blocs/item_bloc.dart';
 import '../blocs/search_item_bloc.dart';
@@ -28,8 +27,8 @@ class ItemsList with ChangeNotifier {
   Future<void> fetchItems(String catId, String type, int startitem, String checkinitialy) async {
     // imp feature in adding async is the it automatically wrap into Future.
     var url = Api.getMenuitemByCart;
-    String user = (PrefUtils.prefs.containsKey("apikey")) ? PrefUtils.prefs.getString("tokenid") : PrefUtils.prefs.getString('apikey');
-    PrefUtils.prefs.setBool("endOfProduct", false);
+    String user = (!PrefUtils.prefs!.containsKey("apikey")) ? PrefUtils.prefs!.getString("tokenid")! : PrefUtils.prefs!.getString('apikey')!;
+    PrefUtils.prefs!.setBool("endOfProduct", false);
     try {
       final response = await http
           .post(
@@ -39,15 +38,16 @@ class ItemsList with ChangeNotifier {
             "start": startitem.toString(),
             "end": "0",
             "type" : type,
-            "branch": PrefUtils.prefs.getString('branch'),
+            "branch": PrefUtils.prefs!.getString('branch'),
             "user": user,
             "language_id": IConstants.languageId,
             // await keyword is used to wait to this operation is complete.
           }
       );
       final responseJson = json.decode(utf8.decode(response.bodyBytes));
+      debugPrint("banproduct."+responseJson.toString());
       if (responseJson.toString() == "[]"){
-        PrefUtils.prefs.setBool("endOfProduct", true);
+        PrefUtils.prefs!.setBool("endOfProduct", true);
       } else {
         if(checkinitialy == "initialy") {
           _items.clear();
@@ -115,6 +115,7 @@ class ItemsList with ChangeNotifier {
             brand: data[i]['brand'].toString(),
             veg_type: data[i]["veg_type"].toString(),
             type: data[i]["type"].toString(),
+            salePrice: data[i]["sale_price"].toString(),
             eligible_for_express: Features.isExpressDelivery ? Features.isSplit ? data[i]['eligible_for_express'].toString(): "0" : "1",
 
             delivery: (data[i]['delivery'] ?? "").toString(),
@@ -155,7 +156,7 @@ class ItemsList with ChangeNotifier {
               } else {
                 _membershipDisplay = true;
               }
-debugPrint("pricevardata" + pricevardata[j]['fit'].toString());
+
               _itemspricevar.add(SellingItemsFields(
                 varid: pricevardata[j]['id'].toString(),
                 menuid: pricevardata[j]['menu_item_id'].toString(),
@@ -179,10 +180,8 @@ debugPrint("pricevardata" + pricevardata[j]['fit'].toString());
                 discountDisplay: _discointDisplay,
                 membershipDisplay: _membershipDisplay,
                 unit: (pricevardata[j]['unit'].toString() == "null")? "" : (pricevardata[j]['unit'] ?? "").toString(),
-                color: pricevardata[0]['color'].toString(),
                 weight: double.parse(pricevardata[j]['weight'].toString()),
-                fit: pricevardata[j]['fit'].toString() == "" ||
-                    pricevardata[j]['fit'].toString() == "null" ? 0 : pricevardata[j]['fit'].toString(),
+                netWeight: double.parse(pricevardata[j]['net_weight'].toString()),
               ));
               final multiimagesJson = json.encode(
                   pricevardata[j]['images']); //fetching sub categories data
@@ -245,11 +244,11 @@ debugPrint("pricevardata" + pricevardata[j]['fit'].toString());
   Future<bool> fetchsearchItems(String item_name,[bool isonsubmit = false]) async { // imp feature in adding async is the it automatically wrap into Future.
 
     var url = Api.getSerachitemByCart;
-    String user = (!PrefUtils.prefs.containsKey("apikey")) ? PrefUtils.prefs.getString("tokenid") : PrefUtils.prefs.getString('apikey');
+    String user = (!PrefUtils.prefs!.containsKey("apiKey")) ? PrefUtils.prefs!.getString("tokenid")! : PrefUtils.prefs!.getString('apikey')!;
     debugPrint("search..."+{
-      "apiKey": PrefUtils.prefs.containsKey('apiKey') ? PrefUtils.prefs.getString('apikey') : "",
+      "apiKey": user,
       "item_name": item_name,
-      "branch": PrefUtils.prefs.getString('branch'),
+      "branch": PrefUtils.prefs!.getString('branch'),
       "user": user,
       "language_id": IConstants.languageId,
     }.toString());
@@ -261,9 +260,9 @@ debugPrint("pricevardata" + pricevardata[j]['fit'].toString());
           .post(
           url,
           body: {
-            "apiKey": PrefUtils.prefs.containsKey('apiKey') ? PrefUtils.prefs.getString('apikey') : "",
+            "apiKey": user,
             "item_name": item_name,
-            "branch": PrefUtils.prefs.getString('branch'),
+            "branch": PrefUtils.prefs!.getString('branch'),
             "user": user,
             "language_id": IConstants.languageId,
             // await keyword is used to wait to this operation is complete.
@@ -336,6 +335,7 @@ debugPrint("pricevardata" + pricevardata[j]['fit'].toString());
           brand: data[i]['brand'].toString(),
           veg_type: data[i]["veg_type"].toString(),
           type: data[i]["type"].toString(),
+          salePrice: data[i]["sale_price"].toString(),
           eligible_for_express: Features.isExpressDelivery ? Features.isSplit ? data[i]['eligible_for_express'].toString(): "0" : "1",
 
           delivery:(data[i]['delivery'] ?? "").toString(),
@@ -394,10 +394,8 @@ debugPrint("pricevardata" + pricevardata[j]['fit'].toString());
               discountDisplay: _discointDisplay,
               membershipDisplay: _membershipDisplay,
               unit: (pricevardata[j]['unit'].toString() == "null")? "" : (pricevardata[j]['unit'] ?? "").toString(),
-              color: pricevardata[0]['color'].toString(),
               weight: double.parse(pricevardata[j]['weight'].toString()),
-              fit: pricevardata[j]['fit'].toString() == "" ||
-                  pricevardata[j]['fit'].toString() == "null" ? 0 : pricevardata[j]['fit'].toString()
+              netWeight: double.parse(pricevardata[j]['net_weight'].toString()),
             ));
             final multiimagesJson = json.encode(
                 pricevardata[j]['images']); //fetching sub categories data
@@ -468,14 +466,17 @@ debugPrint("pricevardata" + pricevardata[j]['fit'].toString());
   List<SellingItemsFields> findBysearchimage(String pricevarid){
     return [..._searchimage.where((pricevar) => pricevar.varid == pricevarid)];
   }
-  Future<void> fetchSingleItems(String itemid, String notificationFor) async { // imp feature in adding async is the it automatically wrap into Future.
-    var url = notificationFor.toString() == "13"?Api.getSingleProductvarIdByCart:Api.getSingleProductByCart;
-    String user = (!PrefUtils.prefs.containsKey("apikey")) ? PrefUtils.prefs.getString("ftokenid") : PrefUtils.prefs.getString('apikey');
-   print("fetch singel item:"+{
+  Future<void> fetchSingleItems(String itemid) async { // imp feature in adding async is the it automatically wrap into Future.
+    var url = /*notificationFor.toString() == "13"?Api.getSingleProductvarIdByCart:*/Api.getSingleProductByCart;
+    String user = (!PrefUtils.prefs!.containsKey("apikey")) ? PrefUtils.prefs!.getString("ftokenid")! : PrefUtils.prefs!.getString('apikey')!;
+   print("url..."+url.toString());
+    print("fetch singel item:"+{
      "id": itemid,
-     "branch": PrefUtils.prefs.getString('branch'),
+     "branch": PrefUtils.prefs!.getString('branch'),
      "user": user,
      "language_id": IConstants.languageId,
+     "ref": IConstants.refIdForMultiVendor.toString(),
+     "branchtype": IConstants.branchtype.toString(),
      // await keyword is used to wait to this operation is complete.
    }.toString());
     try {
@@ -487,14 +488,14 @@ debugPrint("pricevardata" + pricevardata[j]['fit'].toString());
           url,
           body: {
               "id": itemid,
-              "branch": PrefUtils.prefs.getString('branch'),
+              "branch": PrefUtils.prefs!.getString('branch'),
               "user": user,
               "language_id": IConstants.languageId,
             // await keyword is used to wait to this operation is complete.
           }
       );
       final responseJson = json.decode(utf8.decode(response.bodyBytes));
-      debugPrint("responseJson......single"+responseJson.toString());
+      debugPrint("single..."+responseJson.toString());
       if(responseJson.toString() != "[]") {
         List data = [];
 
@@ -552,7 +553,7 @@ debugPrint("pricevardata" + pricevardata[j]['fit'].toString());
             _status = subscriptionslotdata[0]["deliveryTime"].toString();
 
           }
-           debugPrint("data[i]['wishlist']...."+data[i]['wishlist'].toString());
+
           _singleitems.add(SellingItemsFields(
             id: data[i]['id'].toString(),
             title: data[i]['item_name'].toString(),
@@ -562,6 +563,7 @@ debugPrint("pricevardata" + pricevardata[j]['fit'].toString());
             manufacturedesc: data[i]['manufacturer_description'].toString(),
             veg_type: data[i]["veg_type"].toString(),
             type: data[i]["type"].toString(),
+            salePrice: data[i]["sale_price"].toString(),
             eligible_for_express: Features.isExpressDelivery ? Features.isSplit ? data[i]['eligible_for_express'].toString(): "0" : "1",
             delivery:(data[i]['delivery'] ?? "").toString(),
             duration: _duration,
@@ -571,8 +573,6 @@ debugPrint("pricevardata" + pricevardata[j]['fit'].toString());
             paymentmode:data[i]['payment_mode'].toString(),
             cronTime: _cronTime,
             name: _status,
-            wishlist: data[i]['wishlist'],
-            fit:data[i]['fit'].toString(),
           ));
 
 
@@ -591,9 +591,9 @@ debugPrint("pricevardata" + pricevardata[j]['fit'].toString());
             for (int j = 0; j < pricevardata.length; j++) {
               var varcolor;
               if(j == 0) {
-                varcolor = ColorCodes.discountoff;//Color(0xff012961);
+                varcolor = Color(0xff012961);
               } else {
-                varcolor = Color(0xffBEBEBE);
+                varcolor = Color(0xff000000);//Color(0xffBEBEBE);
               }
               bool _discointDisplay = false;
               bool _membershipDisplay = false;
@@ -610,8 +610,7 @@ debugPrint("pricevardata" + pricevardata[j]['fit'].toString());
               } else {
                 _membershipDisplay = true;
               }
-                 debugPrint("varcolor...."+pricevardata[j]['color'].toString());
-              debugPrint("size...."+pricevardata[j]['size'].toString());
+
               _singleitemspricevar.add(SellingItemsFields(
                 varid: pricevardata[j]['id'].toString(),
                 menuid: data[i]['id'].toString(),
@@ -629,25 +628,10 @@ debugPrint("pricevardata" + pricevardata[j]['fit'].toString());
                 membershipDisplay: _membershipDisplay,
                 varcolor: varcolor,
                 unit: (pricevardata[j]['unit'].toString() == "null")? "" : (pricevardata[j]['unit'] ?? "").toString(),
-                color: pricevardata[0]['color'].toString(),
                 weight: double.parse(pricevardata[j]['weight'].toString()),
-                varColor: pricevardata[j]['color'].toString(),
-                size: pricevardata[j]['size'].toString(),
-                fit: pricevardata[j]['fit'].toString() == "null" ? "" : pricevardata[j]['fit'].toString(),
+                netWeight: double.parse(pricevardata[j]['net_weight'].toString()),
               ));
-              Color selectedColor;
-              Color textColor;
-              Color borderColor;
-              bool isSelect;
-              if(j == 0) {
-                selectedColor = ColorCodes.mediumgren;
-                textColor =  ColorCodes.greenColor;
-                isSelect = true;
-              } else {
-                selectedColor = ColorCodes.whiteColor;
-                textColor =  ColorCodes.greenColor;
-                isSelect = false;
-              }
+
               final multiimagesJson = json.encode(pricevardata[j]['images']); //fetching sub categories data
 
               final multiimagesJsondecode = json.decode(multiimagesJson);
@@ -659,7 +643,7 @@ debugPrint("pricevardata" + pricevardata[j]['fit'].toString());
                   varid: pricevardata[j]['id'].toString(),
                   menuid: data[i]['id'].toString(),
                   imageUrl: IConstants.API_IMAGE + "items/images/" + data[i]['item_featured_image'].toString(),
-                  varcolor: ColorCodes.discountoff,//Color(0xff012961),
+                  varcolor: Color(0xff012961),
                 ));
               } else {
                 multiimagesJsondecode.asMap().forEach((index, value) =>
@@ -670,9 +654,9 @@ debugPrint("pricevardata" + pricevardata[j]['fit'].toString());
                 for(int k = 0; k < multiimagesdata.length; k++) {
                   var varcolor;
                   if(k == 0) {
-                    varcolor = ColorCodes.discountoff;//Color(0xff012961);
+                    varcolor = Color(0xff012961);
                   } else {
-                    varcolor = Color(0xffBEBEBE);
+                    varcolor = Color(0xff000000);//Color(0xffBEBEBE);
                   }
                   _multiimages.add(SellingItemsFields(
                     varid: pricevardata[j]['id'].toString(),
@@ -697,12 +681,10 @@ debugPrint("pricevardata" + pricevardata[j]['fit'].toString());
     return [..._singleitems];
   }
 
-  List<SellingItemsFields> findByIdsingleitems(String menuitemid, String notificationFor) {
-    return [..._singleitemspricevar.where((pricevar) => notificationFor.toString() == "13"?pricevar.varid == menuitemid:pricevar.menuid == menuitemid)];
+  List<SellingItemsFields> findByIdsingleitems(String menuitemid, /*String notificationFor*/) {
+    return [..._singleitemspricevar.where((pricevar) => /*notificationFor.toString() == "13"?pricevar.varid == menuitemid:*/pricevar.menuid == menuitemid)];
   }
-  List<SellingItemsFields> findBysizesingleitems(String menuitemid) {
-    return [..._singleitemspricevar.where((pricevar) => pricevar.menuid == menuitemid)];
-  }
+
   List<SellingItemsFields> findByIdmulti(String pricevarid) {
     return [..._multiimages.where((pricevar) => pricevar.varid == pricevarid)];
   }

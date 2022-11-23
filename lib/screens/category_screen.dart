@@ -1,16 +1,11 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import '../../controller/mutations/cart_mutation.dart';
 import '../../controller/mutations/home_screen_mutation.dart';
-import '../../data/calculations.dart';
 import '../../models/VxModels/VxStore.dart';
-import '../../screens/cart_screen.dart';
-import '../../screens/profile_screen.dart';
-import '../../screens/wishlist_screen.dart';
-import '../../widgets/badge.dart';
 import 'package:velocity_x/velocity_x.dart';
 import '../models/newmodle/home_page_modle.dart';
 import '../generated/l10n.dart';
+import '../rought_genrator.dart';
 import '../screens/searchitem_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../constants/features.dart';
@@ -39,11 +34,11 @@ class CategoryScreen extends StatefulWidget {
   _CategoryScreenState createState() => _CategoryScreenState();
 }
 
-class _CategoryScreenState extends State<CategoryScreen> {
+class _CategoryScreenState extends State<CategoryScreen> with Navigations{
   bool _isWeb = false;
-  MediaQueryData queryData;
-  double wid;
-  double maxwid;
+  MediaQueryData? queryData;
+  double? wid;
+  double? maxwid;
   bool checkskip = false;
   bool iphonex = false;
   var name = "", email = "", photourl = "", phone = "";
@@ -73,30 +68,19 @@ class _CategoryScreenState extends State<CategoryScreen> {
       }
 
       setState(() {
-       /* if (PrefUtils.prefs.getString('FirstName') != null) {
-          if (PrefUtils.prefs.getString('LastName') != null) {
-            name = PrefUtils.prefs.getString('FirstName') +
-                " " +
-                PrefUtils.prefs.getString('LastName');
-          } else {
-            name = PrefUtils.prefs.getString('FirstName');
-          }
-        } else {
-          name = "";
-        }*/
-        name = store.userData.username;
-        if (PrefUtils.prefs.getString('Email') != null) {
-          email = PrefUtils.prefs.getString('Email');
+        name = store.userData.username??"";
+        if (PrefUtils.prefs!.containsKey('Email')) {
+          email = PrefUtils.prefs!.getString('Email')!;
         } else {
           email = "";
         }
 
-        if (PrefUtils.prefs.getString('mobile') != null) {
-          phone = PrefUtils.prefs.getString('mobile');
+        if (PrefUtils.prefs!.containsKey('mobile')) {
+          phone = PrefUtils.prefs!.getString('mobile')!;
         } else {
           phone = "";
         }
-        if (!PrefUtils.prefs.containsKey("apikey")) {
+        if (!PrefUtils.prefs!.containsKey("apikey")) {
           checkskip = true;
         } else {
           checkskip = false;
@@ -108,301 +92,439 @@ class _CategoryScreenState extends State<CategoryScreen> {
   }
 
 
-  void launchWhatsapp({@required number,@required message})async{
+  /*void launchWhatsapp({required number,required message})async{
     String url ="whatsapp://send?phone=$number&text=$message";
     await canLaunch(url)?launch(url):print('can\'t open whatsapp');
-  }
+  }*/
+  void launchWhatsApp() async {
+    String phone = /*"+918618320591"*/IConstants.secondaryMobile;
+    debugPrint("Whatsapp . .. . . .. . .");
+    String url() {
+      if (Platform.isIOS) {
+        debugPrint("Whatsapp1 . .. . . .. . .");
+        return "whatsapp://wa.me/$phone/?text=${Uri.parse('I want to order Grocery')}";
+      } else {
+        return "whatsapp://send?phone=$phone&text=${Uri.parse('I want to order Grocery')}";
+        const url = "https://wa.me/?text=YourTextHere";
 
+      }
+    }
+    if (await canLaunch(url())) {
+      await launch(url());
+    } else {
+      throw 'Could not launch ${url()}';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     queryData = MediaQuery.of(context);
-    wid = queryData.size.width;
-    maxwid = wid * 0.90;
+    wid = queryData!.size.width;
+    maxwid = wid! * 0.90;
 
     bottomNavigationbar() {
       return SingleChildScrollView(
         child: Container(
+          height: 65,
           margin: EdgeInsets.all(10.0),
-          height: 53,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.all(Radius.circular(15.0)),
-            color: Theme.of(context).primaryColor,
+            color: ColorCodes.primaryColor,
+            borderRadius: BorderRadius.only(topLeft: Radius.circular(10),topRight: Radius.circular(10),bottomLeft: Radius.circular(10),bottomRight: Radius.circular(10)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withOpacity(0.3),
+                spreadRadius: 1,
+                blurRadius: 1,
+                offset: Offset(0, 1), // changes position of shadow
+              ),
+            ],
+            // shape: BoxShape.circle,
           ),
           child: Row(
             children: <Widget>[
-              SizedBox(width: 20),
+              Spacer(),
               GestureDetector(
                 onTap: () {
-                    Navigator.of(context).popUntil(ModalRoute.withName(HomeScreen.routeName,));
+                  /*Navigator.of(context).pushReplacementNamed(
+                    HomeScreen.routeName,
+                  );*/
+                  /*Navigator.of(context).popUntil(ModalRoute.withName(
+                    HomeScreen.routeName,
+                  ));*/
+                  Navigation(context, /*name:Routename.Home,*/navigatore: NavigatoreTyp.homenav);
                 },
+                child: Container(
+                  width: 60,
+                  child: Column(
+                    children: <Widget>[
+                      SizedBox(
+                        height: 8.0,
+                      ),
+                      CircleAvatar(
+                        radius: 13.0,
+                        foregroundColor: Colors.white,
+                        backgroundColor: Colors.transparent,
+                        child: Image.asset(
+                          Images.homeImg,
+                            color: ColorCodes.whiteColor,
+                          width: 30,
+                          height: 25,
+                        ),
+                      ),
+                      SizedBox(
+                        height: 5.0,
+                      ),
+                      Text(  S.of(context).home,
+                        //  "Home",
+                          style: TextStyle(
+                              color: ColorCodes.whiteColor, fontSize: 10.0)),
+                      SizedBox(
+                        height: 8.0,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              if(Features.isCategory)
+              Spacer(),
+              if(Features.isCategory)
+              Container(
+                width: 60,
                 child: Column(
                   children: <Widget>[
                     SizedBox(
-                      height: 5.0,
+                      height: 8.0,
                     ),
                     CircleAvatar(
                       radius: 13.0,
-                      // minRadius: 50,
-                      // maxRadius: 50,
                       foregroundColor: Colors.white,
                       backgroundColor: Colors.transparent,
-                      child: Image.asset(Images.homeImg,
-                        //  color:ColorCodes.greenColor,
-                        color:ColorCodes.blackColor,
-
-                        width: 32,
-                        height: 23,
-                      ),
-
+                      child: Image.asset(Images.categoriesImg,
+                       //   color: ColorCodes.greenColor
+                        color:IConstants.isEnterprise?ColorCodes.badgecolor:ColorCodes.maphome,
+                        width: 20,
+                        height: 25,),
                     ),
                     SizedBox(
-                      height: 3.0,
+                      height: 5.0,
                     ),
-                    Text(
-                        S.of(context).home,
-                        // "Home",
+                    Text( S.of(context).categories,
+                        //"Categories",
                         style: TextStyle(
-                          color:ColorCodes.blackColor,
-                          //  color: ColorCodes.greenColor,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 11.0,)),
+                            color:IConstants.isEnterprise?ColorCodes.badgecolor:ColorCodes.maphome,
+                           // color: ColorCodes.greenColor,
+                            fontSize: 10.0,
+                            fontWeight: FontWeight.bold)),
+                    SizedBox(
+                      height: 8.0,
+                    ),
                   ],
                 ),
               ),
+              if(Features.isWallet)
               Spacer(),
-              ValueListenableBuilder(
-                  valueListenable: IConstants.currentdeliverylocation,
-                  builder: (context,value,widget){
-                    return Column(
+              if(Features.isWallet)
+              GestureDetector(
+                onTap: () {
+                  (!PrefUtils.prefs!.containsKey("apikey"))
+                      ? /*Navigator.of(context).pushNamed(
+                          SignupSelectionScreen.routeName,
+                        )*/
+                  Navigation(context, name: Routename.SignUpScreen, navigatore: NavigatoreTyp.Push)
+                      :
+                  /* Navigator.of(context).pushReplacementNamed(
+                          WalletScreen.routeName,
+                          arguments: {"type": "wallet"});*/
+                 /* Navigation(context, name: Routename.Wallet, navigatore: NavigatoreTyp.PushReplacment,qparms: {
+                    "type": "wallet"
+                  });*/
+                  Navigation(context, name: Routename.Wallet, navigatore: NavigatoreTyp.Push,
+                      qparms: {"type": "wallet"} );
+                },
+                child: Container(
+                  width: 60,
+                  child: Column(
+                    children: <Widget>[
+                      /*SizedBox(
+                        height: 3.0,
+                      ),
+                      (PrefUtils.prefs!.containsKey("apikey")) ?((VxState.store as GroceStore).prepaid.prepaid.toString() != null || (VxState.store as GroceStore).prepaid.prepaid.toString() != "null" || (VxState.store as GroceStore).prepaid.prepaid.toString() != "")?Text(
+                        Features.iscurrencyformatalign?
+                        (VxState.store as GroceStore).prepaid.prepaid!.toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit) + " " + IConstants.currencyFormat:
+                        IConstants.currencyFormat + " " + (VxState.store as GroceStore).prepaid.prepaid!.toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),
+                        style: TextStyle(
+                            color: ColorCodes.greenColor,
+                            fontSize: 10.0,
+                            fontWeight: FontWeight.bold
+                        ),
+                      ):
+                      SizedBox(
+                        height: 10.0,
+                      ):*/
+                      SizedBox(
+                        height: 8.0,
+                      ),
+                      CircleAvatar(
+                        radius: 13.0,
+                        backgroundColor: Colors.transparent,
+                        child: Image.asset(Images.walletImg,
+                          color: ColorCodes.whiteColor,
+                          width: 20,
+                          height: 25,),
+                      ),
+                      SizedBox(
+                        height: 5.0,
+                      ),
+                      Text( S.of(context).wallet,
+                          //"Wallet",
+                          style: TextStyle(
+                              color: ColorCodes.whiteColor, fontSize: 10.0)),
+                      SizedBox(
+                        height: 8.0,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              if(Features.isMembership)
+              Spacer(),
+              if(Features.isMembership)
+              GestureDetector(
+                onTap: () {
+                  (!PrefUtils.prefs!.containsKey("apikey"))
+                      ? /*Navigator.of(context).pushNamed(
+                          SignupSelectionScreen.routeName,
+                        )*/
+                  Navigation(context, name: Routename.SignUpScreen, navigatore: NavigatoreTyp.Push)
+                      :
+                  /*Navigator.of(context).pushReplacementNamed(
+                          MembershipScreen.routeName,
+                        );*/
+                     (Vx.isWeb &&
+                    !ResponsiveLayout.isSmallScreen(context))?
+                    MembershipInfo(context):
+                  Navigation(context, name: Routename.Membership, navigatore: NavigatoreTyp.Push);
+                },
+                child: Container(
+                  width: 60,
+                  child: Column(
+                    children: <Widget>[
+                      SizedBox(
+                        height: 8.0,
+                      ),
+                      CircleAvatar(
+                        radius: 13.0,
+                        backgroundColor: Colors.transparent,
+                        child: Image.asset(
+                          Images.bottomnavMembershipImg,
+                          color: ColorCodes.whiteColor,
+                          width: 20,
+                          height: 25,
+                        ),
+                      ),
+                      SizedBox(
+                        height: 5.0,
+                      ),
+                      Text( S.of(context).membership,
+                         // "Membership",
+                          style: TextStyle(
+                              color: ColorCodes.whiteColor, fontSize: 10.0)),
+                      SizedBox(
+                        height: 8.0,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              if(!Features.isMembership)
+                Spacer(),
+              if(!Features.isMembership)
+                GestureDetector(
+                  onTap: () {
+                    checkskip
+                        ? /*Navigator.of(context).pushNamed(
+                      SignupSelectionScreen.routeName,
+                    )*/
+                    Navigation(context, name: Routename.SignUpScreen, navigatore: NavigatoreTyp.Push)
+                        : /*Navigator.of(context).pushReplacementNamed(
+                      MyorderScreen.routeName,
+                        arguments: {
+                          "orderhistory": ""
+                        }
+                    );*/
+                    Navigation(context, name:Routename.MyOrders,navigatore: NavigatoreTyp.Push,
+                       /* parms: {
+                      "orderhistory": ""
+                    }*/);
+                  },
+                  child: Container(
+                    width: 60,
+                    child: Column(
                       children: <Widget>[
                         SizedBox(
-                          height: 5.0,
+                          height: 8.0,
                         ),
                         CircleAvatar(
                           radius: 13.0,
                           backgroundColor: Colors.transparent,
-                          child: Image.asset(Images.categoriesImg,
-                            color: ColorCodes.redColor ,
-                            width: 32,
-                            height: 22,),
+                          child: Image.asset(
+                            Images.bag,
+                            color: ColorCodes.whiteColor,
+                            width: 20,
+                            height: 25,
+                          ),
                         ),
                         SizedBox(
-                          height: 3.0,
+                          height: 5.0,
                         ),
-                        Text(
-                            S.of(context).categories,//"Categories",
+                        Text( S.of(context).my_orders,
+                           // "My Orders",
                             style: TextStyle(
-                                fontWeight: FontWeight.w800,
-                                color: ColorCodes.redColor, fontSize: 11.0)),
+                                color:  ColorCodes.whiteColor, fontSize: 10.0)),
+                        SizedBox(
+                          height: 8.0,
+                        ),
                       ],
-                    );
-                  }),
-              if(Features.isWallet)
-                Spacer(),
-              ValueListenableBuilder(
-                  valueListenable: IConstants.currentdeliverylocation,
-                  builder: (context, value, widget){
-                    return GestureDetector(
-                      onTap: () {
-                        if (value != S.of(context).not_available_location)
-                          Navigator.of(context).pushNamed(CartScreen.routeName,arguments: {
-                            "after_login": ""
-                          });
-                      },
-                      child: VxBuilder(
-                        // valueListenable: Hive.box<Product>(productBoxName).listenable(),
-                        builder: (context,  box, index) {
-                          return Consumer<CartCalculations>(
-                            builder: (_, cart, ch) => Badge(
-                              child: ch,
-                              color: ColorCodes.darkgreen,
-                              value: CartCalculations.itemCount.toString(),
-                            ),
-                            child: Column(
-                              children: <Widget>[
-                                SizedBox(
-                                  height: 5.0,
-                                ),
-                                CircleAvatar(
-                                  radius: 13.0,
-                                  backgroundColor: Colors.transparent,
-                                  child: Image.asset(
-                                    Images.header_cart,
-                                    color: ColorCodes.blackColor,
-                                    width: 27,
-                                    height: 17,),
-                                ),
-                                SizedBox(
-                                  height: 3.0,
-                                ),
-                                Text(
-                                    S.of(context).my_bag,//"Membership",
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.w800,
-                                        color: ColorCodes.blackColor, fontSize: 11.0)),
-                              ],
-                            ),);
-                        },mutations: {SetCartItem},
-                      ),
-                    );
-                  }),
-              if(Features.isMembership)
-                Spacer(),
-              if(Features.isMembership)
-                ValueListenableBuilder(
-                    valueListenable: IConstants.currentdeliverylocation,
-                    builder: (context, value, widget){
-                      return GestureDetector(
-                        onTap: () {
-                          if (value != S.of(context).not_available_location)
-                            !PrefUtils.prefs.containsKey("apikey")
-                                ? Navigator.of(context).pushNamed(
-                              SignupSelectionScreen.routeName,
-                                arguments: {
-                                  "prev": "signupSelectionScreen",
-                                }
-                            )
-                                : Navigator.of(context).pushNamed(
-                              MembershipScreen.routeName,
-                            );
-                        },
-                        child: Column(
-                          children: <Widget>[
-                            SizedBox(
-                              height: 5.0,
-                            ),
-                            CircleAvatar(
-                              radius: 13.0,
-                              backgroundColor: Colors.transparent,
-                              child: Image.asset(
-                                Images.bottomnavMembershipImg,
-                                color: ColorCodes.blackColor,
-                                width: 50,
-                                height: 30,),
-                            ),
-                            SizedBox(
-                              height: 5.0,
-                            ),
-                            Text(
-                                S.of(context).membership,//"Membership",
-                                style: TextStyle(
-                                    color: ColorCodes.blackColor, fontSize: 10.0)),
-                          ],
-                        ),
-                      );
-                    }),
-
-
-              if(!Features.isMembership)
-                Spacer(),
-              if(!Features.isMembership)
-                ValueListenableBuilder(
-                    valueListenable: IConstants.currentdeliverylocation,
-                    builder: (context, value ,widget){
-                      return GestureDetector(
-                        onTap: () {
-                          if (value != S.of(context).not_available_location)
-                            !PrefUtils.prefs.containsKey("apikey")
-                                ? Navigator.of(context).pushNamed(
-                              SignupSelectionScreen.routeName,
-                                arguments: {
-                                  "prev": "signupSelectionScreen",
-                                }
-                            )
-                                :  Navigator.of(context)
-                                .pushNamed(ProfileScreen.routeName);
-                        },
-                        child: Column(
-                          children: <Widget>[
-                            SizedBox(
-                              height: 5.0,
-                            ),
-                            CircleAvatar(
-                              radius: 13.0,
-                              backgroundColor: Colors.transparent,
-                              child: Image.asset(
-                                Images.Person,
-                                color: ColorCodes.blackColor,
-                                width: 17,
-                                height: 17,),
-                            ),
-
-                            SizedBox(
-                              height: 3.0,
-                            ),
-                            Text(
-                                S.of(context).profile,//"My Orders",
-                                style: TextStyle(
-                                    fontWeight: FontWeight.w800,
-                                    color: ColorCodes.blackColor, fontSize: 11.0)),
-                          ],
-                        ),
-                      );
-                    }),
+                    ),
+                  ),
+                ),
               if(Features.isShoppingList)
                 Spacer(),
               if(Features.isShoppingList)
-                ValueListenableBuilder(
-                    valueListenable: IConstants.currentdeliverylocation,
-                    builder: (context, value ,widget){
-                      return GestureDetector(
-                        onTap: () {
-                          if (value != S.of(context).not_available_location)
-                            !PrefUtils.prefs.containsKey("apikey")
-                                ? Navigator.of(context).pushNamed(
-                              SignupSelectionScreen.routeName,
-                                arguments: {
-                                  "prev": "signupSelectionScreen",
-                                }
-                            )
-                                : Navigator.of(context).pushNamed(
-                              ShoppinglistScreen.routeName,
-                            );
-                        },
-                        child: Column(
-                          children: <Widget>[
-                            SizedBox(
-                              height: 5.0,
-                            ),
-                            CircleAvatar(
-                              radius: 13.0,
-                              backgroundColor: Colors.transparent,
-                              child: Image.asset(Images.shoppinglistsImg ,
-                                color: ColorCodes.blackColor,
-                                width: 50,
-                                height: 30,),
-                            ),
-                            SizedBox(
-                              height: 5.0,
-                            ),
-                            Text(
-                                S.of(context).shopping_list,//"Shopping list",
-                                style: TextStyle(
-                                    color: ColorCodes.blackColor, fontSize: 10.0)),
-                          ],
+                GestureDetector(
+                  onTap: () {
+                    checkskip
+                        ? /*Navigator.of(context).pushNamed(
+                      SignupSelectionScreen.routeName,
+                    )*/
+                    Navigation(context, name: Routename.SignUpScreen, navigatore: NavigatoreTyp.Push)
+                        :
+                   /* Navigator.of(context).pushReplacementNamed(
+                      ShoppinglistScreen.routeName,
+                    );*/
+                    Navigation(context, name: Routename.Shoppinglist, navigatore: NavigatoreTyp.Push);
+                  },
+                  child: Container(
+                    width: 60,
+                    child: Column(
+                      children: <Widget>[
+                        SizedBox(
+                          height: 8.0,
                         ),
-                      );
-                    }),
+                        CircleAvatar(
+                          radius: 13.0,
+                          backgroundColor: Colors.transparent,
+                          child: Image.asset(Images.shoppinglistsImg,
+                            color: ColorCodes.whiteColor,
+                            width: 18,
+                            height: 25,),
+                        ),
+                        SizedBox(
+                          height: 5.0,
+                        ),
+                        Text( S.of(context).shopping_list,
+                            //"Shopping list",
+                            style: TextStyle(
+                                color:  ColorCodes.whiteColor,fontSize: 10.0)),
+                        SizedBox(
+                          height: 8.0,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              if(!Features.isShoppingList)
+                Spacer(),
+              if(!Features.isShoppingList)
+                GestureDetector(
+                  onTap: () {
+                    checkskip && Features.isLiveChat
+                        ? /*Navigator.of(context).pushNamed(
+                      SignupSelectionScreen.routeName,
+                    )*/
+                    Navigation(context, name: Routename.SignUpScreen, navigatore: NavigatoreTyp.Push)
+                        : (Features.isLiveChat && Features.isWhatsapp)?
+                    Navigator.of(context)
+                        .pushNamed(CustomerSupportScreen.routeName, arguments: {
+                      'name': name,
+                      'email': email,
+                      'photourl': photourl,
+                      'phone': phone,
+                    }):
+                    (!Features.isLiveChat && !Features.isWhatsapp)?
+                    Navigation(context, navigatore: NavigatoreTyp.Push,name: Routename.search)
 
-              SizedBox(width: 20),
+                        :
+                    Features.isWhatsapp?launchWhatsApp()/*launchWhatsapp(number: IConstants.countryCode + IConstants.secondaryMobile, message:"I want to order Grocery")*/:
+                    Navigator.of(context)
+                        .pushNamed(CustomerSupportScreen.routeName, arguments: {
+                      'name': name,
+                      'email': email,
+                      'photourl': photourl,
+                      'phone': phone,
+                    });
+                  },
+                  child: Container(
+                    width: 60,
+                    child: Column(
+                      children: <Widget>[
+                        SizedBox(
+                          height: 8.0,
+                        ),
+                        CircleAvatar(
+                          radius: 13.0,
+                          backgroundColor: Colors.transparent,
+                          child: (!Features.isLiveChat && !Features.isWhatsapp)?
+                          Icon(
+                            Icons.search,
+                            color: ColorCodes.whiteColor,
+                          )
+                              :
+                          Image.asset(
+                            Features.isLiveChat?Images.chat: Images.whatsapp,
+                            width: 20,
+                            height: 25,
+                            color: Features.isLiveChat?ColorCodes.whiteColor:ColorCodes.whiteColor,
+                          ),
+                        ),
+                        SizedBox(
+                          height: 5.0,
+                        ),
+                        Text((!Features.isLiveChat && !Features.isWhatsapp)? S.of(context).search: S.of(context).chat,
+                     //   "Search":"Chat",
+                            style: TextStyle(
+                                color: ColorCodes.whiteColor, fontSize: 10.0)),
+
+                        SizedBox(
+                          height: 8.0,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              Spacer(),
+              if (_isWeb)
+                Footer(
+                  address: PrefUtils.prefs!.getString("restaurant_address")!,
+                ),
             ],
           ),
-        )
+        ),
       );
     }
 
-    Widget _appBar() {
+    PreferredSizeWidget _appBar() {
       return AppBar(
         toolbarHeight: 60.0,
         elevation: (IConstants.isEnterprise)?0:1,
         automaticallyImplyLeading: false,
+        titleSpacing: 0,
         title: Text( S.of(context).all_categories,
           //"All Categories",
-          style: TextStyle(color: ColorCodes.menuColor, fontWeight: FontWeight.w800),
+          style: TextStyle(color: ColorCodes.iconColor, fontWeight: FontWeight.bold, fontSize: 18),
         ),
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: ColorCodes.menuColor),
+          icon: Icon(Icons.arrow_back, color: ColorCodes.iconColor),
           onPressed: () {
             Navigator.of(context).pop();
           },
@@ -413,107 +535,12 @@ class _CategoryScreenState extends State<CategoryScreen> {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: <Color>[
-                    ColorCodes.accentColor,
-                    ColorCodes.primaryColor
+                    ColorCodes.appbarColor,
+                    ColorCodes.appbarColor2,
+                    /*ColorCodes.accentColor,
+                    ColorCodes.primaryColor*/
               ])),
         ),
-        actions: [
-          GestureDetector(
-            onTap: () {
-              Navigator.of(context).pushReplacementNamed(
-                WishListScreen.routeName,
-              );
-            },
-            child: Container(
-              margin: EdgeInsets.only(top: 11, left: 10, right: 10, bottom: 12),
-              width: 22,
-              height: 22,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(100),
-                /*color: Theme.of(context).buttonColor*/),
-              child: /*Icon(
-                          Icons.shopping_cart_outlined,
-                          size: IConstants.isEnterprise ? 24: 21,
-                          color: IConstants.isEnterprise ? *//*Theme.of(context).primaryColor*//*Colors.white : ColorCodes.mediumBlackWebColor,
-                        ),*/
-              Image.asset(
-                Images.wish,
-                height: 23,
-                width: 23,
-                color: IConstants.isEnterprise ?Colors.white: ColorCodes.mediumBlackWebColor,
-              ),
-            ),
-          ),
-          ValueListenableBuilder(
-              valueListenable: IConstants.currentdeliverylocation,
-              builder: (context, value, widget){
-                return VxBuilder(
-                  // valueListenable: Hive.box<Product>(productBoxName).listenable(),
-                  builder: (context,  box, index) {
-                    // if (CartCalculations.itemCount<=0)
-                    //   return GestureDetector(
-                    //     onTap: () {
-                    //       if (value != S.of(context).not_available_location)
-                    //       Navigator.of(context).pushNamed(CartScreen.routeName,arguments: {
-                    //         "after_login": ""
-                    //       });
-                    //     },
-                    //     child: Container(
-                    //       margin: EdgeInsets.only(top: 10, right: 10, bottom: 10),
-                    //       width: 28,
-                    //       height: 28,
-                    //       decoration: BoxDecoration(
-                    //         borderRadius: BorderRadius.circular(100),
-                    //         /* color: Theme.of(context).buttonColor*/),
-                    //       child: /*Icon(
-                    //       Icons.shopping_cart_outlined,
-                    //       size: IConstants.isEnterprise ? 24: 21,
-                    //       color: IConstants.isEnterprise ? *//*Theme.of(context).primaryColor*//*Colors.white : ColorCodes.mediumBlackWebColor,
-                    //     ),*/
-                    //       Image.asset(
-                    //         Images.header_cart,
-                    //         height: 28,
-                    //         width: 28,
-                    //         color: IConstants.isEnterprise ?Colors.white: ColorCodes.mediumBlackWebColor,
-                    //       ),
-                    //     ),
-                    //   );
-                    return Consumer<CartCalculations>(
-                      builder: (_, cart, ch) => Badge(
-                        child: ch,
-                        color: ColorCodes.darkgreen,
-                        value: CartCalculations.itemCount.toString(),
-                      ),
-                      child: GestureDetector(
-                        onTap: () {
-                          if (value != S.of(context).not_available_location)
-                            Navigator.of(context).pushNamed(CartScreen.routeName,arguments: {
-                              "after_login": ""
-                            });
-                        },
-                        child: Container(
-                          margin: EdgeInsets.only(top:18, bottom: 5, left: 10, right: 10),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(100),
-                            /*color: Theme.of(context).buttonColor*/),
-                          child: /*Icon(
-                          Icons.shopping_cart_outlined,
-                          size: IConstants.isEnterprise ? 24: 21,
-                          color: IConstants.isEnterprise ? *//*Theme.of(context).primaryColor*//*Colors.white : ColorCodes.mediumBlackWebColor,
-                        ),*/
-                          Image.asset(
-                            Images.header_cart,
-                            height: 23,
-                            width: 23,
-                            color: IConstants.isEnterprise ?Colors.white: ColorCodes.mediumBlackWebColor,
-                          ),
-                        ),
-                      ),);
-                  },mutations: {SetCartItem},
-                );
-              }),
-          SizedBox(width: 5),
-        ],
       );
     }
 
@@ -521,16 +548,17 @@ class _CategoryScreenState extends State<CategoryScreen> {
      // final categoriesData = Provider.of<CategoriesItemsList>(context,listen: false);
       return  VxBuilder(
           mutations: {HomeScreenController},
-          builder: (ctx,store,VxStatus state)
+          builder: (ctx,store,VxStatus? state)
       {
         final homedata = (store as GroceStore).homescreen;
         return Column(
           children: <Widget>[
-            if (_isWeb && !ResponsiveLayout.isSmallScreen(context)) Header(false, false),
+            if (_isWeb && !ResponsiveLayout.isSmallScreen(context)) Header(
+                false),
             if (_isWeb && !ResponsiveLayout.isSmallScreen(context))
               Container(
                   padding: EdgeInsets.all(10),
-                  color: ColorCodes.lightGreyWebColor,
+                  color: ColorCodes.whiteColor,
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -581,9 +609,10 @@ class _CategoryScreenState extends State<CategoryScreen> {
                   child: Column(
                     children: [
                       Container(
+                        color: ColorCodes.whiteColor,
                         constraints: (_isWeb &&
                             !ResponsiveLayout.isSmallScreen(context))
-                            ? BoxConstraints(maxWidth: maxwid)
+                            ? BoxConstraints(maxWidth: maxwid!)
                             : null,
                         child: Column(
                           children: [
@@ -603,8 +632,8 @@ class _CategoryScreenState extends State<CategoryScreen> {
                       ),
                       if (_isWeb)
                         Footer(
-                          address: PrefUtils.prefs.getString(
-                              "restaurant_address"),
+                          address: PrefUtils.prefs!.getString(
+                              "restaurant_address")!,
                         ),
                     ],
                   )
@@ -617,14 +646,26 @@ class _CategoryScreenState extends State<CategoryScreen> {
 
     return ResponsiveLayout.isSmallScreen(context)
         ? Scaffold(
-            appBar: ResponsiveLayout.isSmallScreen(context) ? _appBar() : SizedBox.shrink(),
+      backgroundColor: ColorCodes.whiteColor,
+            appBar: ResponsiveLayout.isSmallScreen(context) ? _appBar() : PreferredSize(preferredSize: Size.fromHeight(0),child: SizedBox.shrink()),
             body: _webbody(),
-            floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-            floatingActionButton: Container(
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      floatingActionButton: _isWeb ? SizedBox.shrink() : Container(
+        color: Colors.white,
+        child: Padding(
+            padding: EdgeInsets.only(left: 0.0, top: 0.0, right: 0.0, bottom: iphonex ? 16.0 : 0.0),
+            child: bottomNavigationbar()
+        ),
+      ),
 
-                width: MediaQuery.of(context).size.width,
-
-                child: bottomNavigationbar()),
+      // bottomNavigationBar:
+      //           _isWeb ? SizedBox.shrink() : Container(
+      //             color: Colors.white,
+      //             child: Padding(
+      //                 padding: EdgeInsets.only(left: 0.0, top: 0.0, right: 0.0, bottom: iphonex ? 16.0 : 0.0),
+      //                 child: bottomNavigationbar()
+      //             ),
+      //           ),
           )
         : Scaffold(
             body: _webbody(),

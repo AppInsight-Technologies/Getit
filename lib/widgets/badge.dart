@@ -5,15 +5,15 @@ import '../utils/ResponsiveLayout.dart';
 
 class Badge extends StatefulWidget {
   const Badge({
-    Key key,
-    @required this.child,
-    @required this.value,
+    Key? key,
+    required this.child,
+    required this.value,
     this.color,
   }) : super(key: key);
 
   final Widget child;
   final String value;
-  final Color color;
+  final Color? color;
 
   @override
   _BadgeState createState() => _BadgeState();
@@ -46,7 +46,7 @@ class _BadgeState extends State<Badge> {
 
     return (_isWeb && !ResponsiveLayout.isSmallScreen(context)) ? Stack(
      // alignment: Alignment.center,
-      overflow: Overflow.visible,
+      //overflow: Overflow.visible,
       children: [
         widget.child,
         Positioned(
@@ -80,14 +80,14 @@ class _BadgeState extends State<Badge> {
       ],
     ) : Stack(
       // alignment: Alignment.center,
-      overflow: Overflow.visible,
+      //overflow: Overflow.visible,
       children: [
         widget.child,
         if(widget.value!="0")
         Positioned(
           // right: 0,
           //  top: -8,
-          top:8,
+          top:6,
           right: 5,
           child: Container(
             padding: EdgeInsets.all(2.0),
@@ -97,15 +97,15 @@ class _BadgeState extends State<Badge> {
               color: widget.color != null ? widget.color : Colors.green,
             ),
             constraints: BoxConstraints(
-              minWidth: 15,
-              minHeight: 15,
+              minWidth: 16,
+              minHeight: 16,
             ),
             child: Center(
               child: Text(
                 widget.value,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: 9,
+                  fontSize: 10,
                   color: Theme.of(context).buttonColor,
                 ),
               ),

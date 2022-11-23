@@ -4,15 +4,15 @@ import '../generated/l10n.dart';
 
 class BadgeDiscount extends StatelessWidget {
   const BadgeDiscount({
-    Key key,
-    @required this.child,
-    @required this.value,
+    Key? key,
+    required this.child,
+    required this.value,
     this.color,
   }) : super(key: key);
 
   final Widget child;
   final String value;
-  final Color color;
+  final Color? color;
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +37,7 @@ class BadgeDiscount extends StatelessWidget {
               minHeight: 16,
             ),
             child: Text(
-              value + S.of(context).off,
+              value + S .of(context).off,
               textAlign: TextAlign.center,
               style: TextStyle(
                   fontSize: 12,

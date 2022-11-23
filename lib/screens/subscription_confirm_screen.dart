@@ -4,8 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
+import '../../constants/features.dart';
+import 'package:intl/intl.dart';
 import '../../models/VxModels/VxStore.dart';
 import 'package:velocity_x/velocity_x.dart';
+import '../rought_genrator.dart';
 import '../screens/View_Subscription_Details.dart';
 import '../constants/api.dart';
 import '../assets/ColorCodes.dart';
@@ -22,11 +25,14 @@ import '../generated/l10n.dart';
 
 class SubscriptionConfirmScreen extends StatefulWidget {
   static const routeName = '/subscriptionconfirm-screen';
+
+  Map<String,String> params;
+  SubscriptionConfirmScreen(this.params);
   @override
   _SubscriptionConfirmScreenState createState() => _SubscriptionConfirmScreenState();
 }
 
-class _SubscriptionConfirmScreenState extends State<SubscriptionConfirmScreen> {
+class _SubscriptionConfirmScreenState extends State<SubscriptionConfirmScreen> with Navigations {
 
   bool _issubscriptionstatus = true;
   bool _isLoading = true;
@@ -34,9 +40,9 @@ class _SubscriptionConfirmScreenState extends State<SubscriptionConfirmScreen> {
   bool iphonex = false;
   var name = "";
   var subid = "";
-  MediaQueryData queryData;
-  double wid;
-  double maxwid;
+  late MediaQueryData queryData;
+  late double wid;
+  late double maxwid;
   GroceStore store = VxState.store;
   @override
   void initState() {
@@ -59,9 +65,9 @@ class _SubscriptionConfirmScreenState extends State<SubscriptionConfirmScreen> {
         });
       }
 
-      final routeArgs = ModalRoute.of(context).settings.arguments as Map<String, String>;
-      final subscriptionstatus = routeArgs['orderstatus'];
-      subid = routeArgs['sorderId'];
+      final routeArgs = ModalRoute.of(context)!.settings.arguments as Map<String, String>;
+      final subscriptionstatus = /*routeArgs['orderstatus']*/widget.params['orderstatus'];
+      subid = /*routeArgs['sorderId']!*/widget.params['sorderId']!;
       if(subscriptionstatus == "success"){
           setState(() {
             _issubscriptionstatus = true;
@@ -69,22 +75,22 @@ class _SubscriptionConfirmScreenState extends State<SubscriptionConfirmScreen> {
           });
 
       } else {
-        final orderId = routeArgs['sorderId'];
-        paymentStatus(orderId);
+        final orderId = /*routeArgs['sorderId']*/widget.params['sorderId'];
+        paymentStatus(orderId!);
       }
       setState(() {
-        /*if (PrefUtils.prefs.getString('FirstName') != null) {
-          if (PrefUtils.prefs.getString('LastName') != null) {
-            name = PrefUtils.prefs.getString('FirstName') +
+        /*if (PrefUtils.prefs!.getString('FirstName') != null) {
+          if (PrefUtils.prefs!.getString('LastName') != null) {
+            name = PrefUtils.prefs!.getString('FirstName') +
                 " " +
-                PrefUtils.prefs.getString('LastName');
+                PrefUtils.prefs!.getString('LastName');
           } else {
-            name = PrefUtils.prefs.getString('FirstName');
+            name = PrefUtils.prefs!.getString('FirstName');
           }
         } else {
           name = "";
         }*/
-        name = store.userData.username;
+        name = store.userData.username!;
       });
     });
     super.initState();
@@ -96,7 +102,7 @@ class _SubscriptionConfirmScreenState extends State<SubscriptionConfirmScreen> {
       final response = await http.get(url,);
       final responseJson = json.decode(response.body);
       if(responseJson['status'].toString() == "1") {
-        PrefUtils.prefs.remove("subscriptionorderId");
+        PrefUtils.prefs!.remove("subscriptionorderId");
 
           setState(() {
             _issubscriptionstatus = true;
@@ -124,14 +130,15 @@ class _SubscriptionConfirmScreenState extends State<SubscriptionConfirmScreen> {
         elevation: (IConstants.isEnterprise)?0:1,
 
         automaticallyImplyLeading: false,
-        leading: IconButton(icon: Icon(Icons.arrow_back, color: ColorCodes.menuColor),onPressed: () {
-          SchedulerBinding.instance.addPostFrameCallback((_) {
+        leading: IconButton(icon: Icon(Icons.arrow_back, color: ColorCodes.iconColor),onPressed: () {
+          SchedulerBinding.instance!.addPostFrameCallback((_) {
             Navigator.of(context).pushNamedAndRemoveUntil(
                 '/home-screen', (Route<dynamic> route) => false);
           });
+
         } ),
-        title: Text(S.current.subscription_confirmation,
-          style: TextStyle(color: ColorCodes.menuColor),
+        title: Text(S .current.subscription_confirmation,
+            style: TextStyle(color: ColorCodes.iconColor, fontWeight: FontWeight.bold, fontSize: 18)
         ),
         titleSpacing: 0,
         flexibleSpace: Container(
@@ -140,8 +147,8 @@ class _SubscriptionConfirmScreenState extends State<SubscriptionConfirmScreen> {
                   begin: Alignment.topRight,
                   end: Alignment.bottomLeft,
                   colors: [
-                    ColorCodes.accentColor,
-                    ColorCodes.primaryColor
+                    ColorCodes.appbarColor,
+                    ColorCodes.appbarColor2
                   ]
               )
           ),
@@ -162,7 +169,7 @@ class _SubscriptionConfirmScreenState extends State<SubscriptionConfirmScreen> {
         body:Column(
           children: <Widget>[
             if(_isWeb && !ResponsiveLayout.isSmallScreen(context))
-              Header(false, false),
+              Header(false),
             _body(),
           ],
         ),
@@ -187,11 +194,12 @@ class _SubscriptionConfirmScreenState extends State<SubscriptionConfirmScreen> {
           cursor: SystemMouseCursors.click,
           child: GestureDetector(
               onTap: () {
-                Navigator.of(context).pushReplacementNamed(MySubscriptionScreen.routeName);
+              //  Navigator.of(context).pushReplacementNamed(MySubscriptionScreen.routeName);
+                Navigation(context, name: Routename.MySubscription, navigatore: NavigatoreTyp.Push);
               },
               child: Align(
                   alignment: Alignment.center,
-                  child: Text(S.current.check_your_subscription, style: TextStyle(color: Theme.of(context).buttonColor),))),
+                  child: Text(S .current.check_your_subscription, style: TextStyle(color: Theme.of(context).buttonColor),))),
         ),
       ),
     );
@@ -218,7 +226,7 @@ class _SubscriptionConfirmScreenState extends State<SubscriptionConfirmScreen> {
               Container(
 
                 height:MediaQuery.of(context).size.height/2.5,
-                color: ColorCodes.ordergreen,
+                color: ColorCodes.varcolor,
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Column(
@@ -230,7 +238,7 @@ class _SubscriptionConfirmScreenState extends State<SubscriptionConfirmScreen> {
                         child: Align(
                           alignment: Alignment.topLeft,
                           child: Icon(
-                            Icons.check_circle, color: ColorCodes.whiteColor, size: 50,),
+                            Icons.check_circle, color: ColorCodes.primaryColor, size: 50,),
                         ),
                       )
                           :
@@ -243,28 +251,28 @@ class _SubscriptionConfirmScreenState extends State<SubscriptionConfirmScreen> {
                       ),
                       SizedBox(height: 20),
                       Text(
-                        S.of(context).hi//'Thank You for Choosing '
+                        S .of(context).hi//'Thank You for Choosing '
                             + name + ',',
-                        style: TextStyle(fontSize: 20.0, color: ColorCodes.whiteColor),
+                        style: TextStyle(fontSize: 20.0, color: ColorCodes.primaryColor),
                         textAlign: TextAlign.left,
                       ),
                       SizedBox(height: 20),
                       _issubscriptionstatus ? Text(
-                        S.current.your_subscription_will_start_from + PrefUtils.prefs.getString("startDate"),
-                        style: TextStyle(fontSize: 25.0, color: ColorCodes.whiteColor),
+                        S .current.your_subscription_will_start_from + (DateFormat("dd-MM-yyyy").format(DateTime.parse(PrefUtils.prefs!.getString("startDate")!)).toString()),
+                        style: TextStyle(fontSize: 25.0, color: ColorCodes.primaryColor),
                         // textAlign: TextAlign.center,
                       ):
                       Text(
-                        S.current.subscription_canceled,
-                        style: TextStyle(fontSize: 25.0, color: ColorCodes.whiteColor),
+                        S .current.subscription_canceled,
+                        style: TextStyle(fontSize: 25.0, color: ColorCodes.primaryColor),
                         // textAlign: TextAlign.center,
                       ),
                       SizedBox(height: 20),
                       Row(
                         children: [
                           Text(
-                            S.of(context).order + "#" +subid,
-                            style: TextStyle(fontSize: 16 , color: ColorCodes.whiteColor),
+                            S .of(context).order + "#" +subid,
+                            style: TextStyle(fontSize: 16 , color: ColorCodes.primaryColor),
                           ),
 
                         ],
@@ -287,12 +295,18 @@ class _SubscriptionConfirmScreenState extends State<SubscriptionConfirmScreen> {
                     children: [
                       GestureDetector(
                         onTap: (){
-                          Navigator.of(context).pushNamed(
+                        /*  Navigator.of(context).pushNamed(
                               ViewSubscriptionDetails.routeName,
                               arguments: {
                                 'orderid': subid,
                                 "fromScreen" : "subscConfirmation",
+                              });*/
+                          Navigation(context, name:Routename.ViewSubscriptionDetails,navigatore: NavigatoreTyp.Push,
+                              qparms: {
+                                'orderid': subid,
+                                "fromScreen" : "subscConfirmation",
                               });
+
                         },
                         child: Container(
                           width: MediaQuery.of(context).size.width ,
@@ -306,7 +320,7 @@ class _SubscriptionConfirmScreenState extends State<SubscriptionConfirmScreen> {
                             ),
                           ),
                           child: Text(
-                            S.of(context).view_details,//"LOGIN USING OTP",
+                            S .of(context).view_details,//"LOGIN USING OTP",
                             textAlign: TextAlign.center,
                             style: TextStyle(
                                 fontWeight: FontWeight.bold,
@@ -321,7 +335,7 @@ class _SubscriptionConfirmScreenState extends State<SubscriptionConfirmScreen> {
                   ),
                 ),
               ),
-              if(_isWeb) Footer(address: PrefUtils.prefs.getString("restaurant_address")),
+              if(_isWeb) Footer(address: PrefUtils.prefs!.getString("restaurant_address")!),
             ]
         ),
       ),
@@ -371,19 +385,19 @@ class _SubscriptionConfirmScreenState extends State<SubscriptionConfirmScreen> {
                         ),
                         SizedBox(height: 20),
                         Text(
-                          S.of(context).hi//'Thank You for Choosing '
+                          S .of(context).hi//'Thank You for Choosing '
                               + name + ',',
                           style: TextStyle(fontSize: 20.0, color: ColorCodes.whiteColor),
                           textAlign: TextAlign.left,
                         ),
                         SizedBox(height: 20),
                         _issubscriptionstatus ? Text(
-                          S.current.your_subscription_will_start_from + PrefUtils.prefs.getString("startDate"),
+                          S .current.your_subscription_will_start_from + PrefUtils.prefs!.getString("startDate")!,
                           style: TextStyle(fontSize: 25.0, color: ColorCodes.whiteColor),
                           // textAlign: TextAlign.center,
                         ):
                         Text(
-                          S.current.subscription_canceled,
+                          S .current.subscription_canceled,
                           style: TextStyle(fontSize: 25.0, color: ColorCodes.whiteColor),
                           // textAlign: TextAlign.center,
                         ),
@@ -391,7 +405,7 @@ class _SubscriptionConfirmScreenState extends State<SubscriptionConfirmScreen> {
                         Row(
                           children: [
                             Text(
-                              S.of(context).order + "#" +subid,
+                              S .of(context).order + "#" +subid,
                               style: TextStyle(fontSize: 16 , color: ColorCodes.whiteColor),
                             ),
 
@@ -415,9 +429,14 @@ class _SubscriptionConfirmScreenState extends State<SubscriptionConfirmScreen> {
                       children: [
                         GestureDetector(
                           onTap: (){
-                            Navigator.of(context).pushNamed(
+                            /*Navigator.of(context).pushNamed(
                                 ViewSubscriptionDetails.routeName,
                                 arguments: {
+                                  'orderid': subid,
+                                  "fromScreen" : "subscConfirmation",
+                                });*/
+                            Navigation(context, name:Routename.ViewSubscriptionDetails,navigatore: NavigatoreTyp.Push,
+                                qparms: {
                                   'orderid': subid,
                                   "fromScreen" : "subscConfirmation",
                                 });
@@ -434,7 +453,7 @@ class _SubscriptionConfirmScreenState extends State<SubscriptionConfirmScreen> {
                               ),
                             ),
                             child: Text(
-                              S.of(context).view_details,//"LOGIN USING OTP",
+                              S .of(context).view_details,//"LOGIN USING OTP",
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                   fontWeight: FontWeight.bold,
@@ -449,7 +468,7 @@ class _SubscriptionConfirmScreenState extends State<SubscriptionConfirmScreen> {
                     ),
                   ),
                 ),
-                if(_isWeb) Footer(address: PrefUtils.prefs.getString("restaurant_address")),
+                if(_isWeb) Footer(address: PrefUtils.prefs!.getString("restaurant_address")!),
               ]
           ),
         ),

@@ -4,7 +4,7 @@ import '../../utils/ResponsiveLayout.dart';
 import 'package:shimmer/shimmer.dart';
 
 class ItemListShimmerWeb extends StatelessWidget {
-  const ItemListShimmerWeb({Key key}) : super(key: key);
+  const ItemListShimmerWeb({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -44,12 +44,12 @@ class ItemListShimmerWeb extends StatelessWidget {
       itemCount: 10,
 
       itemBuilder: (_, i) => Shimmer.fromColors(
-      baseColor: /*Color(0xffd3d3d3)*/Colors.grey[200],
-      highlightColor: ColorCodes.lightGreyWebColor,
+      baseColor: /*Color(0xffd3d3d3)*/ColorCodes.shimmerColor,
+      highlightColor: ColorCodes.shimmerColor,
     child: Container(
     decoration: BoxDecoration(
     borderRadius: BorderRadius.circular(2),
-    border: Border.all(color: Color(0xFFCFCFCF)),
+    border: Border.all(color: ColorCodes.shimmercolor),
     ),
     margin: EdgeInsets.only(left: 5.0, top: 5.0, bottom: 5.0, right: 5),
       child: Column(children: [

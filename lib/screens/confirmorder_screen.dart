@@ -3,22 +3,22 @@ import 'dart:io';
 import 'package:collection/collection.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
-import '../../controller/mutations/address_mutation.dart';
-import '../../controller/mutations/cart_mutation.dart';
-import '../../controller/mutations/login.dart';
-import '../../models/VxModels/VxStore.dart';
-import '../../models/newmodle/cartModle.dart';
-import '../../models/newmodle/user.dart';
-import '../../screens/addinfo_screen.dart';
-import '../../screens/home_screen.dart';
+import '../../screens/address_screen.dart';
+import '../../rought_genrator.dart';
+import '../controller/mutations/address_mutation.dart';
+import '../controller/mutations/cart_mutation.dart';
+import '../controller/mutations/login.dart';
+import '../models/VxModels/VxStore.dart';
+import '../models/newmodle/cartModle.dart';
+import '../models/newmodle/user.dart';
+import '../screens/home_screen.dart';
 import 'package:velocity_x/velocity_x.dart';
-import '../blocs/cart_item_bloc.dart';
 import '../constants/api.dart';
 import '../constants/features.dart';
 import '../data/calculations.dart';
 import '../generated/l10n.dart';
 import '../providers/sellingitems.dart';
-import '../screens/cart_screen.dart';
+import '../widgets/addresswidget/address_info.dart';
 import '../widgets/bottom_navigation.dart';
 import '../utils/ResponsiveLayout.dart';
 import '../providers/cartItems.dart';
@@ -36,37 +36,35 @@ import 'package:provider/provider.dart';
 import '../assets/ColorCodes.dart';
 import '../data/hiveDB.dart';
 import '../screens/map_screen.dart';
-import '../providers/addressitems.dart';
 import '../providers/deliveryslotitems.dart';
-import '../screens/address_screen.dart';
-import '../screens/payment_screen.dart';
 import '../assets/images.dart';
-import 'bloc.dart';
 import 'package:http/http.dart' as http;
 
 class ConfirmorderScreen extends StatefulWidget {
   static const routeName = '/confirmorder-screen';
 
+  Map<String,String> prev;
+  ConfirmorderScreen(this.prev);
   @override
   _ConfirmorderScreenState createState() => _ConfirmorderScreenState();
 }
 
 class _ConfirmorderScreenState extends State<ConfirmorderScreen>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, Navigations {
   var addressitemsData;
   var deliveryslotData;
   var delChargeData;
   var timeslotsData;
   var boxwidth = 1.0;
-  var deliverylocation;
-  SharedPreferences prefs;
+  SharedPreferences? prefs;
+  int position = 0;
   var totlamount;
   var mobilenum;
   var width = 1.0;
   var addtype;
   String address = "";
   String name = "";
-  IconData addressicon;
+  IconData? addressicon;
   var day, date, time = "10 AM - 1 PM";
   var _checkaddress = false;
   var _loading = true;
@@ -79,7 +77,7 @@ class _ConfirmorderScreenState extends State<ConfirmorderScreen>
   var _message = TextEditingController();
   int _radioValue = 1;
   bool _isLoading = true;
-
+  bool isSelected = true;
   bool _isChangeAddress = false;
 
   String _minimumOrderAmountNoraml = "0.0";
@@ -90,27 +88,31 @@ class _ConfirmorderScreenState extends State<ConfirmorderScreen>
   String _deliveryChargeExpress = "0";
   String _deliveryDurationExpress = "0.0 ";
   String deliverlocation = "";
-  String deliverychargetext;
-  String value;
+  String? deliverychargetext;
+  String? value;
  // Box<Product> productBox;
   List checkBoxdata = [];
   List titlecolor = [];
   List iconcolor = [];
   int _index = 0;
-  int _count;
+  int? _count;
   String confirmSwap ="";
   bool iphonex = false;
-  HomeDisplayBloc _bloc;
   bool _isWeb = false;
-  TabController _tabController;
+  TabController? _tabController;
+  var value1;
+  var value2;
+  var value3;
+
+  List<String>? dateSplit;
 
   bool timeComp=false;
   int maxTime=0;
   int maxDate=0;
-  int finalMax=0,MaxTimeFinal,difference=0;
+  int? finalMax=0,MaxTimeFinal,difference=0;
   var checkmembership = false;
   String durType= "";
-  String mode;
+  String? mode;
  /* List<Product> something=[];//slot based delivery option 2
   List<Product> ExpressDetails=[];//Express delivery option 2
   Map<String, List<Product>> newMap2;
@@ -122,37 +124,37 @@ class _ConfirmorderScreenState extends State<ConfirmorderScreen>
   Map<String, List<Product>> newMap1;//TimeBased delivery option 1*/
   List<CartItem> something=[];//slot based delivery option 2
   List<CartItem> ExpressDetails=[];//Express delivery option 2
-  Map<String, List<CartItem>> newMap2;
-  Map<String, List<CartItem>> newMap3;
+  Map<String, List<CartItem>>? newMap2;
+  Map<String, List<CartItem>>? newMap3;
 
 
   List<CartItem> DefaultSlot=[];//slot based delivery option 1
-  Map<String, List<CartItem>> newMap;//DateBased delivery option 1
-  Map<String, List<CartItem>> newMap1;//TimeBased delivery option 1
+  Map<String, List<CartItem>>? newMap;//DateBased delivery option 1
+  Map<String, List<CartItem>>? newMap1;//TimeBased delivery option 1
   
   bool visible= false;
   bool visiblestand= true;
   bool visibleexpress= false;
-  var dividerSlot = ColorCodes.darkthemeColor;
+  var dividerSlot = ColorCodes.primaryColor;
   var dividerExpress = ColorCodes.whiteColor;
 
-  var ContainerSlot = ColorCodes.mediumgren;
+  var ContainerSlot = ColorCodes.varcolor;
   var ContainerExpress = ColorCodes.whiteColor;
 
   var selectedTimeSlot = ColorCodes.whiteColor;
 
-  String datecom;
-  String timecom;
-  String Date;
+  String? datecom;
+  String? timecom;
+  String? Date;
   int _groupValue = 1;
   int _groupValueTime = 1;
-  double deliveryChargeCalculation;
+  double? deliveryChargeCalculation;
   double deliveryamount = 0.0;
   String delCharge = "0.0";
-  String deliverychargetextdefault;
-  String deliverychargetextSecond, deliverychargetextExpress, deliverychargetextSecDate,deliverychargetextSecTime;
+  String? deliverychargetextdefault;
+  String? deliverychargetextSecond, deliverychargetextExpress, deliverychargetextSecDate,deliverychargetextSecTime;
   final DateTime now = DateTime.now();
-  String deliveryslot, deliveryexpress;
+  String? deliveryslot, deliveryexpress;
 
   double deliveryfinalslotdate=0.0;
   double deliveryfinalslotTime=0.0;
@@ -163,12 +165,12 @@ class _ConfirmorderScreenState extends State<ConfirmorderScreen>
   double deliveryTimeamount = 0.0;
   double deliveryExpressamount = 0.0;
 
-  UserData addressdata;
+  UserData? addressdata;
   List<CartItem> productBox=[];
+  List parts = [];
 
   @override
   void initState() {
-    _bloc = HomeDisplayBloc();
     _tabController = new TabController(length: 2, vsync: this);
 
     Future.delayed(Duration.zero, () async {
@@ -194,50 +196,75 @@ class _ConfirmorderScreenState extends State<ConfirmorderScreen>
       }
 
       setState(() {
-        deliverlocation = prefs.getString("deliverylocation");
-        prefs.setString('fixtime', "");
-        prefs.setString("fixdate", "");
-        if (prefs.getString("membership") == "1") {
+        deliverlocation = prefs!.getString("deliverylocation")! ;
+        prefs!.setString('fixtime', "");
+        prefs!.setString("fixdate", "");
+        if ((VxState.store as GroceStore).userData.membership=="1") {
           _checkmembership = true;
         } else {
           _checkmembership = false;
         }
         _isLoading = false;
       });
+      final cartItemList =(VxState.store as GroceStore).CartItemList;
+      for (int i = 0; i < cartItemList.length; i++) {
+        if (cartItemList[i].mode == "1") {
+          _checkmembership = true;
+        }
+      }
      /* await Provider.of<CartItems>(context, listen: false).fetchCartItems().then((_) {
         final cartItemsData = Provider.of<CartItems>(context,listen: false);
         _bloc.setCartItem(cartItemsData);
 
       });*/
-      addresscontroller.get();
+
       addressdata =(VxState.store as GroceStore).userData;
-      print("bvvdv" + addressdata.billingAddress.length.toString());
-      if(addressdata.billingAddress.length>0){
-        addtype = addressdata.billingAddress[0].addressType;
-        address = addressdata.billingAddress[0].address;
-        name = addressdata.billingAddress[0].fullName;
-        addressicon = addressdata.billingAddress[0].addressicon;
-        prefs.setString(
+      if(addressdata!.billingAddress!.length>0){
+        addtype = addressdata!.billingAddress![0].addressType;
+        address = addressdata!.billingAddress![0].address!;
+        name = addressdata!.billingAddress![0].fullName!;
+        addressicon = addressdata!.billingAddress![0].addressicon;
+        prefs!.setString(
             "addressId",
-            addressdata.billingAddress[0].id.toString());
-        debugPrint("addressid...3.."+addressdata.billingAddress[0].id.toString());
+            addressdata!.billingAddress![0].id.toString());
        // calldeliverslots(addressdata.billingAddress[0].id.toString());
-        deliveryCharge(addressdata.billingAddress[0].id.toString());
+        deliveryCharge(addressdata!.billingAddress![0].id.toString());
         _checkaddress = true;
-        checkLocation();
+        checkLocation("init");
       }else{
-        PrefUtils.prefs.setString("addressbook","confirm");
-        Navigator.of(context)
-            .pushNamed(AddInfo.routeName,
+      /*  Navigator.of(context).pushReplacementNamed(
+            AddressScreen.routeName,
             arguments: {
               'addresstype': "new",
               'addressid': "",
-              'title': "",
               'delieveryLocation': "",//prefs.getString("restaurant_location"),
               'latitude': "",//prefs.getString("restaurant_lat"),
               'longitude': "",//prefs.getString("restaurant_long"),
               'branch': "",//prefs.getString("branch"),
-            });
+            });*/
+
+        if(Vx.isWeb && !ResponsiveLayout.isSmallScreen(context)){
+          // _dialogforaddress(context);
+          AddressWeb(context,
+            addresstype: "new",
+            addressid: "",
+            delieveryLocation: "",
+            latitude: "",
+            longitude: "",
+            branch: "",);
+        }
+        else {
+          Navigation(context, name: Routename.AddressScreen,
+              navigatore: NavigatoreTyp.Push,
+              qparms: {
+                'addresstype': "new",
+                'addressid': "",
+                'delieveryLocation': "",
+                'latitude': "",
+                'longitude': "",
+                'branch': "",
+              });
+        }
       }
 /*      Provider.of<AddressItemsList>(context, listen: false,).fetchAddress().then((_) {
         setState(() {
@@ -301,97 +328,49 @@ class _ConfirmorderScreenState extends State<ConfirmorderScreen>
     super.initState();
   }
 
-  _dialogforDeleteAdd(BuildContext context, String addressid) {
-    return showDialog(
-        context: context,
-        builder: (context) {
-          return StatefulBuilder(builder: (context, setState) {
-            return Dialog(
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(3.0)),
-              child: Container(
-                  width: (_isWeb && !ResponsiveLayout.isSmallScreen(context))?MediaQuery.of(context).size.width*0.40:MediaQuery.of(context).size.width,
-                  height: 100.0,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: <Widget>[
-                      Center(
-                        child: Text(
-                          S.of(context).are_sure_delete,//'Are you sure you want to delete this address?',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 16.0),
-                        ),
-                      ),
-                      SizedBox(
-                        height: 20.0,
-                      ),
-                      Row(
-                        children: <Widget>[
-                          Spacer(),
-                          GestureDetector(
-                              onTap: () {
-                                Navigator.of(context).pop(true);
-                              },
-                              child: Text(
-                                S.of(context).no,//'NO',
-                                style: TextStyle(
-                                    color: ColorCodes.blackColor,
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 14.0),
-                              )),
-                          SizedBox(
-                            width: 20.0,
-                          ),
-                          GestureDetector(
-                              onTap: () async{
-                                Navigator.of(context).pop(true);
-
-                                //deleteaddress(addressid);
-                                AddressController addressController = AddressController();
-                                await addressController.remove(addressId: addressid, apiKey: (VxState.store as GroceStore).userData.id, branch:PrefUtils.prefs.getString('branch') );
-                              },
-                              child: Text(
-                                S.of(context).yes,//'YES',
-                                style: TextStyle(
-                                    color: ColorCodes.blackColor,
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 14.0),
-                              )),
-                          SizedBox(
-                            width: 20.0,
-                          ),
-                        ],
-                      )
-                    ],
-                  )),
-            );
-          });
-        });
-  }
-
-  Future<void> checkLocation() async {
+  Future<void> checkLocation(String fromscreen) async {
     //addressitemsData = Provider.of<AddressItemsList>(context, listen: false);
     addressdata = (VxState.store as GroceStore).userData;
     try {
-      final response = await http.post(Api.checkLocation, body: {
-        "lat": /*addressitemsData.items[0].userlat*/(VxState.store as GroceStore).userData.billingAddress[0].lattitude,
-        "long": (VxState.store as GroceStore).userData.billingAddress[0].logingitude,
+      final response = await http.post(Api.checkLocationmultivendor,
+          body: {
+        "lat": /*addressitemsData.items[0].userlat*/(VxState.store as GroceStore).userData.billingAddress![0].lattitude,
+        "long": (VxState.store as GroceStore).userData.billingAddress![0].logingitude,
+        "branch": PrefUtils.prefs!.getString("branch"),
+        "ref": IConstants.refIdForMultiVendor.toString(),
+        "branchtype": IConstants.branchtype.toString(),
       });
 
-      SharedPreferences prefs = await SharedPreferences.getInstance();
+    //  SharedPreferences prefs = await SharedPreferences.getInstance();
 
       final responseJson = json.decode(response.body);
 
       if (responseJson['status'].toString() == "yes") {
-        if (prefs.getString("branch") == responseJson['branch'].toString()) {
-          final routeArgs =
-          ModalRoute.of(context).settings.arguments as Map<String, String>;
-          final prev = routeArgs['prev'];
-          if (prev == "address_screen") {
-            _dialogforProcessing();
-            cartCheck(
-             /* prefs.getString("addressId"),
+
+        debugPrint("responseJson['branch'].toString()......"+responseJson.toString()+ "\n" +responseJson['branch'].toString());
+        if(fromscreen == "nonavailability"){
+          _dialogforAvailability(
+            PrefUtils.prefs!.getString("addressId")!,
+            addressdata!.billingAddress![0].id.toString(),
+            addressdata!.billingAddress![0].addressType!,
+            addressdata!.billingAddress![0].address!,
+            addressdata!.billingAddress![0].addressicon!,
+              responseJson['branch'].toString()
+          );
+        }else {
+          if (PrefUtils.prefs!.getString("branch") == responseJson['branch'].toString()) {
+            final routeArgs =
+            ModalRoute
+                .of(context)!
+                .settings
+                .arguments as Map<String, String>;
+            PrefUtils.prefs!.setString(
+                "currentbranch", responseJson['branch'].toString());
+            final prev = routeArgs['prev'];
+            if (prev == "address_screen") {
+              _dialogforProcessing();
+              cartCheck(
+                /* prefs.getString("addressId"),
               addressitemsData.items[0].userid,
               addressitemsData
                   .items[0].useraddtype,
@@ -400,36 +379,38 @@ class _ConfirmorderScreenState extends State<ConfirmorderScreen>
               addressitemsData
                   .items[0].addressicon,
               addressitemsData.items[0].username,*/
-              prefs.getString("addressId"),
-              addressdata.billingAddress[0].id.toString(),
-              addressdata.billingAddress[0].addressType,
-              addressdata.billingAddress[0].address,
-              addressdata.billingAddress[0].addressicon,
-              addressdata.billingAddress[0].fullName,
-            );
-          } else {
-            if (addressdata.billingAddress.length > 0) {
-              _checkaddress = true;
-              addtype = addressdata.billingAddress[0].addressType;
-              address = addressdata.billingAddress[0].address;
-              name = addressdata.billingAddress[0].fullName;
-              addressicon = addressdata.billingAddress[0].addressicon;
-              prefs.setString(
-                  "addressId",
-                  addressdata.billingAddress[0].id.toString());
-              debugPrint("addressid...2.."+addressdata.billingAddress[0].id.toString());
-              calldeliverslots(addressdata.billingAddress[0].id.toString());
-              deliveryCharge(addressdata.billingAddress[0].id.toString());
+                PrefUtils.prefs!.getString("addressId")!,
+                addressdata!.billingAddress![0].id.toString(),
+                addressdata!.billingAddress![0].addressType!,
+                addressdata!.billingAddress![0].address!,
+                addressdata!.billingAddress![0].addressicon!,
+                addressdata!.billingAddress![0].fullName,
+
+              );
             } else {
-              _checkaddress = false;
+              if (addressdata!.billingAddress!.length > 0) {
+                _checkaddress = true;
+                addtype = addressdata!.billingAddress![0].addressType;
+                address = addressdata!.billingAddress![0].address!;
+                name = addressdata!.billingAddress![0].fullName!;
+                addressicon = addressdata!.billingAddress![0].addressicon;
+                PrefUtils.prefs!.setString(
+                    "addressId",
+                    addressdata!.billingAddress![0].id.toString());
+                calldeliverslots(addressdata!.billingAddress![0].id.toString());
+                deliveryCharge(addressdata!.billingAddress![0].id.toString());
+              } else {
+                _checkaddress = false;
+              }
             }
           }
-        } else {
-          setState(() {
-            _isChangeAddress = true;
-            _loading = false;
-            _slotsLoading = false;
-          });
+          else {
+            setState(() {
+              _isChangeAddress = true;
+              _loading = false;
+              _slotsLoading = false;
+            });
+          }
         }
       } else {
         setState(() {
@@ -444,34 +425,25 @@ class _ConfirmorderScreenState extends State<ConfirmorderScreen>
   }
 
   Future<void> calldeliverslots(String addressid) async {
-    debugPrint("addressid..."+addressid);
     Provider.of<DeliveryslotitemsList>(context,listen: false)
         .fetchDeliveryslots(addressid)
         .then((_) {
       deliveryslotData = Provider.of<DeliveryslotitemsList>(context, listen: false);
-      debugPrint("length...delivery..."+deliveryslotData.items.length.toString());
+
       for(int i = 0; i < deliveryslotData.items.length; i++) {
         setState(() {
           if(i == 0) {
-            deliveryslotData.items[i].selectedColor = ColorCodes.mediumgren;
+            deliveryslotData.items[i].selectedColor = ColorCodes.varcolor;
             deliveryslotData.items[i].isSelect = true;
+
           } else {
             deliveryslotData.items[i].selectedColor = ColorCodes.whiteColor;
             deliveryslotData.items[i].isSelect = false;
           }
         });
-      }
-      final timeData = Provider.of<DeliveryslotitemsList>(context, listen: false);
-      for(int i = 0; i < timeData.times.length; i++) {
-        setState(() {
-          if(i == 0) {
-            timeData.times[i].selectedColor = ColorCodes.mediumBlueColor;
-            timeData.times[i].isSelect = true;
-          } else {
-            timeData.times[i].selectedColor = ColorCodes.lightgrey;
-            timeData.times[i].isSelect = false;
-          }
-        });
+
+        final tagName = deliveryslotData.items[i].date.toString();
+        dateSplit = tagName.split(',');
       }
       setState(() {
         if (deliveryslotData.items.length <= 0) {
@@ -487,28 +459,26 @@ class _ConfirmorderScreenState extends State<ConfirmorderScreen>
             listen: false,
           ).findById(timeslotsindex);
           for (int j = 0; j < timeslotsData.length; j++) {
-            if (j== 0) {
-              timeData.times[j].selectedColor = ColorCodes.mediumgren;
-              timeData.times[j].isSelect = true;
-              prefs.setString("fixdate", deliveryslotData.items[0].dateformat);
-              prefs.setString('fixtime', timeslotsData[0].time);
+
+            setState(() {
+              prefs!.setString("fixdate", deliveryslotData.items[0].dateformat);
+              if (timeslotsData[j].status == "1") {
+              timeslotsData[j].selectedColor = Colors.grey;
+              timeslotsData[j].isSelect = false;
+              timeslotsData[j].textColor = Colors.grey;
+              isSelected = true;
+
             } else {
-              timeData.times[j].selectedColor = ColorCodes.whiteColor;
-              timeData.times[j].isSelect = false;
+
+                timeslotsData[j].selectedColor = ColorCodes.whiteColor;
+                timeslotsData[j].textColor = ColorCodes.blackColor;
+                timeslotsData[j].isSelect = false;
+
             }
+            });
+            _loadingSlots = false;
+            _slotsLoading = false;
           }
-          // time = timeslotsData[0].time;
-          /*for (int j = 0; j < timeslotsData.length; j++) {
-              if (j == 0) {
-                timeslotsData[j].titlecolor = Color(0xFF2966A2);
-                timeslotsData[j].iconcolor = Color(0xFF2966A2);
-              } else {
-                timeslotsData[j].titlecolor = ColorCodes.lightgrey;
-                timeslotsData[j].iconcolor = Color(0xFFFFFFFF);
-              }
-            }*/
-          // prefs.setString("fixdate", deliveryslotData.items[0].dateformat);
-          // prefs.setString('fixtime', timeslotsData[0].time);
           _loadingSlots = false;
           _slotsLoading = false;
         }
@@ -543,22 +513,21 @@ class _ConfirmorderScreenState extends State<ConfirmorderScreen>
   }
 
 
-  Widget _myRadioButton({int value, Function onChanged}) {
-    //prefs.setString('fixtime', timeslotsData[_groupValue].time);
-
-    return Radio(
-      activeColor: Theme.of(context).primaryColor,
-      value: value,
-      groupValue: _groupValue,
-      onChanged: onChanged,
-    );
-  }
+  // Widget _myRadioButton({int value, Function onChanged}) {
+  //   //prefs.setString('fixtime', timeslotsData[_groupValue].time);
+  //
+  //   return Radio(
+  //     activeColor: Theme.of(context).primaryColor,
+  //     value: value,
+  //     groupValue: _groupValue,
+  //     onChanged: onChanged,
+  //   );
+  // }
 
   void setDefaultAddress(String addressid) async {
     bool _addresscheck = false;
-    debugPrint("checking..."+addressid.toString());
     AddressController addressController = AddressController();
-    await addressController.setdefult(addressId: addressid,branch:PrefUtils.prefs.getString('branch'));
+    await addressController.setdefult(addressId: addressid,branch:PrefUtils.prefs!.getString('branch'));
    /* Provider.of<AddressItemsList>(context,listen: false)
         .setDefaultAddress(addressid)
         .then((_) {
@@ -577,9 +546,8 @@ class _ConfirmorderScreenState extends State<ConfirmorderScreen>
     });*/
   }
   Future<void> cartCheck(String prevAddressid, String addressid,
-      String addressType, String adressSelected, IconData adressIcon, username) async {
+      String addressType, String adressSelected, IconData adressIcon, username,) async {
     // imp feature in adding async is the it automatically wrap into Future.
-    debugPrint("yesss....."+addressType);
     setDefaultAddress(addressid);
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String itemId = "";
@@ -599,10 +567,9 @@ class _ConfirmorderScreenState extends State<ConfirmorderScreen>
       );
 
       final responseJson = json.decode(response.body);
-
+            debugPrint("rehsjx..."+responseJson.toString());
       //if status = 0 for reset cart and status = 1 for default
       if (responseJson["status"].toString() == "1") {
-        debugPrint("addressid...1.."+addressid);
         setState(() {
           setDefaultAddress(addressid);
           _isChangeAddress = false;
@@ -618,13 +585,9 @@ class _ConfirmorderScreenState extends State<ConfirmorderScreen>
         });
         Navigator.of(context).pop();
       } else {
-        _dialogforAvailability(
-          prevAddressid,
-          addressid,
-          addressType,
-          adressSelected,
-          adressIcon,
-        );
+        checkLocation("nonavailability");
+
+
         /*Navigator.of(context).pushNamedAndRemoveUntil(HomeScreen.routeName,
             ModalRoute.withName(HomeScreen.routeName));*/
       }
@@ -632,7 +595,7 @@ class _ConfirmorderScreenState extends State<ConfirmorderScreen>
       Navigator.of(context).pop();
       Navigator.of(context).pop();
       Fluttertoast.showToast(
-          msg: S.of(context).something_went_wrong,//"Something went wrong!",
+          msg: S .of(context).something_went_wrong,//"Something went wrong!",
           fontSize: MediaQuery.of(context).textScaleFactor *13,
           backgroundColor: Colors.black87,
           textColor: Colors.white);
@@ -666,6 +629,14 @@ class _ConfirmorderScreenState extends State<ConfirmorderScreen>
             return AbsorbPointer(
               child: WillPopScope(
                 onWillPop: (){
+                  if(widget.prev["prev"].toString() == "cart_screen") {
+                    PrefUtils.prefs!.setString("confirmback", "yes");
+                    Navigation(context, name: Routename.Cart, navigatore: NavigatoreTyp.Push,qparms: {"afterlogin":""});
+                  }
+                  else{
+                    // Navigation(context, navigatore: NavigatoreTyp.Pop);
+                    Navigation(context, name: Routename.Cart, navigatore: NavigatoreTyp.Push,qparms: {"afterlogin":""});
+                  }
                   return Future.value(false);
                 },
                 child: Dialog(
@@ -684,7 +655,7 @@ class _ConfirmorderScreenState extends State<ConfirmorderScreen>
                             width: 40.0,
                           ),
                           Text(
-                              S.of(context).deleting
+                              S .of(context).deleting
                           ),
                         ],
                       )),
@@ -696,12 +667,12 @@ class _ConfirmorderScreenState extends State<ConfirmorderScreen>
   }
 
   _dialogforAvailability(String prevAddOd, String addressId, String addressType,
-      String adressSelected, IconData adressIcon) {
+      String adressSelected, IconData adressIcon, String currentbranch,) {
     String itemCount = "";
     itemCount = "   " + productBox.length.toString() + " " + "items";
     bool _checkMembership = false;
 
-    if (prefs.getString("membership") == "1") {
+    if (prefs!.getString("membership") == "1") {
       _checkMembership = true;
     } else {
       _checkMembership = false;
@@ -736,7 +707,7 @@ class _ConfirmorderScreenState extends State<ConfirmorderScreen>
                           ),
                           children: <TextSpan>[
                             TextSpan(
-                              text: S.of(context).Availability_Check,//"Availability Check",
+                              text: S .of(context).Availability_Check,//"Availability Check",
                               style: TextStyle(
                                   color: Colors.black,
                                   fontWeight: FontWeight.bold,
@@ -753,7 +724,7 @@ class _ConfirmorderScreenState extends State<ConfirmorderScreen>
                         height: 10.0,
                       ),
                       Text(
-                        S.of(context).changing_area, // "Changing area",
+                        S .of(context).changing_area, // "Changing area",
                         style: TextStyle(
                           color: Colors.red,
                           fontSize: 12.0,
@@ -763,7 +734,7 @@ class _ConfirmorderScreenState extends State<ConfirmorderScreen>
                         height: 10.0,
                       ),
                       Text(
-                        S.of(context).product_price_availability,//"Product prices, availability and promos are area specific and may change accordingly. Confirm if you wish to continue.",
+                        S .of(context).product_price_availability,//"Product prices, availability and promos are area specific and may change accordingly. Confirm if you wish to continue.",
                         style: TextStyle(fontSize: 12.0),
                       ),
                       Spacer(),
@@ -782,7 +753,7 @@ class _ConfirmorderScreenState extends State<ConfirmorderScreen>
                           Expanded(
                             flex: 4,
                             child: Text(
-                              S.of(context).items,//"Items",
+                              S .of(context).items,//"Items",
                               style: TextStyle(
                                   fontWeight: FontWeight.bold, fontSize: 12.0),
                             ),
@@ -795,7 +766,7 @@ class _ConfirmorderScreenState extends State<ConfirmorderScreen>
                                   width: 15.0,
                                 ),
                                 Text(
-                                  S.of(context).reason,//"Reason",
+                                  S .of(context).reason,//"Reason",
                                   style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 12.0),
@@ -821,7 +792,7 @@ class _ConfirmorderScreenState extends State<ConfirmorderScreen>
                             itemBuilder: (_, i) => Row(
                               children: <Widget>[
                                 FadeInImage(
-                                  image: NetworkImage(productBox[i].itemImage),
+                                  image: NetworkImage(productBox[i].itemImage!),
                                   placeholder:
                                   AssetImage(Images.defaultProductImg),
                                   width: 50,
@@ -840,7 +811,7 @@ class _ConfirmorderScreenState extends State<ConfirmorderScreen>
                                     MainAxisAlignment.start,
                                     children: <Widget>[
                                       Text(
-                                          productBox[i].itemName,
+                                          productBox[i].itemName!,
                                           style: TextStyle(fontSize: 12.0)),
                                       SizedBox(
                                         height: 3.0,
@@ -852,7 +823,7 @@ class _ConfirmorderScreenState extends State<ConfirmorderScreen>
                                           productBox[i]
                                               .membershipPrice ==
                                               "0")
-                                          ? (double.parse(productBox[i].price) <=
+                                          ? (double.parse(productBox[i].price!) <=
                                           0 ||
                                           productBox[i]
                                               .price
@@ -863,24 +834,40 @@ class _ConfirmorderScreenState extends State<ConfirmorderScreen>
                                               productBox[i]
                                                   .varMrp)
                                           ? Text(
+                                          Features.iscurrencyformatalign?
+                                              productBox[i]
+                                                  .varMrp
+                                                  .toString() +
+                                                  " " + IConstants.currencyFormat:
                                           IConstants.currencyFormat +
                                               " " +
                                               productBox[i]
                                                   .varMrp
                                                   .toString(),
                                           style: TextStyle(fontSize: 12.0))
-                                          : Text(IConstants.currencyFormat + " " + productBox[i].price.toString(), style: TextStyle(fontSize: 12.0))
-                                          : Text(IConstants.currencyFormat + " " + productBox[i].membershipPrice, style: TextStyle(fontSize: 12.0))
-                                          : (double.parse(productBox[i].price) <= 0 || productBox[i].price.toString() == "" || productBox[i].price == productBox[i].varMrp)
-                                          ? Text(IConstants.currencyFormat + " " + productBox[i].varMrp.toString(), style: TextStyle(fontSize: 12.0))
-                                          : Text(IConstants.currencyFormat + " " + productBox[i].price.toString(), style: TextStyle(fontSize: 12.0))
+                                          : Text(Features.iscurrencyformatalign?productBox[i].price.toString() + " " + IConstants.currencyFormat
+                                              :IConstants.currencyFormat + " " + productBox[i].price.toString(),
+                                          style: TextStyle(fontSize: 12.0))
+                                          : Text(
+                                        Features.iscurrencyformatalign?
+                                        productBox[i].membershipPrice! + " " + IConstants.currencyFormat:
+                                          IConstants.currencyFormat + " " + productBox[i].membershipPrice!,
+                                          style: TextStyle(fontSize: 12.0))
+                                          : (double.parse(productBox[i].price!) <= 0 || productBox[i].price.toString() == "" || productBox[i].price == productBox[i].varMrp)
+                                          ? Text(Features.iscurrencyformatalign?
+                                      productBox[i].varMrp.toString() + " " + IConstants.currencyFormat
+                                              :IConstants.currencyFormat + " " + productBox[i].varMrp.toString(),
+                                          style: TextStyle(fontSize: 12.0))
+                                          : Text(
+                                        Features.iscurrencyformatalign?productBox[i].price.toString()  + " " + IConstants.currencyFormat:
+                                          IConstants.currencyFormat + " " + productBox[i].price.toString(), style: TextStyle(fontSize: 12.0))
                                     ],
                                   ),
                                 ),
                                 Expanded(
                                     flex: 4,
                                     child: Text(
-                                        S.of(context).not_available,//"Not available",
+                                        S .of(context).not_available,//"Not available",
                                         style: TextStyle(fontSize: 12.0))),
                               ],
                             )),
@@ -902,13 +889,13 @@ class _ConfirmorderScreenState extends State<ConfirmorderScreen>
                           ),
                           children: <TextSpan>[
                             new TextSpan(
-                                text: S.of(context).note,//'Note: ',
+                                text: S .of(context).note,//'Note: ',
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                 )),
                             new TextSpan(
                               text:
-                              S.of(context).by_clicking_confirm,//'By clicking on confirm, we will remove the unavailable items from your basket.',
+                              S .of(context).by_clicking_confirm,//'By clicking on confirm, we will remove the unavailable items from your basket.',
                             ),
                           ],
                         ),
@@ -932,7 +919,7 @@ class _ConfirmorderScreenState extends State<ConfirmorderScreen>
                                   border: Border.all(color: Colors.grey)),
                               child: new Center(
                                 child: Text(
-                                  S.of(context).cancel, //"CANCEL"
+                                  S .of(context).cancel, //"CANCEL"
                                 ),
                               ),
                             ),
@@ -944,20 +931,38 @@ class _ConfirmorderScreenState extends State<ConfirmorderScreen>
                             onTap: () async {
                               var com ="";
                               String val = "";
+                            /*  for(int i = 0; i < productBox.length; i++){
+                                val = val+com+productBox[i].itemId.toString();
+                                com = ",";
+                              }*/
+                              String item ="";
                               for(int i = 0; i < productBox.length; i++){
-                                val = val+com+productBox[i].varId.toString();
+                                val = val+com+productBox[i].itemId.toString();
+                                debugPrint("kbvcvb..."+item.toString());
+                                if(productBox[i].mode =="3"){
+                                  item = item+com+productBox[i].itemId.toString();
+                                }
                                 com = ",";
                               }
                               confirmSwap = "confirmSwap";
                               Provider.of<CartItems>(context, listen: false).emptyCart().then((_) {
-                                Hive.box<Product>(productBoxName).clear();
+                               // Hive.box<Product>(productBoxName).clear();
                                 Navigator.of(context).pop();
                                 Navigator.of(context).pop();
-                                PrefUtils.prefs.setString("formapscreen", "homescreen");
-                                Navigator.of(context).pushNamed(MapScreen.routeName,
-                                    arguments: {
-                                      "valnext": val.toString(),
-                                      "moveNext": confirmSwap.toString()
+                                PrefUtils.prefs!.setString("formapscreen", "homescreen");
+                                // Navigator.of(context).pushNamed(MapScreen.routeName,
+                                //     arguments: {
+                                //       "valnext": val.toString(),
+                                //       "moveNext": confirmSwap.toString(),
+                                //
+                                //     });
+                              //  debugPrint("cvbnm,..."+PrefUtils.prefs!.getString("currentbranch")!);
+                                Navigation(context, name:Routename.NotAvailability,navigatore: NavigatoreTyp.Push,
+                                    qparms: {
+                                      "val" : val,
+                                      "item": item,
+                                      "currentbranch":  currentbranch,
+
                                     });
                               });
                               final sellingitemData = Provider.of<SellingItemsList>(context, listen: false);
@@ -996,7 +1001,7 @@ class _ConfirmorderScreenState extends State<ConfirmorderScreen>
                                     )),
                                 child: new Center(
                                   child: Text(
-                                    S.of(context).confirm,//"CONFIRM",
+                                    S .of(context).confirm,//"CONFIRM",
                                     style: TextStyle(color: Colors.white),
                                   ),
                                 )),
@@ -1017,90 +1022,102 @@ class _ConfirmorderScreenState extends State<ConfirmorderScreen>
       context,
       listen: false,
     ).findById(timeslotsindex);
-    debugPrint("time slot data..."+timeslotsData.length.toString());
     return  ListView.separated(
       separatorBuilder: (context, index) => SizedBox(height: 10,),
       physics:new NeverScrollableScrollPhysics(),
       shrinkWrap: true,
       itemCount: timeslotsData.length,
-      itemBuilder: (_, j) => GestureDetector(
+      itemBuilder: (_, j)
+      {
+       return GestureDetector(
         onTap: () async {
-          for(int k=0;k<timeslotsData.length;k++){
+          for (int k = 0; k < timeslotsData.length; k++) {
             timeslotsData[k].isSelect = false;
             timeslotsData[k].selectedColor = Colors.transparent;
+
           }
           setState(() {
-            time = timeslotsData[j].time;
-            final timeData = Provider.of<DeliveryslotitemsList>(context, listen: false);
+           if(timeslotsData[j].status == "1"){
+             PrefUtils.prefs!.setString("fixtime","");
+             Fluttertoast.showToast(
+               msg: S.of(context).Selected_Slot_full,//"Selected Slot is full",
+               fontSize: MediaQuery.of(context).textScaleFactor *13,);
+           }else {
+             time = timeslotsData[j].time;
+             final timeData = Provider.of<DeliveryslotitemsList>(
+                 context, listen: false);
 
-            prefs.setString("fixdate", deliveryslotData.items[i].dateformat);
-            _index = (i == 0 && j == 0) ? 0 : _index + 1;
-            for(int i = 0; i < timeData.times.length; i++) {
-              timeData.times[i].isSelect = false;
-              timeslotsData[j].isSelect = false;
-              // timeData.times[i].isSelect = false;
-              if((int.parse(id) + j).toString() == timeData.times[i].index) {
-                setState(() {
-                  timeslotsData[j].isSelect = true;
-                  prefs.setString('fixtime', timeData.times[i].time);
-
-                });
-                break;
-              } else{
-
-                setState(() {
-                  timeslotsData[j].isSelect = false;
-                  timeslotsData[j].selectedColor = Colors.transparent;
-                });
-              }
-            }
+             _index = (i == 0 && j == 0) ? 0 : _index + 1;
+             for (int i = 0; i < timeData.times.length; i++) {
+               timeData.times[i].isSelect = false;
+               timeslotsData[j].isSelect = false;
+               if (((int.parse(id) + j).toString() ==
+                   timeData.times[i].index) && timeslotsData[j].status != "1") {
+                 setState(() {
+                   isSelected = false;
+                   timeslotsData[j].isSelect = true;
+                   prefs!.setString('fixtime', timeData.times[i].time!);
+                 });
+                 break;
+               } else {
+                 setState(() {
+                   isSelected = true;
+                   timeslotsData[j].isSelect = false;
+                   timeslotsData[j].selectedColor = Colors.transparent;
+                 });
+               }
+             }
+           }
           });
-
         },
         child: Container(
           height: 60,
           decoration: BoxDecoration(
-            color: timeslotsData[j].isSelect ?ColorCodes.mediumgren:ColorCodes.whiteColor,
+            color: timeslotsData[j].isSelect ?ColorCodes.varcolor:ColorCodes.whiteColor,
             border: Border.all(
-              color: ColorCodes.lightgreen,
+              color: timeslotsData[j].isSelect ?ColorCodes.primaryColor:ColorCodes.varcolor,
             ),
             borderRadius: BorderRadius.circular(3),
           ),
           // margin: EdgeInsets.only(left: 5.0, right: 5.0),
           //child: Container(
-          width: MediaQuery.of(context).size.width,
+          width: MediaQuery
+              .of(context)
+              .size
+              .width,
           //  padding: EdgeInsets.symmetric(horizontal: 40),
-          child: Row(
+          child:
+          Row(
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
               SizedBox(width: 20,),
               Container(
                 child: Text(
                   timeslotsData[j].time,
-                  style: TextStyle(color: ColorCodes.greenColor , fontSize:14, fontWeight: FontWeight.bold),
+                  style: TextStyle(color: (timeslotsData[j].status=="1")?ColorCodes.grey  :ColorCodes.greenColor,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold),
                 ),
               ),
               Spacer(),
-              handler(timeslotsData[j].isSelect),
+              handler(timeslotsData[j].isSelect, timeslotsData[j].status),
               SizedBox(width: 20,),
             ],
           ),
         ),
-      ),
+       );
+      }
     );
   }
   Widget SelectDate(){
-    //deliveryslotData.items[0].selectedColor=ColorCodes.mediumgren;
-    int position = 0;
 
-   debugPrint("selected date...."+deliveryslotData.items.length.toString());
     return Column(
       mainAxisAlignment: MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(height: 10,),
         Container(
-          height: 50,
+          height: 78,
           width: double.infinity,
           child: ListView.separated(
               separatorBuilder: (BuildContext context, int index) {
@@ -1114,16 +1131,17 @@ class _ConfirmorderScreenState extends State<ConfirmorderScreen>
               itemCount: deliveryslotData.items.length,
               itemBuilder: (_, i)
               {
-                debugPrint("position slot...."+deliveryslotData.items[position].id.toString()+"  "+position.toString());
-                // deliveryslotData.items[0].isSelect = true;
+
+                final tagName = deliveryslotData.items[i].date.toString();
+                dateSplit = tagName.split(',');
                 return GestureDetector(
                   onTap: (){
                     setState(() {
                       position = i;
                       visible = true;
-                      PrefUtils.prefs.setString("fixdate", deliveryslotData.items[i].dateformat);
+                      PrefUtils.prefs!.setString("fixdate", deliveryslotData.items[position].dateformat);
                       timeslotsindex = deliveryslotData.items[i].id;
-                      //timeslotsData = Provider.of<DeliveryslotitemsList>(context, listen: false,).findById(timeslotsindex);
+                      timeslotsData = Provider.of<DeliveryslotitemsList>(context, listen: false,).findById(timeslotsindex);
                       for(int j=0;j<deliveryslotData.items.length;j++){
                         if(i==j){
                           deliveryslotData.items[j].selectedColor=ColorCodes.mediumgren;//Color(0xFF45B343);
@@ -1135,36 +1153,66 @@ class _ConfirmorderScreenState extends State<ConfirmorderScreen>
                         }
                       }
                       for(int j = 0; j < timeslotsData.length; j++){
-                        if(j==0){
-                          timeslotsData[j].selectedColor = ColorCodes.mediumgren; //Color(0xFF45B343);
-                          timeslotsData[j].isSelect = true;
-                          prefs.setString('fixtime', timeslotsData[j].time);
-                        }else{
+                      if (timeslotsData[j].status == "1") {
+                          setState(() {
+                              timeslotsData[j].selectedColor =Colors.grey; //Color(0xFF45B343);
+                              timeslotsData[j].isSelect = false;
+                              timeslotsData[j].textColor = Colors.grey;
+                              isSelected = true;
+                          });
+                        }else {
+                        if (j == 0) {
+                          timeslotsData[j].selectedColor =
+                              ColorCodes.mediumgren; //Color(0xFF45B343);
+                          //this change for time slot color change
+                          timeslotsData[j].isSelect = false;
+                          PrefUtils.prefs!.setString('fixtime', "");
+                        } else {
                           timeslotsData[j].isSelect = false;
                         }
                       }
+                      }
                     });
                   },
-                  child: Container(
-                    height: 40,
-                    width: 95,
+                  child: Column(
+                    //mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      Container(
+                        height: 50,
+                        width: 40,
 
-                    decoration: BoxDecoration(
-                      color: deliveryslotData.items[i].isSelect ?ColorCodes.mediumgren:ColorCodes.whiteColor,
-                      border: Border.all(
-                        color: ColorCodes.lightgreen,
+                        decoration: BoxDecoration(
+                          color: deliveryslotData.items[i].isSelect ?ColorCodes.varcolor:ColorCodes.whiteColor,
+                          border: Border.all(
+                            color: deliveryslotData.items[i].isSelect ?ColorCodes.varcolor:ColorCodes.varcolor,
+                          ),
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                        child: Center(
+                          child: Text(
+                              dateSplit![0].toUpperCase(),
+                             /* value1,*//*deliveryslotData.items[i].date,*/
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                  color: ColorCodes.darkgreen)),
+                        ),
                       ),
-                      borderRadius: BorderRadius.circular(3),
-                    ),
-                    child: Center(
-                      child: Text(
-                          deliveryslotData.items[i].date,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                              color: ColorCodes.darkgreen)),
-                    ),
+                      Padding(
+                        padding: const EdgeInsets.only(top:2.0,left: 2,right:2),
+                        child: Center(
+                          child: Text(
+                              dateSplit![1].toUpperCase(),
+                             /* value2.toUpperCase(),*//*deliveryslotData.items[i].date,*/
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                  color: ColorCodes.darkgreen)),
+                        ),
+                      ),
+                    ],
                   ),
                 );
               }),
@@ -1190,41 +1238,12 @@ VxState.watch(context, on: [SetCartItem]);
     double deliveryTimeamount1 = 0.0;
     double finalSlotDelivery=0.0;
     double finalExpressDelivery=0.0;
-    String deliveryDurationExpress;
 
     int count=1;
     int countTime=1;
 
-    /* for (int j = 0; j < timeslotsData.length; j++) {
-     // time.add(timeslotsData[j].time);
-      if (j == 0) {
-        checkBoxdata.add(true);
-        titlecolor.add(0xFF2966A2);
-        iconcolor.add(0xFF2966A2);
-      } else {
-        checkBoxdata.add(false);
-        titlecolor.add(0xffBEBEBE);
-        iconcolor.add(0xFFFFFFFF);
-      }
-    }*/
-    /* for (int j = 0; j < timeslotsData.length; j++) {
-      timedata.add(timeslotsData[j].time);
-      if (j == 0) {
-        checkBoxdata.add(true);
-        textcolor.add(0xFF2966A2);
-        iconcolor.add(0xFF2966A2);
-      } else {
-        checkBoxdata.add(false);
-        textcolor.add(0xffBEBEBE);
-        iconcolor.add(0xFFFFFFFF);
-      }
-    }*/
-
-    final routeArgs = ModalRoute.of(context).settings.arguments as Map<String, String>;
-    deliveryDurationExpress = routeArgs["deliveryDurationExpress"];
-
     for(int i=0;i<productBox.length;i++)
-      if(productBox.length == 1 && productBox[0].mode == 1){
+      if(productBox.length == 1 && productBox[0].mode == "1"){
         _deliveryChargeNormal="0";
         _deliveryChargeExpress="0";
         _deliveryChargePrime="0";
@@ -1242,18 +1261,13 @@ VxState.watch(context, on: [SetCartItem]);
         minOrdAmount = _minimumOrderAmountExpress;
         delCharge = _deliveryChargeExpress;
       }
-      /* if (_checkmembership
-          ? (Calculations.totalmrp < double.parse(minOrdAmount))
-          : (Calculations.totalmrp < double.parse(minOrdAmount))) {
-        deliveryamount = int.parse(delCharge);
-      }*/
       if (!_loadingSlots && !_loadingDelCharge) {
         _loading = false;
       }
 
       deliveryslotData = Provider.of<DeliveryslotitemsList>(context, listen: false);
       for(int i=0;i< productBox.length;i++) {
-        durType = productBox[i].durationType;
+        durType = productBox[i].durationType!;
         mode = productBox[i].mode.toString();
       }
 
@@ -1263,43 +1277,158 @@ VxState.watch(context, on: [SetCartItem]);
       DefaultSlot.clear();
 
       for(int i=0;i< productBox.length;i++) {
-        if (productBox[i].varStock == "0" || productBox[i].status == "1") {
-          debugPrint("entered if....");
-          print("Product..."+ productBox[i].itemName+" "+"out of stock");
-        } else {
-        ////////Delivery Option Two
 
-          debugPrint("entered else....");
-        debugPrint("stock....status..."+productBox[i].varStock.toString()+"  "+productBox[i].status.toString());
+        if (productBox[i].varStock == "0" || productBox[i].status == "1") {
+
+        }
+        else {
+          if ((productBox[i].durationType == "" ||
+              productBox[i].durationType == null) ) {
+            if ((productBox[i].eligibleForExpress == "0" ||
+                productBox[i].eligibleForExpress == "1" ||
+                productBox[i].eligibleForExpress == "") ||
+                productBox[i].mode == "1") {
+              DefaultSlot.add(productBox[i]);
+              double DefaultTota1 = 0.0;
+              bool toppingsdefault = false;
+              for (int i = 0; i < DefaultSlot.length; i++) {
+                if(DefaultSlot[i].toppings_data!.length > 0){
+                  toppingsdefault = true;
+                }
+                DefaultTota1 = _checkmembership ?DefaultSlot[i].type=="1"?
+                DefaultTota1 + (double.parse(
+                    (double.parse(DefaultSlot[i].membershipPrice!) *
+                        double.parse(DefaultSlot[i].weight!))
+                        .toString()))
+               : DefaultTota1 + (double.parse(
+                    (double.parse(DefaultSlot[i].membershipPrice!) *
+                        int.parse(DefaultSlot[i].quantity!))
+                        .toString()))
+                    : DefaultSlot[i].type=="1"?DefaultTota1 + (double.parse(
+                    (double.parse(DefaultSlot[i].price!) *
+                        double.parse(DefaultSlot[i].weight!))
+                        .toString())) :DefaultTota1 + (double.parse(
+                    (double.parse(DefaultSlot[i].price!) *
+                        int.parse(DefaultSlot[i].quantity!))
+                        .toString()));
+
+              }
+              if(toppingsdefault) {
+                for (int k = 0; k < DefaultSlot.length; k++) {
+                  for (int j = 0; j < DefaultSlot[k].toppings_data!.length; j++) {
+                    DefaultSlot[k].type=="1"?
+                    DefaultTota1 = DefaultTota1+ (double.parse(DefaultSlot[k].toppings_data![j].price!) * double.parse(DefaultSlot[k].weight!))
+                    :DefaultTota1 = DefaultTota1+ double.parse(DefaultSlot[k].toppings_data![j].price! *  int.parse(DefaultSlot[k].quantity!));
+                  }
+                }
+              }else{
+                DefaultTota1 = DefaultTota1;
+              }
+              if (DefaultTota1 < double.parse(minOrdAmount)) {
+                deliveryamount = double.parse(delCharge);
+              } else {
+                deliveryamount = 0;
+              }
+
+              if (deliveryamount == 0) {
+                deliverychargetextdefault = "FREE";
+              } else {
+                deliverychargetextdefault =
+                    Features.iscurrencyformatalign?
+                    deliveryamount.toString() + " " + IConstants.currencyFormat:
+                    IConstants.currencyFormat + " " + deliveryamount.toString();
+              }
+            }
+          }
+          else if (productBox[i].durationType == "0" ) {
+            List<CartItem> dynamic1 = [];
+            List<CartItem> finalList = [];
+
+            dynamic1.clear();
+            for (int i = 0; i < productBox.length; i++) {
+              if((productBox[i].varStock == "0" || productBox[i].status == "1")){
+              }else{
+                dynamic1.add(productBox[i]);
+              }
+              finalList = dynamic1.where((i) => i.durationType == "0" ).toList();
+              newMap = groupBy(finalList, (obj) => obj.duration!);
+            }
+          }
+          else if (productBox[i].durationType == "1" ) {
+            List<CartItem> dynamicTime = [];
+            List<CartItem> finalListTime = [];
+
+            dynamicTime.clear();
+            for (int i = 0; i < productBox.length; i++) {
+              if((productBox[i].varStock == "0" || productBox[i].status == "1")){
+              }else{
+                dynamicTime.add(productBox[i]);
+              }
+              finalListTime =
+                  dynamicTime.where((i) => i.durationType == "1").toList();
+              newMap1 = groupBy(finalListTime, (obj) => obj.duration!);
+            }
+          }
+
+          ////////Delivery Option Two
           if (((productBox[i].durationType == "" ||
               productBox[i].durationType == null) &&
               (productBox[i].eligibleForExpress == "1" ||
                   productBox[i].eligibleForExpress == "")) ||
-              productBox[i].mode == 1) {
+              productBox[i].mode == "1") {
             something.add(productBox[i]);
 
 
             double SecondSlotTotal = 0.0;
+            bool toppingsSecondSlot = false;
             for (int i = 0; i < something.length; i++) {
-              SecondSlotTotal = _checkmembership
-                  ? SecondSlotTotal + (double.parse(
-                  (double.parse(something[i].membershipPrice) *
-                      int.parse(something[i].quantity)).toString()))
-                  : SecondSlotTotal + (double.parse(
-                  (double.parse(something[i].price) *
-                      int.parse(something[i].quantity)).toString()));
-
-              if (SecondSlotTotal < double.parse(minOrdAmount)) {
-                deliverySlotamount = double.parse(delCharge);
-              } else {
-                deliverySlotamount = 0;
+              if(something[i].toppings_data!.length > 0){
+                toppingsSecondSlot = true;
               }
+              SecondSlotTotal = _checkmembership
+                  ? something[i].type == "1"?
+              SecondSlotTotal + (double.parse(
+                  (double.parse(something[i].membershipPrice!) *
+                      double.parse(something[i].weight!)).toString()))
+                  :
+              SecondSlotTotal + (double.parse(
+                  (double.parse(something[i].membershipPrice!) *
+                      int.parse(something[i].quantity!)).toString()))
+                  : something[i].type == "1"?
+              SecondSlotTotal + (double.parse(
+                  (double.parse(something[i].price!) *
+                      double.parse(something[i].weight!)).toString()))
+              :SecondSlotTotal + (double.parse(
+                  (double.parse(something[i].price!) *
+                      int.parse(something[i].quantity!)).toString()));
+            }
+
+            if(toppingsSecondSlot) {
+              for (int k = 0; k < something.length; k++) {
+                for (int j = 0; j <
+                    something[k].toppings_data!.length; j++) {
+                  something[k].type == "1"?
+                  SecondSlotTotal = SecondSlotTotal+ (double.parse(something[k].toppings_data![j].price!) * double.parse(something[k].weight!))
+                      :
+                  SecondSlotTotal = SecondSlotTotal+ double.parse(something[k].toppings_data![j].price! * int.parse(something[k].quantity!));
+                }
+              }
+            }else{
+              SecondSlotTotal = SecondSlotTotal;
+            }
+
+            if (SecondSlotTotal < double.parse(minOrdAmount)) {
+              deliverySlotamount = double.parse(delCharge);
+            } else {
+              deliverySlotamount = 0;
             }
 
             if (deliverySlotamount == 0) {
               deliverychargetextSecond = "FREE";
             } else {
-              deliverychargetextSecond = IConstants.currencyFormat + " " +
+              deliverychargetextSecond = Features.iscurrencyformatalign?
+              deliverySlotamount.toString() + " " + IConstants.currencyFormat :
+              IConstants.currencyFormat + " " +
                   deliverySlotamount.toString();
             }
           }
@@ -1307,27 +1436,54 @@ VxState.watch(context, on: [SetCartItem]);
             ExpressDetails.add(productBox[i]);
 
             double SecondExpressTotal = 0.0;
+            bool toppingsSecondExpress = false;
             for (int i = 0; i < ExpressDetails.length; i++) {
-              SecondExpressTotal = _checkmembership ?
-              SecondExpressTotal + (double.parse(
-                  (double.parse(ExpressDetails[i].membershipPrice) *
-                      int.parse(ExpressDetails[i].quantity)).toString()))
-                  : SecondExpressTotal + (double.parse(
-                  (double.parse(ExpressDetails[i].price) *
-                      int.parse(ExpressDetails[i].quantity)).toString()));
-              minOrdAmountExpress = _minimumOrderAmountExpress;
-              delChargeExpress = _deliveryChargeExpress;
-              if (SecondExpressTotal < double.parse(minOrdAmountExpress)) {
-                deliveryExpressamount = double.parse(delChargeExpress);
-              } else {
-                deliveryExpressamount = 0;
+              if(ExpressDetails[i].toppings_data!.length > 0){
+                toppingsSecondExpress = true;
               }
+              SecondExpressTotal = _checkmembership ?ExpressDetails[i].type == "1"?
+              SecondExpressTotal + (double.parse(
+                  (double.parse(ExpressDetails[i].membershipPrice!) *
+                      double.parse(ExpressDetails[i].weight!)).toString()))
+                  :
+              SecondExpressTotal + (double.parse(
+                  (double.parse(ExpressDetails[i].membershipPrice!) *
+                      int.parse(ExpressDetails[i].quantity!)).toString()))
+                  : ExpressDetails[i].type == "1"?
+              SecondExpressTotal + (double.parse(
+                  (double.parse(ExpressDetails[i].price!) *
+                      double.parse(ExpressDetails[i].weight!)).toString()))
+              :SecondExpressTotal + (double.parse(
+                  (double.parse(ExpressDetails[i].price!) *
+                      int.parse(ExpressDetails[i].quantity!)).toString()));
+            }
+
+            if(toppingsSecondExpress) {
+              for (int k = 0; k < ExpressDetails.length; k++) {
+                for (int j = 0; j < ExpressDetails[k].toppings_data!.length; j++) {
+                  ExpressDetails[k].type == "1"?
+                  SecondExpressTotal = SecondExpressTotal+ (double.parse(ExpressDetails[k].toppings_data![j].price!) * double.parse(ExpressDetails[k].weight!))
+                  :SecondExpressTotal = SecondExpressTotal+ double.parse(ExpressDetails[k].toppings_data![j].price! * int.parse(ExpressDetails[k].quantity!));
+                }
+              }
+            }else{
+              SecondExpressTotal = SecondExpressTotal;
+            }
+
+            minOrdAmountExpress = _minimumOrderAmountExpress;
+            delChargeExpress = _deliveryChargeExpress;
+            if (SecondExpressTotal < double.parse(minOrdAmountExpress)) {
+              deliveryExpressamount = double.parse(delChargeExpress);
+            } else {
+              deliveryExpressamount = 0;
             }
 
             if (deliveryExpressamount == 0) {
               deliverychargetextExpress = "FREE";
             } else {
-              deliverychargetextExpress = IConstants.currencyFormat + " " +
+              deliverychargetextExpress = Features.iscurrencyformatalign?
+             deliveryExpressamount.toString() + " " + IConstants.currencyFormat :
+              IConstants.currencyFormat + " " +
                   deliveryExpressamount.toString();
             }
           }
@@ -1339,12 +1495,16 @@ VxState.watch(context, on: [SetCartItem]);
             List<CartItem> finalList = [];
             dynamic1.clear();
             for (int i = 0; i < productBox.length; i++) {
-              dynamic1.add(productBox[i]);
+              if((productBox[i].varStock == "0" || productBox[i].status == "1")){
+              }else{
+                dynamic1.add(productBox[i]);
+              }
+
               finalList = dynamic1.where((i) =>
               i.durationType == "0" &&
                   (i.eligibleForExpress == "1" || i.eligibleForExpress == ""))
                   .toList();
-              newMap2 = groupBy(finalList, (obj) => obj.duration);
+              newMap2 = groupBy(finalList, (obj) => obj.duration!);
             }
           }
           else if (productBox[i].durationType == "1" &&
@@ -1356,78 +1516,22 @@ VxState.watch(context, on: [SetCartItem]);
 
             dynamicTime.clear();
             for (int i = 0; i < productBox.length; i++) {
-              dynamicTime.add(productBox[i]);
+              if((productBox[i].varStock == "0" || productBox[i].status == "1")){
+              }else{
+                dynamicTime.add(productBox[i]);
+              }
+             // dynamicTime.add(productBox[i]);
               finalListTime = dynamicTime.where((i) =>
               i.durationType == "1" &&
                   (i.eligibleForExpress == "1" || i.eligibleForExpress == ""))
                   .toList();
-              newMap3 = groupBy(finalListTime, (obj) => obj.duration);
+              newMap3 = groupBy(finalListTime, (obj) => obj.duration!);
             }
           }
 
-          ////////Default Delivery Option
-          debugPrint("slot...." + productBox[i].durationType.toString());
-          if ((productBox[i].durationType == "" ||
-              productBox[i].durationType == null)) {
-            if ((productBox[i].eligibleForExpress == "0" ||
-                productBox[i].eligibleForExpress == "1" ||
-                productBox[i].eligibleForExpress == "") ||
-                productBox[i].mode == 1) {
-              DefaultSlot.add(productBox[i]);
-              double DefaultTota1 = 0.0;
 
-              for (int i = 0; i < DefaultSlot.length; i++) {
-                DefaultTota1 = _checkmembership ?
-                DefaultTota1 + (double.parse(
-                    (double.parse(DefaultSlot[i].membershipPrice) *
-                        int.parse(DefaultSlot[i].quantity))
-                        .toString()))
-                    : DefaultTota1 + (double.parse(
-                    (double.parse(DefaultSlot[i].price) *
-                        int.parse(DefaultSlot[i].quantity))
-                        .toString()));
-                if (DefaultTota1 < double.parse(minOrdAmount)) {
-                  deliveryamount = double.parse(delCharge);
-                } else {
-                  deliveryamount = 0;
-                }
-              }
+        }
 
-              if (deliveryamount == 0) {
-                deliverychargetextdefault = "FREE";
-              } else {
-                deliverychargetextdefault =
-                    IConstants.currencyFormat + " " + deliveryamount.toString();
-              }
-            }
-          }
-          else if (productBox[i].durationType == "0") {
-            // DateBasedDefault.add(productBox[i]);
-            List<CartItem> dynamic1 = [];
-            List<CartItem> finalList = [];
-
-            dynamic1.clear();
-            for (int i = 0; i < productBox.length; i++) {
-              dynamic1.add(productBox[i]);
-              finalList = dynamic1.where((i) => i.durationType == "0").toList();
-              newMap = groupBy(finalList, (obj) => obj.duration);
-              debugPrint("newMap...." + newMap.toString());
-            }
-          }
-          else if (productBox[i].durationType == "1") {
-            //TimeBasedDefault.add(productBox[i]);
-            List<CartItem> dynamicTime = [];
-            List<CartItem> finalListTime = [];
-
-            dynamicTime.clear();
-            for (int i = 0; i < productBox.length; i++) {
-              dynamicTime.add(productBox[i]);
-              finalListTime =
-                  dynamicTime.where((i) => i.durationType == "1").toList();
-              newMap1 = groupBy(finalListTime, (obj) => obj.duration);
-            }
-          }
-          }
       }
     }
 
@@ -1443,9 +1547,10 @@ VxState.watch(context, on: [SetCartItem]);
       ListView.builder(
           physics: NeverScrollableScrollPhysics(),
           shrinkWrap: true,
-          itemCount: newMap.length,
+          itemCount: newMap!.length,
           itemBuilder: (_, i) {
 
+            bool Toppingsdefaultdate = false;
             String minOrdAmount="0.0";
             if (_radioValue == 1) {
               if (_checkmembership) {
@@ -1463,14 +1568,35 @@ VxState.watch(context, on: [SetCartItem]);
 
             double DefaultDateTotal=0.0;
             String note="";
-            for (int j = 0; j < newMap.values.elementAt(i).length; j++) {
-
-              DefaultDateTotal = _checkmembership?
+            for (int j = 0; j < newMap!.values.elementAt(i).length; j++) {
+                 if(newMap!.values.elementAt(i)[j].toppings_data!.length > 0){
+                   Toppingsdefaultdate = true;
+                 }
+              DefaultDateTotal = _checkmembership?newMap!.values.elementAt(i)[j].type == "1"?
               DefaultDateTotal+(double.parse(
-                  (double.parse(newMap.values.elementAt(i)[j].membershipPrice) *int.parse(newMap.values.elementAt(i)[j].quantity)).toString()))
-                  :DefaultDateTotal+(double.parse(
-                  (double.parse(newMap.values.elementAt(i)[j].price) * int.parse(newMap.values.elementAt(i)[j].quantity)).toString()));
-              note= newMap.values.elementAt(i)[j].note;
+                  (double.parse(newMap!.values.elementAt(i)[j].membershipPrice!) *double.parse(newMap!.values.elementAt(i)[j].weight!)).toString()))
+                  :
+              DefaultDateTotal+(double.parse(
+                  (double.parse(newMap!.values.elementAt(i)[j].membershipPrice!) *int.parse(newMap!.values.elementAt(i)[j].quantity!)).toString()))
+                  :newMap!.values.elementAt(i)[j].type == "1"?
+              DefaultDateTotal+(double.parse(
+                  (double.parse(newMap!.values.elementAt(i)[j].price!) * double.parse(newMap!.values.elementAt(i)[j].weight!)).toString()))
+            : DefaultDateTotal+(double.parse(
+                  (double.parse(newMap!.values.elementAt(i)[j].price!) * int.parse(newMap!.values.elementAt(i)[j].quantity!)).toString()));
+              note= newMap!.values.elementAt(i)[j].note!;
+            }
+            if(Toppingsdefaultdate){
+              for (int k = 0; k < newMap!.values.elementAt(i).length; k++) {
+                for (int l = 0; l <
+                    newMap!.values.elementAt(i)[k].toppings_data!.length; l++) {
+                  newMap!.values.elementAt(i)[k].type == "1"?
+                  DefaultDateTotal = DefaultDateTotal+ (double.parse(newMap!.values.elementAt(i)[k].toppings_data![l].price!) * double.parse(newMap!.values.elementAt(i)[k].weight!))
+
+                  :DefaultDateTotal = DefaultDateTotal+ double.parse(newMap!.values.elementAt(i)[k].toppings_data![l].price! * int.parse(newMap!.values.elementAt(i)[k].quantity!));
+                }
+              }
+            }else{
+              DefaultDateTotal = DefaultDateTotal;
             }
             if(DefaultDateTotal < double.parse(minOrdAmount)){
               deliveryfinalslotdate = double.parse(delCharge);
@@ -1482,7 +1608,9 @@ VxState.watch(context, on: [SetCartItem]);
             if(deliveryfinalslotdate == 0){
               deliverychargetextDate= "FREE";
             }else{
-              deliverychargetextDate = IConstants.currencyFormat + " " + double.parse(delCharge).toString();
+              deliverychargetextDate = Features.iscurrencyformatalign?
+              double.parse(delCharge).toString() + " " + IConstants.currencyFormat:
+              IConstants.currencyFormat + " " + double.parse(delCharge).toString();
             }
 
             if(DefaultDateTotal < double.parse(minOrdAmount)){
@@ -1499,19 +1627,19 @@ VxState.watch(context, on: [SetCartItem]);
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       (newMap != null)?Text(
-                        S.of(context).shipment +" "//"Shipment "
+                        S .of(context).shipment +" "//"Shipment "
                             + (finalcount).toString(),
                         style: TextStyle(fontSize: 13,fontWeight: FontWeight.bold,color: ColorCodes.greyColor),
                       ):SizedBox.shrink(),
-                      Text(S.of(context).delivery_on +" "//"Delivery on "
-                          + newMap.keys.elementAt(i).toString(), style: TextStyle(fontSize: 13,
+                      Text(S .of(context).delivery_on +" "//"Delivery on "
+                          + newMap!.keys.elementAt(i).toString(), style: TextStyle(fontSize: 13,
                           fontWeight: FontWeight.w600,
                           color: Theme.of(context).primaryColor
                       ),),
                       GestureDetector(
                         behavior: HitTestBehavior.translucent,
                         onTap: (){
-                          dialogforViewAllDateTimeProduct(newMap.values.elementAt(i), finalcount,S.of(context).delivery_on,newMap.keys.elementAt(i),newMap.values.elementAt(i).length);
+                          dialogforViewAllDateTimeProduct(newMap!.values.elementAt(i), finalcount,S .of(context).delivery_on,newMap!.keys.elementAt(i),newMap!.values.elementAt(i).length);
                         },
                         child: Container(
                           padding: EdgeInsets.only(left: 5,right: 5),
@@ -1528,8 +1656,8 @@ VxState.watch(context, on: [SetCartItem]);
                           height: 25,
                           child: Center(
                             child: Text(
-                              S.of(context).view+" "//"View "
-                                  + newMap.values.elementAt(i).length.toString()+" "+S.of(context).items,//"Items",
+                              S .of(context).view+" "//"View "
+                                  + newMap!.values.elementAt(i).length.toString()+" "+S .of(context).items,//"Items",
                               style: TextStyle(
                                   color: ColorCodes.darkgreen,
                                   fontSize: 14
@@ -1546,7 +1674,7 @@ VxState.watch(context, on: [SetCartItem]);
                     children: [
 
                       Text(
-                        S.of(context).delivery_charge,//"Delivery Charge: ",
+                        S .of(context).delivery_charge,//"Delivery Charge: ",
                         style: TextStyle(
                             color: ColorCodes.greyColor,
                             fontSize: 10, fontWeight: FontWeight.w400
@@ -1588,8 +1716,8 @@ VxState.watch(context, on: [SetCartItem]);
                       //     },
                       //   ),
                       //   content: Container(child:Column(children:[
-                      //     _checkmembership ? Text(S.of(context).Shop + " "//'Shop '
-                      //         +IConstants.currencyFormat+ " "+ defaultamountdate.toStringAsFixed(IConstants.decimaldigit) + " " + S.of(context).more_to_get,//' more to get free delivery',
+                      //     _checkmembership ? Text(S .of(context).Shop + " "//'Shop '
+                      //         +IConstants.currencyFormat+ " "+ defaultamountdate.toStringAsFixed(IConstants.decimaldigit) + " " + S .of(context).more_to_get,//' more to get free delivery',
                       //       style: TextStyle(
                       //           fontWeight: FontWeight.w500,
                       //           color:Colors.black,
@@ -1599,8 +1727,8 @@ VxState.watch(context, on: [SetCartItem]);
                       //       ),
                       //     )
                       //         :
-                      //     Text(S.of(context).Shop + " "//'Shop '
-                      //         +IConstants.currencyFormat+ " " + defaultamountdate.toStringAsFixed(IConstants.decimaldigit)+ " " + S.of(context).more_to_get,//' more to get free delivery',
+                      //     Text(S .of(context).Shop + " "//'Shop '
+                      //         +IConstants.currencyFormat+ " " + defaultamountdate.toStringAsFixed(IConstants.decimaldigit)+ " " + S .of(context).more_to_get,//' more to get free delivery',
                       //       style: TextStyle(
                       //           fontWeight: FontWeight.w500,
                       //           color:Colors.black,
@@ -1621,7 +1749,7 @@ VxState.watch(context, on: [SetCartItem]);
                       //
                       //     },
                       //         child: Center(
-                      //           child:Text(S.of(context).Shop_more,//'Shop more',
+                      //           child:Text(S .of(context).Shop_more,//'Shop more',
                       //             style: TextStyle(color:Color(0xffff3333),fontSize: 12,fontWeight: FontWeight.w500,decoration: TextDecoration.none),),))])),
                       //   arrowTipDistance: 2,
                       //   minimumOutSidePadding: 10,
@@ -1659,7 +1787,7 @@ VxState.watch(context, on: [SetCartItem]);
                       //     });
                       //   },),
                       //   content: Text(
-                      //     S.of(context).Yay,
+                      //     S .of(context).Yay,
                       //     //'Yay!Free Delivery',
                       //     style: TextStyle(
                       //       fontSize: 12,
@@ -1678,7 +1806,7 @@ VxState.watch(context, on: [SetCartItem]);
                     children: [
 
                       Text(
-                        S.of(context).note,//"Note: ",
+                        S .of(context).note,//"Note: ",
                         style: TextStyle(
                             color: ColorCodes.greyColor,
                             fontSize: 10, fontWeight: FontWeight.w400
@@ -1712,7 +1840,7 @@ VxState.watch(context, on: [SetCartItem]);
       ListView.builder(
           physics: NeverScrollableScrollPhysics(),
           shrinkWrap: true,
-          itemCount: newMap1.length,
+          itemCount: newMap1!.length,
           itemBuilder: (_, i)
           {
 
@@ -1732,13 +1860,38 @@ VxState.watch(context, on: [SetCartItem]);
 
             String note="";
             double DefaultTimeTotal =0.0;
-            for(int j = 0; j < newMap1.values.elementAt(i).length; j++) {
-              DefaultTimeTotal = _checkmembership?
+            bool Toppingsdefaulttime = false;
+            debugPrint("jhgfx...."+newMap1!.values.elementAt(i).length.toString());
+            for(int j = 0; j < newMap1!.values.elementAt(i).length; j++) {
+              if(newMap1!.values.elementAt(i)[j].toppings_data!.length > 0){
+                Toppingsdefaulttime = true;
+              }
+              debugPrint("kjhgfnb..."+newMap1!.values.elementAt(i)[j].membershipPrice!+"...."+newMap1!.values.elementAt(i)[j].weight!);
+              DefaultTimeTotal = _checkmembership?newMap1!.values.elementAt(i)[j].type == "1"?
               DefaultTimeTotal+(double.parse(
-                  (double.parse(newMap1.values.elementAt(i)[j].membershipPrice) * int.parse(newMap1.values.elementAt(i)[j].quantity)).toString()))
-                  :DefaultTimeTotal+(double.parse(
-                  (double.parse(newMap1.values.elementAt(i)[j].quantity) * int.parse(newMap1.values.elementAt(i)[j].quantity)).toString()));
-              note= newMap1.values.elementAt(i)[j].note;
+                  (double.parse(newMap1!.values.elementAt(i)[j].membershipPrice!) * double.parse(newMap1!.values.elementAt(i)[j].weight!)).toString()))
+                  :
+              DefaultTimeTotal+(double.parse(
+                  (double.parse(newMap1!.values.elementAt(i)[j].membershipPrice!) * int.parse(newMap1!.values.elementAt(i)[j].quantity!)).toString()))
+                  :newMap1!.values.elementAt(i)[j].type == "1"?
+              DefaultTimeTotal+(double.parse(
+                  (double.parse(newMap1!.values.elementAt(i)[j].price!) * double.parse(newMap1!.values.elementAt(i)[j].weight!)).toString()))
+              :DefaultTimeTotal+(double.parse(
+                  (double.parse(newMap1!.values.elementAt(i)[j].price!) * int.parse(newMap1!.values.elementAt(i)[j].quantity!)).toString()));
+              note= newMap1!.values.elementAt(i)[j].note!;
+            }
+            debugPrint("DefaultTimeTotal...."+DefaultTimeTotal.toString());
+            if(Toppingsdefaulttime){
+              for (int k = 0; k < newMap1!.values.elementAt(i).length; k++) {
+                for (int l = 0; l <
+                    newMap1!.values.elementAt(i)[k].toppings_data!.length; l++) {
+                  newMap1!.values.elementAt(i)[k].type == "1"?
+                  DefaultTimeTotal = DefaultTimeTotal+ (double.parse(newMap1!.values.elementAt(i)[k].toppings_data![l].price!) * double.parse(newMap1!.values.elementAt(i)[k].weight!))
+                 : DefaultTimeTotal = DefaultTimeTotal+ double.parse(newMap1!.values.elementAt(i)[k].toppings_data![l].price! * int.parse(newMap1!.values.elementAt(i)[k].quantity!));
+                }
+              }
+            }else{
+              DefaultTimeTotal = DefaultTimeTotal;
             }
             if(DefaultTimeTotal < double.parse(minOrdAmount)){
               deliveryfinalslotTime = double.parse(delCharge);
@@ -1751,7 +1904,9 @@ VxState.watch(context, on: [SetCartItem]);
             if(deliveryfinalslotTime == 0){
               deliverychargetextTime= "FREE";
             }else{
-              deliverychargetextTime = IConstants.currencyFormat + " " + double.parse(delCharge).toString();
+              deliverychargetextTime = Features.iscurrencyformatalign?
+              double.parse(delCharge).toString() + " " + IConstants.currencyFormat:
+              IConstants.currencyFormat + " " + double.parse(delCharge).toString();
             }
             if(DefaultTimeTotal < double.parse(minOrdAmount)){
               deliveryamounttext = double.parse(minOrdAmount) - DefaultTimeTotal;
@@ -1767,21 +1922,21 @@ VxState.watch(context, on: [SetCartItem]);
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       (newMap1 != null)?   Text(
-                        S.of(context).shipment//"Shipment "
+                        S .of(context).shipment//"Shipment "
                             +" " + (finalcount).toString(),
                         style: TextStyle(
                             fontSize: 13, fontWeight: FontWeight.bold,color: ColorCodes.greyColor),
                       ):SizedBox.shrink(),
-                      Text( S.of(context).delivery_in+//Delivery in " +
-                          " "  + newMap1.keys.elementAt(i).toString() + S.of(context).hours,//" Hours",
-                          style: TextStyle(
-                              fontSize: 13, fontWeight: FontWeight.w600, color: ColorCodes.primaryColor)
-                      ),
+                      // Text( S .of(context).delivery_in+//Delivery in " +
+                      //     " "  + newMap1!.keys.elementAt(i).toString() + S .of(context).hours,//" Hours",
+                      //     style: TextStyle(
+                      //         fontSize: 13, fontWeight: FontWeight.w600, color: ColorCodes.primaryColor)
+                      // ),
 
                       GestureDetector(
                         behavior: HitTestBehavior.translucent,
                         onTap: () {
-                          dialogforViewAllDateTimeProduct(newMap1.values.elementAt(i), finalcount,S.of(context).delivery_in,newMap1.keys.elementAt(i),newMap1.values.elementAt(i).length);
+                          dialogforViewAllDateTimeProduct(newMap1!.values.elementAt(i), finalcount,S .of(context).delivery_in,newMap1!.keys.elementAt(i),newMap1!.values.elementAt(i).length);
                         },
                         child: Container(
                           padding: EdgeInsets.only(left: 5, right: 5),
@@ -1807,14 +1962,14 @@ VxState.watch(context, on: [SetCartItem]);
                           height: 25,
                           child: Center(
                             child: Text(
-                              S.of(context).view +//"View "
+                              S .of(context).view +//"View "
                                   " " +
-                                  newMap1.values
+                                  newMap1!.values
                                       .elementAt(i)
                                       .length
                                       .toString() +
                                   " " +
-                                  S.of(context).items,//"Items",
+                                  S .of(context).items,//"Items",
                               style: TextStyle(
                                   color: ColorCodes.darkgreen,
                                   fontSize: 14),
@@ -1830,7 +1985,7 @@ VxState.watch(context, on: [SetCartItem]);
                   Row(
                     children: [
                       Text(
-                        S.of(context).delivery_charge,//"Delivery Charge: ",
+                        S .of(context).delivery_charge,//"Delivery Charge: ",
                         style: TextStyle(
                             color: ColorCodes.greyColor,
                             fontSize: 10,
@@ -1881,8 +2036,8 @@ VxState.watch(context, on: [SetCartItem]);
                       //   content: Container(
                       //       child:Column(
                       //           children:[
-                      //     _checkmembership ? Text(S.of(context).Shop + " "//'Shop '
-                      //         +IConstants.currencyFormat + " "+ deliveryamounttext.toStringAsFixed(IConstants.decimaldigit) + " " + S.of(context).more_to_get,//' more to get free delivery',
+                      //     _checkmembership ? Text(S .of(context).Shop + " "//'Shop '
+                      //         +IConstants.currencyFormat + " "+ deliveryamounttext.toStringAsFixed(IConstants.decimaldigit) + " " + S .of(context).more_to_get,//' more to get free delivery',
                       //       style: TextStyle(
                       //           fontWeight: FontWeight.w500,
                       //           color:Colors.black,
@@ -1892,8 +2047,8 @@ VxState.watch(context, on: [SetCartItem]);
                       //       ),
                       //     )
                       //         :
-                      //     Text(S.of(context).Shop + " "//'Shop '
-                      //         + IConstants.currencyFormat+ deliveryamounttext.toStringAsFixed(IConstants.decimaldigit)+ " " + S.of(context).more_to_get,//' more to get free delivery',
+                      //     Text(S .of(context).Shop + " "//'Shop '
+                      //         + IConstants.currencyFormat+ deliveryamounttext.toStringAsFixed(IConstants.decimaldigit)+ " " + S .of(context).more_to_get,//' more to get free delivery',
                       //       style: TextStyle(
                       //           fontWeight: FontWeight.w500,
                       //           color:Colors.black,
@@ -1914,7 +2069,7 @@ VxState.watch(context, on: [SetCartItem]);
                       //
                       //     },
                       //         child: Center(
-                      //           child:Text(S.of(context).Shop_more,//'Shop more',
+                      //           child:Text(S .of(context).Shop_more,//'Shop more',
                       //             style: TextStyle(color:Color(0xffff3333),fontSize: 12,fontWeight: FontWeight.w500,decoration: TextDecoration.none),),))])),
                       //   arrowTipDistance: 2,
                       //   minimumOutSidePadding: 10,
@@ -1952,7 +2107,7 @@ VxState.watch(context, on: [SetCartItem]);
                       //     });
                       //   },),
                       //   content: Text(
-                      //     S.of(context).Yay,
+                      //     S .of(context).Yay,
                       //     //'Yay!Free Delivery',
                       //     style: TextStyle(
                       //       fontSize: 12,
@@ -1974,17 +2129,18 @@ VxState.watch(context, on: [SetCartItem]);
                     children: [
 
                       Text(
-                        S.of(context).note,//"Note: ",
+                        S .of(context).note,//"Note: ",
                         style: TextStyle(
-                            color: ColorCodes.greyColor,
-                            fontSize: 10, fontWeight: FontWeight.w400
+                            color: ColorCodes.blackColor,
+                            fontSize: 10, fontWeight: FontWeight.bold
                         ),),
                       SizedBox(width: 2,),
                       Text(
                         note
                         ,style: TextStyle(
-                        color:ColorCodes.greyColor,
+                        color:ColorCodes.blackColor,
                         fontSize: 10,
+                        fontWeight: FontWeight.bold
                       ),)
                       ,
                     ],
@@ -2001,7 +2157,6 @@ VxState.watch(context, on: [SetCartItem]);
           : SizedBox.shrink();
     }
     SlotBasedDeliveryShipment() {
-     debugPrint("SlotBasedDeliveryShipment....");
       int finalcount= count++;
       return Column(
         children: [
@@ -2010,11 +2165,11 @@ VxState.watch(context, on: [SetCartItem]);
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                S.of(context).shipment +" "//"Shipment "
+                S .of(context).shipment +" "//"Shipment "
                     +(finalcount).toString(),//Slot Based Delivery",
-                style: TextStyle(fontSize: 13,fontWeight: FontWeight.bold,color: ColorCodes.greyColor),
+                style: TextStyle(fontSize: 13,fontWeight: FontWeight.bold,color: ColorCodes.blackColor),
               ),
-              Text(S.of(context).slot_based_delivery,
+              Text(S .of(context).slot_based_delivery,
                 style: TextStyle(fontSize: 13,
                     fontWeight: FontWeight.w600,
                     color: Theme.of(context).primaryColor
@@ -2023,7 +2178,7 @@ VxState.watch(context, on: [SetCartItem]);
               GestureDetector(
                 behavior: HitTestBehavior.translucent,
                 onTap: (){
-                  dialogforViewAllProductSlotExpress(finalcount,S.of(context).slot_based_delivery,DefaultSlot.length);
+                  dialogforViewAllProductSlotExpress(finalcount,S .of(context).slot_based_delivery,DefaultSlot.length);
                 },
                 child: Container(
                   padding: EdgeInsets.only(left: 5,right: 5),
@@ -2038,9 +2193,9 @@ VxState.watch(context, on: [SetCartItem]);
                   height: 25,
                   child: Center(
                     child: Text(
-                      S.of(context).view//"View "
+                      S .of(context).view//"View "
                           + " " + DefaultSlot.length.toString()+" "+
-                          S.of(context).items,//"Items",
+                          S .of(context).items,//"Items",
                       style: TextStyle(
                           color: ColorCodes.darkgreen,
                           fontSize: 14
@@ -2056,14 +2211,14 @@ VxState.watch(context, on: [SetCartItem]);
             children: [
 
               Text(
-                S.of(context).delivery_charge,//"Delivery Charge: ",
+                S .of(context).delivery_charge,//"Delivery Charge: ",
                 style: TextStyle(
                     color: ColorCodes.greyColor,
                     fontSize: 10, fontWeight: FontWeight.w400
                 ),),
               SizedBox(width: 2,),
               Text(
-                deliverychargetextdefault
+                deliverychargetextdefault!
                 ,style: TextStyle(
                 color: (deliverychargetextdefault == "FREE")? ColorCodes.greenColor:
                 ColorCodes.greyColor,
@@ -2102,8 +2257,8 @@ VxState.watch(context, on: [SetCartItem]);
               //   content: Container(
               //       child:Column(
               //           children:[
-              //             _checkmembership ? Text(S.of(context).Shop + " "//'Shop '
-              //                 +IConstants.currencyFormat + " "+ deliveryamounttext.toStringAsFixed(IConstants.decimaldigit) + " " + S.of(context).more_to_get,//' more to get free delivery',
+              //             _checkmembership ? Text(S .of(context).Shop + " "//'Shop '
+              //                 +IConstants.currencyFormat + " "+ deliveryamounttext.toStringAsFixed(IConstants.decimaldigit) + " " + S .of(context).more_to_get,//' more to get free delivery',
               //               style: TextStyle(
               //                   fontWeight: FontWeight.w500,
               //                   color:Colors.black,
@@ -2113,8 +2268,8 @@ VxState.watch(context, on: [SetCartItem]);
               //               ),
               //             )
               //                 :
-              //             Text(S.of(context).Shop + " "//'Shop '
-              //                 + IConstants.currencyFormat+ deliveryamounttext.toStringAsFixed(IConstants.decimaldigit)+ " " + S.of(context).more_to_get,//' more to get free delivery',
+              //             Text(S .of(context).Shop + " "//'Shop '
+              //                 + IConstants.currencyFormat+ deliveryamounttext.toStringAsFixed(IConstants.decimaldigit)+ " " + S .of(context).more_to_get,//' more to get free delivery',
               //               style: TextStyle(
               //                   fontWeight: FontWeight.w500,
               //                   color:Colors.black,
@@ -2135,7 +2290,7 @@ VxState.watch(context, on: [SetCartItem]);
               //
               //             },
               //                 child: Center(
-              //                   child:Text(S.of(context).Shop_more,//'Shop more',
+              //                   child:Text(S .of(context).Shop_more,//'Shop more',
               //                     style: TextStyle(color:Color(0xffff3333),fontSize: 12,fontWeight: FontWeight.w500,decoration: TextDecoration.none),),))])),
               //   arrowTipDistance: 2,
               //   minimumOutSidePadding: 10,
@@ -2173,7 +2328,7 @@ VxState.watch(context, on: [SetCartItem]);
               //     });
               //   },),
               //   content: Text(
-              //     S.of(context).Yay,
+              //     S .of(context).Yay,
               //     //'Yay!Free Delivery',
               //     style: TextStyle(
               //       fontSize: 12,
@@ -2185,7 +2340,7 @@ VxState.watch(context, on: [SetCartItem]);
               // ),
             ],
           ) : SizedBox.shrink(),
-          (Features.isSplit) ? SizedBox(height: 10,) : SizedBox(height: 5,),
+          (Features.isSplit) ? SizedBox(height: 15,) : SizedBox(height: 5,),
           /*Row(
                                      children: [
                                        // SizedBox(width: 30,),
@@ -2236,9 +2391,9 @@ VxState.watch(context, on: [SetCartItem]);
           Row(
             children: [
               Text(
-                S.of(context).select_TimeSlot,//"Delivery Charge: ",
+                S .of(context).select_TimeSlot,//"Delivery Charge: ",
                 style: TextStyle(
-                    color: ColorCodes.greyColor,
+                    color: ColorCodes.blackColor,
                     fontSize: 13, fontWeight: FontWeight.bold
                 ),),
             ],
@@ -2262,16 +2417,16 @@ VxState.watch(context, on: [SetCartItem]);
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               (ExpressDetails.length >0)?   Text(
-                S.of(context).shipment+ //"Shipment "
+                S .of(context).shipment+ //"Shipment "
                     " " + (finalCount).toString() ,//Express Delivery",
                 style: TextStyle(fontSize: 13,fontWeight: FontWeight.bold, color: ColorCodes.greyColor),
               ):SizedBox.shrink(),
-              Text( S.of(context).express_delivery,
+              Text( S .of(context).express_delivery,
                   style: TextStyle(fontSize: 13,fontWeight: FontWeight.w600,color: ColorCodes.primaryColor)),
               GestureDetector(
                 behavior: HitTestBehavior.translucent,
                 onTap: (){
-                  dialogforViewAllProductExpress(finalCount,S.of(context).express_delivery,ExpressDetails.length);
+                  dialogforViewAllProductExpress(finalCount,S .of(context).express_delivery,ExpressDetails.length);
                 },
                 child: Container(
                   padding: EdgeInsets.only(left: 5,right: 5),
@@ -2287,9 +2442,9 @@ VxState.watch(context, on: [SetCartItem]);
                   height: 25,
                   child: Center(
                     child: Text(
-                      S.of(context).view//"View "
+                      S .of(context).view//"View "
                           +" " + ExpressDetails.length.toString()+" "+
-                          S.of(context).items,//"Items",
+                          S .of(context).items,//"Items",
                       style: TextStyle(
                           color: ColorCodes.darkgreen,
                           fontSize: 14
@@ -2306,14 +2461,14 @@ VxState.watch(context, on: [SetCartItem]);
             children: [
 
               Text(
-                S.of(context).delivery_charge//"Delivery Charge: "
+                S .of(context).delivery_charge//"Delivery Charge: "
                 ,style: TextStyle(
                   color: ColorCodes.greyColor,
                   fontSize: 10, fontWeight: FontWeight.w400
               ),),
               SizedBox(width: 2,),
               Text(
-                (deliverychargetextExpress)
+                (deliverychargetextExpress)!
                 ,style: TextStyle(
                 color: (deliverychargetextExpress == "FREE")? ColorCodes.greenColor:
                 ColorCodes.greyColor,
@@ -2352,8 +2507,8 @@ VxState.watch(context, on: [SetCartItem]);
               //   content: Container(
               //       child:Column(
               //           children:[
-              //             _checkmembership ? Text(S.of(context).Shop + " "//'Shop '
-              //                 +IConstants.currencyFormat + " "+ deliveryamounttext.toStringAsFixed(IConstants.decimaldigit) + " " + S.of(context).more_to_get,//' more to get free delivery',
+              //             _checkmembership ? Text(S .of(context).Shop + " "//'Shop '
+              //                 +IConstants.currencyFormat + " "+ deliveryamounttext.toStringAsFixed(IConstants.decimaldigit) + " " + S .of(context).more_to_get,//' more to get free delivery',
               //               style: TextStyle(
               //                   fontWeight: FontWeight.w500,
               //                   color:Colors.black,
@@ -2363,8 +2518,8 @@ VxState.watch(context, on: [SetCartItem]);
               //               ),
               //             )
               //                 :
-              //             Text(S.of(context).Shop + " "//'Shop '
-              //                 + IConstants.currencyFormat+ deliveryamounttext.toStringAsFixed(IConstants.decimaldigit)+ " " + S.of(context).more_to_get,//' more to get free delivery',
+              //             Text(S .of(context).Shop + " "//'Shop '
+              //                 + IConstants.currencyFormat+ deliveryamounttext.toStringAsFixed(IConstants.decimaldigit)+ " " + S .of(context).more_to_get,//' more to get free delivery',
               //               style: TextStyle(
               //                   fontWeight: FontWeight.w500,
               //                   color:Colors.black,
@@ -2385,7 +2540,7 @@ VxState.watch(context, on: [SetCartItem]);
               //
               //             },
               //                 child: Center(
-              //                   child:Text(S.of(context).Shop_more,//'Shop more',
+              //                   child:Text(S .of(context).Shop_more,//'Shop more',
               //                     style: TextStyle(color:Color(0xffff3333),fontSize: 12,fontWeight: FontWeight.w500,decoration: TextDecoration.none),),))])),
               //   arrowTipDistance: 2,
               //   minimumOutSidePadding: 10,
@@ -2423,7 +2578,7 @@ VxState.watch(context, on: [SetCartItem]);
               //     });
               //   },),
               //   content: Text(
-              //     S.of(context).Yay,
+              //     S .of(context).Yay,
               //     //'Yay!Free Delivery',
               //     style: TextStyle(
               //       fontSize: 12,
@@ -2452,18 +2607,18 @@ VxState.watch(context, on: [SetCartItem]);
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                S.of(context).shipment+
+                S .of(context).shipment+
                     " " + (standard).toString() ,//Slot Based Delivery",
                 style: TextStyle(fontSize: 13,fontWeight: FontWeight.bold, color: ColorCodes.greyColor),
               ),
               Text(
-                S.of(context).slot_based_delivery,
+                S .of(context).slot_based_delivery,
                 style: TextStyle(fontSize: 13,fontWeight: FontWeight.w600, color: ColorCodes.primaryColor),
               ),
               GestureDetector(
                 behavior: HitTestBehavior.translucent,
                 onTap: (){
-                  dialogforViewAllProductSecond(standard,S.of(context).slot_based_delivery,something.length);
+                  dialogforViewAllProductSecond(standard,S .of(context).slot_based_delivery,something.length);
                 },
                 child: Container(
                   padding: EdgeInsets.only(left: 5,right: 5),
@@ -2478,9 +2633,9 @@ VxState.watch(context, on: [SetCartItem]);
                   height: 25,
                   child: Center(
                     child: Text(
-                      S.of(context).view//"View "
+                      S .of(context).view//"View "
                           + " "  + something.length.toString()+" "+
-                          S.of(context).items ,//"Items",
+                          S .of(context).items ,//"Items",
                       style: TextStyle(
                           color: ColorCodes.darkgreen,
                           fontSize: 14
@@ -2496,14 +2651,14 @@ VxState.watch(context, on: [SetCartItem]);
             children: [
 
               Text(
-                S.of(context).delivery_charge,//"Delivery Charge: ",
+                S .of(context).delivery_charge,//"Delivery Charge: ",
                 style: TextStyle(
                     color: ColorCodes.greyColor,
                     fontSize: 10, fontWeight: FontWeight.w400
                 ),),
               SizedBox(width: 2,),
               Text(
-                deliverychargetextSecond
+                deliverychargetextSecond!
                 ,style: TextStyle(
                 color: (deliverychargetextSecond == "FREE")? ColorCodes.greenColor:
                 ColorCodes.greyColor,
@@ -2542,8 +2697,8 @@ VxState.watch(context, on: [SetCartItem]);
               //   content: Container(
               //       child:Column(
               //           children:[
-              //             _checkmembership ? Text(S.of(context).Shop + " "//'Shop '
-              //                 +IConstants.currencyFormat + " "+ deliveryamounttext.toStringAsFixed(IConstants.decimaldigit) + " " + S.of(context).more_to_get,//' more to get free delivery',
+              //             _checkmembership ? Text(S .of(context).Shop + " "//'Shop '
+              //                 +IConstants.currencyFormat + " "+ deliveryamounttext.toStringAsFixed(IConstants.decimaldigit) + " " + S .of(context).more_to_get,//' more to get free delivery',
               //               style: TextStyle(
               //                   fontWeight: FontWeight.w500,
               //                   color:Colors.black,
@@ -2553,8 +2708,8 @@ VxState.watch(context, on: [SetCartItem]);
               //               ),
               //             )
               //                 :
-              //             Text(S.of(context).Shop + " "//'Shop '
-              //                 + IConstants.currencyFormat+ deliveryamounttext.toStringAsFixed(IConstants.decimaldigit)+ " " + S.of(context).more_to_get,//' more to get free delivery',
+              //             Text(S .of(context).Shop + " "//'Shop '
+              //                 + IConstants.currencyFormat+ deliveryamounttext.toStringAsFixed(IConstants.decimaldigit)+ " " + S .of(context).more_to_get,//' more to get free delivery',
               //               style: TextStyle(
               //                   fontWeight: FontWeight.w500,
               //                   color:Colors.black,
@@ -2575,7 +2730,7 @@ VxState.watch(context, on: [SetCartItem]);
               //
               //             },
               //                 child: Center(
-              //                   child:Text(S.of(context).Shop_more,//'Shop more',
+              //                   child:Text(S .of(context).Shop_more,//'Shop more',
               //                     style: TextStyle(color:Color(0xffff3333),fontSize: 12,fontWeight: FontWeight.w500,decoration: TextDecoration.none),),))])),
               //   arrowTipDistance: 2,
               //   minimumOutSidePadding: 10,
@@ -2613,7 +2768,7 @@ VxState.watch(context, on: [SetCartItem]);
               //     });
               //   },),
               //   content: Text(
-              //     S.of(context).Yay,
+              //     S .of(context).Yay,
               //     //'Yay!Free Delivery',
               //     style: TextStyle(
               //       fontSize: 12,
@@ -2629,7 +2784,7 @@ VxState.watch(context, on: [SetCartItem]);
           Row(
             children: [
               Text(
-                S.of(context).select_TimeSlot,//"Delivery Charge: ",
+                S .of(context).select_TimeSlot,//"Delivery Charge: ",
                 style: TextStyle(
 
                     fontSize: 13, fontWeight: FontWeight.bold,color: ColorCodes.greyColor
@@ -2650,7 +2805,7 @@ VxState.watch(context, on: [SetCartItem]);
         ListView.builder(
             physics: NeverScrollableScrollPhysics(),
             shrinkWrap: true,
-            itemCount: newMap2.length,
+            itemCount: newMap2!.length,
             itemBuilder: (ctx, i)
             {
               String minOrdAmount="0.0";
@@ -2668,15 +2823,38 @@ VxState.watch(context, on: [SetCartItem]);
               }
 
               String note ="";
-              for (int j = 0; j < newMap2.values.elementAt(i).length; j++) {
-                SecondDateTotal = _checkmembership?
+              bool Toppingsexpressdate = false;
+              for (int j = 0; j < newMap2!.values.elementAt(i).length; j++) {
+                if(newMap2!.values.elementAt(i)[j].toppings_data!.length > 0){
+                  Toppingsexpressdate = true;
+                }
+                SecondDateTotal = _checkmembership?newMap2!.values.elementAt(i)[j].type =="1"?
                 SecondDateTotal + (double.parse(
-                    (double.parse(newMap2.values.elementAt(i)[j].membershipPrice) *int.parse(newMap2.values.elementAt(i)[j].quantity))
+                    (double.parse(newMap2!.values.elementAt(i)[j].membershipPrice!) *double.parse(newMap2!.values.elementAt(i)[j].weight!))
                         .toString()))
-                    :SecondDateTotal + (double.parse(
-                    (double.parse(newMap2.values.elementAt(i)[j].price) *int.parse(newMap2.values.elementAt(i)[j].quantity))
+               : SecondDateTotal + (double.parse(
+                    (double.parse(newMap2!.values.elementAt(i)[j].membershipPrice!) *int.parse(newMap2!.values.elementAt(i)[j].quantity!))
+                        .toString()))
+                    :newMap2!.values.elementAt(i)[j].type =="1"?
+                SecondDateTotal + (double.parse(
+                    (double.parse(newMap2!.values.elementAt(i)[j].price!) *double.parse(newMap2!.values.elementAt(i)[j].weight!))
+                        .toString()))
+                :SecondDateTotal + (double.parse(
+                    (double.parse(newMap2!.values.elementAt(i)[j].price!) *int.parse(newMap2!.values.elementAt(i)[j].quantity!))
                         .toString()));
-                note= newMap2.values.elementAt(i)[j].note;
+                note= newMap2!.values.elementAt(i)[j].note!;
+              }
+              if(Toppingsexpressdate){
+                for (int k = 0; k < newMap2!.values.elementAt(i).length; k++) {
+                  for (int l = 0; l <
+                      newMap2!.values.elementAt(i)[k].toppings_data!.length; l++) {
+                    newMap2!.values.elementAt(i)[k].type =="1"?
+                    SecondDateTotal = SecondDateTotal+( double.parse(newMap2!.values.elementAt(i)[k].toppings_data![l].price!) * double.parse(newMap2!.values.elementAt(i)[k].weight!))
+                   : SecondDateTotal = SecondDateTotal+ double.parse(newMap2!.values.elementAt(i)[k].toppings_data![l].price! * int.parse(newMap2!.values.elementAt(i)[k].quantity!));
+                  }
+                }
+              }else{
+                SecondDateTotal = SecondDateTotal;
               }
               if (SecondDateTotal < double.parse(minOrdAmount)) {
 
@@ -2690,6 +2868,8 @@ VxState.watch(context, on: [SetCartItem]);
                 deliverychargetextSecDate = "FREE";
               } else {
                 deliverychargetextSecDate =
+                Features.iscurrencyformatalign?
+                deliveryDateamount.toString() + " " + IConstants.currencyFormat:
                     IConstants.currencyFormat + " " + deliveryDateamount.toString();
               }
               return  Container(
@@ -2699,13 +2879,13 @@ VxState.watch(context, on: [SetCartItem]);
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          S.of(context).shipment+" "//"Shipment "
+                          S .of(context).shipment+" "//"Shipment "
                               + (finalCount).toString() ,
                           style: TextStyle(
                               fontSize: 13, fontWeight: FontWeight.bold,color: ColorCodes.greyColor),
                         ),
-                        Text( S.of(context).delivery_on + " "//Delivery on " +
-                            + newMap2.keys.elementAt(i).toString(),
+                        Text( S .of(context).delivery_on + " "//Delivery on " +
+                            + newMap2!.keys.elementAt(i).toString(),
                           style: TextStyle(
                               fontSize: 13, fontWeight: FontWeight.w600,color: ColorCodes.primaryColor),
                         ),
@@ -2713,7 +2893,7 @@ VxState.watch(context, on: [SetCartItem]);
                         GestureDetector(
                           behavior: HitTestBehavior.translucent,
                           onTap: () {
-                            dialogforViewAllDateTimeProduct(newMap2.values.elementAt(i),finalCount,S.of(context).delivery_on,newMap2.keys.elementAt(i),newMap2.values.elementAt(i).length);
+                            dialogforViewAllDateTimeProduct(newMap2!.values.elementAt(i),finalCount,S .of(context).delivery_on,newMap2!.keys.elementAt(i),newMap2!.values.elementAt(i).length);
                           },
                           child: Container(
                             padding: EdgeInsets.only(left: 5, right: 5),
@@ -2740,13 +2920,13 @@ VxState.watch(context, on: [SetCartItem]);
                             height: 25,
                             child: Center(
                               child: Text(
-                                S.of(context).view// "View "
-                                    +" " + newMap2.values
+                                S .of(context).view// "View "
+                                    +" " + newMap2!.values
                                     .elementAt(i)
                                     .length
                                     .toString() +
                                     " " +
-                                    S.of(context).items,//"Items",
+                                    S .of(context).items,//"Items",
                                 style: TextStyle(
                                     color: ColorCodes.darkgreen,
                                     fontSize: 14),
@@ -2762,7 +2942,7 @@ VxState.watch(context, on: [SetCartItem]);
                     Row(
                       children: [
                         Text(
-                          S.of(context).delivery_charge,//"Delivery Charge: ",
+                          S .of(context).delivery_charge,//"Delivery Charge: ",
                           style: TextStyle(
                               color: ColorCodes.greyColor,
                               fontSize: 10,
@@ -2772,7 +2952,7 @@ VxState.watch(context, on: [SetCartItem]);
                           width: 2,
                         ),
                         Text(
-                          deliverychargetextSecDate,
+                          deliverychargetextSecDate!,
                           style: TextStyle(
                             color: (deliverychargetextSecDate == "FREE")
                                 ? ColorCodes.greenColor
@@ -2813,8 +2993,8 @@ VxState.watch(context, on: [SetCartItem]);
                         //   content: Container(
                         //       child:Column(
                         //           children:[
-                        //             _checkmembership ? Text(S.of(context).Shop + " "//'Shop '
-                        //                 +IConstants.currencyFormat + " "+ deliveryamounttext.toStringAsFixed(IConstants.decimaldigit) + " " + S.of(context).more_to_get,//' more to get free delivery',
+                        //             _checkmembership ? Text(S .of(context).Shop + " "//'Shop '
+                        //                 +IConstants.currencyFormat + " "+ deliveryamounttext.toStringAsFixed(IConstants.decimaldigit) + " " + S .of(context).more_to_get,//' more to get free delivery',
                         //               style: TextStyle(
                         //                   fontWeight: FontWeight.w500,
                         //                   color:Colors.black,
@@ -2824,8 +3004,8 @@ VxState.watch(context, on: [SetCartItem]);
                         //               ),
                         //             )
                         //                 :
-                        //             Text(S.of(context).Shop + " "//'Shop '
-                        //                 + IConstants.currencyFormat+ deliveryamounttext.toStringAsFixed(IConstants.decimaldigit)+ " " + S.of(context).more_to_get,//' more to get free delivery',
+                        //             Text(S .of(context).Shop + " "//'Shop '
+                        //                 + IConstants.currencyFormat+ deliveryamounttext.toStringAsFixed(IConstants.decimaldigit)+ " " + S .of(context).more_to_get,//' more to get free delivery',
                         //               style: TextStyle(
                         //                   fontWeight: FontWeight.w500,
                         //                   color:Colors.black,
@@ -2846,7 +3026,7 @@ VxState.watch(context, on: [SetCartItem]);
                         //
                         //             },
                         //                 child: Center(
-                        //                   child:Text(S.of(context).Shop_more,//'Shop more',
+                        //                   child:Text(S .of(context).Shop_more,//'Shop more',
                         //                     style: TextStyle(color:Color(0xffff3333),fontSize: 12,fontWeight: FontWeight.w500,decoration: TextDecoration.none),),))])),
                         //   arrowTipDistance: 2,
                         //   minimumOutSidePadding: 10,
@@ -2884,7 +3064,7 @@ VxState.watch(context, on: [SetCartItem]);
                         //     });
                         //   },),
                         //   content: Text(
-                        //     S.of(context).Yay,
+                        //     S .of(context).Yay,
                         //     //'Yay!Free Delivery',
                         //     style: TextStyle(
                         //       fontSize: 12,
@@ -2905,7 +3085,7 @@ VxState.watch(context, on: [SetCartItem]);
                       children: [
 
                         Text(
-                          S.of(context).note,//"Note: ",
+                          S .of(context).note,//"Note: ",
                           style: TextStyle(
                               color: ColorCodes.greyColor,
                               fontSize: 10, fontWeight: FontWeight.w400
@@ -2941,7 +3121,7 @@ VxState.watch(context, on: [SetCartItem]);
         ListView.builder(
             physics: NeverScrollableScrollPhysics(),
             shrinkWrap: true,
-            itemCount: newMap3.length,
+            itemCount: newMap3!.length,
             itemBuilder: (_, i)
             {
 
@@ -2961,17 +3141,39 @@ VxState.watch(context, on: [SetCartItem]);
 
               double SecondTimeTotal =0.0;
               String note ="";
-              for (int j = 0; j < newMap3.values.elementAt(i).length; j++) {
-
-                SecondTimeTotal =_checkmembership?
+              bool Toppingsexpresstime = false;
+              for (int j = 0; j < newMap3!.values.elementAt(i).length; j++) {
+                if(newMap3!.values.elementAt(i)[j].toppings_data!.length > 0){
+                  Toppingsexpresstime = true;
+                }
+                SecondTimeTotal =_checkmembership? newMap3!.values.elementAt(i)[j].type == "1"?
                 SecondTimeTotal+(double.parse(
-                    (double.parse(newMap3.values.elementAt(i)[j].membershipPrice) * int.parse(newMap3.values.elementAt(i)[j].quantity))
+                    (double.parse(newMap3!.values.elementAt(i)[j].membershipPrice!) * double.parse(newMap3!.values.elementAt(i)[j].weight!))
                         .toString()))
-                    :SecondTimeTotal+(double.parse(
-                    (double.parse(newMap3.values.elementAt(i)[j].price) * int.parse(newMap3.values.elementAt(i)[j].quantity))
+               : SecondTimeTotal+(double.parse(
+                    (double.parse(newMap3!.values.elementAt(i)[j].membershipPrice!) * int.parse(newMap3!.values.elementAt(i)[j].quantity!))
+                        .toString()))
+                    :newMap3!.values.elementAt(i)[j].type == "1"?
+                SecondTimeTotal+(double.parse(
+                    (double.parse(newMap3!.values.elementAt(i)[j].price!) * double.parse(newMap3!.values.elementAt(i)[j].weight!))
+                        .toString())):
+                SecondTimeTotal+(double.parse(
+                    (double.parse(newMap3!.values.elementAt(i)[j].price!) * int.parse(newMap3!.values.elementAt(i)[j].quantity!))
                         .toString()));
-                note= newMap3.values.elementAt(i)[j].note;
+                note= newMap3!.values.elementAt(i)[j].note!;
 
+              }
+              if(Toppingsexpresstime){
+                for (int k = 0; k < newMap3!.values.elementAt(i).length; k++) {
+                  for (int l = 0; l <
+                      newMap3!.values.elementAt(i)[k].toppings_data!.length; l++) {
+                    newMap3!.values.elementAt(i)[k].type == "1"?
+                    SecondTimeTotal = SecondTimeTotal+ (double.parse(newMap3!.values.elementAt(i)[k].toppings_data![l].price!) * double.parse(newMap3!.values.elementAt(i)[k].weight!))
+                    :SecondTimeTotal = SecondTimeTotal+ double.parse(newMap3!.values.elementAt(i)[k].toppings_data![l].price! * int.parse(newMap3!.values.elementAt(i)[k].quantity!));
+                  }
+                }
+              }else{
+                SecondTimeTotal = SecondTimeTotal;
               }
               if(SecondTimeTotal < double.parse(minOrdAmount)){
                 deliveryTimeamount = double.parse(delCharge);
@@ -2983,7 +3185,9 @@ VxState.watch(context, on: [SetCartItem]);
               if(deliveryTimeamount == 0){
                 deliverychargetextSecTime = "FREE";
               }else{
-                deliverychargetextSecTime = IConstants.currencyFormat + " " + deliveryTimeamount.toString();
+                deliverychargetextSecTime = Features.iscurrencyformatalign?
+                deliveryTimeamount.toString() + " " + IConstants.currencyFormat:
+                IConstants.currencyFormat + " " + deliveryTimeamount.toString();
               }
               return  Container(
                 child: Column(
@@ -2992,20 +3196,20 @@ VxState.watch(context, on: [SetCartItem]);
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          S.of(context).shipment+ " "//"Shipment "
+                          S .of(context).shipment+ " "//"Shipment "
                               + (finalCount).toString() ,
                           style: TextStyle(
                               fontSize: 13, fontWeight: FontWeight.bold,color: ColorCodes.greyColor),
                         ),
-                        Text(S.of(context).delivery_in+ " "//Delivery in " +
-                            + newMap3.keys.elementAt(i).toString() +" Hours",
+                        Text(S .of(context).delivery_in+ " "//Delivery in " +
+                            + newMap3!.keys.elementAt(i).toString() +" Hours",
                           style: TextStyle(
                               fontSize: 13, fontWeight: FontWeight.w600,color: ColorCodes.primaryColor),
                         ),
                         GestureDetector(
                           behavior: HitTestBehavior.translucent,
                           onTap: () {
-                            dialogforViewAllDateTimeProduct(newMap3.values.elementAt(i),finalCount,S.of(context).delivery_in,newMap3.keys.elementAt(i),newMap3.values.elementAt(i).length);
+                            dialogforViewAllDateTimeProduct(newMap3!.values.elementAt(i),finalCount,S .of(context).delivery_in,newMap3!.keys.elementAt(i),newMap3!.values.elementAt(i).length);
                           },
                           child: Container(
                             padding: EdgeInsets.only(left: 5, right: 5),
@@ -3032,13 +3236,13 @@ VxState.watch(context, on: [SetCartItem]);
                             height: 25,
                             child: Center(
                               child: Text(
-                                S.of(context).view//"View "
-                                    +" "  + newMap3.values
+                                S .of(context).view//"View "
+                                    +" "  + newMap3!.values
                                     .elementAt(i)
                                     .length
                                     .toString() +
                                     " " +
-                                    S.of(context).items,//"Items",
+                                    S .of(context).items,//"Items",
                                 style: TextStyle(
                                     color: ColorCodes.darkgreen,
                                     fontSize: 14),
@@ -3054,7 +3258,7 @@ VxState.watch(context, on: [SetCartItem]);
                     Row(
                       children: [
                         Text(
-                          S.of(context).delivery_charge,//"Delivery Charge: ",
+                          S .of(context).delivery_charge,//"Delivery Charge: ",
                           style: TextStyle(
                               color: ColorCodes.greyColor,
                               fontSize: 10,
@@ -3064,7 +3268,7 @@ VxState.watch(context, on: [SetCartItem]);
                           width: 2,
                         ),
                         Text(
-                          deliverychargetextSecTime,
+                          deliverychargetextSecTime!,
                           style: TextStyle(
                             color: (deliverychargetextSecTime == "FREE")
                                 ? ColorCodes.greenColor
@@ -3105,8 +3309,8 @@ VxState.watch(context, on: [SetCartItem]);
                         //   content: Container(
                         //       child:Column(
                         //           children:[
-                        //             _checkmembership ? Text(S.of(context).Shop + " "//'Shop '
-                        //                 +IConstants.currencyFormat + " "+ deliveryamounttext.toStringAsFixed(IConstants.decimaldigit) + " " + S.of(context).more_to_get,//' more to get free delivery',
+                        //             _checkmembership ? Text(S .of(context).Shop + " "//'Shop '
+                        //                 +IConstants.currencyFormat + " "+ deliveryamounttext.toStringAsFixed(IConstants.decimaldigit) + " " + S .of(context).more_to_get,//' more to get free delivery',
                         //               style: TextStyle(
                         //                   fontWeight: FontWeight.w500,
                         //                   color:Colors.black,
@@ -3116,8 +3320,8 @@ VxState.watch(context, on: [SetCartItem]);
                         //               ),
                         //             )
                         //                 :
-                        //             Text(S.of(context).Shop + " "//'Shop '
-                        //                 + IConstants.currencyFormat+ deliveryamounttext.toStringAsFixed(IConstants.decimaldigit)+ " " + S.of(context).more_to_get,//' more to get free delivery',
+                        //             Text(S .of(context).Shop + " "//'Shop '
+                        //                 + IConstants.currencyFormat+ deliveryamounttext.toStringAsFixed(IConstants.decimaldigit)+ " " + S .of(context).more_to_get,//' more to get free delivery',
                         //               style: TextStyle(
                         //                   fontWeight: FontWeight.w500,
                         //                   color:Colors.black,
@@ -3138,7 +3342,7 @@ VxState.watch(context, on: [SetCartItem]);
                         //
                         //             },
                         //                 child: Center(
-                        //                   child:Text(S.of(context).Shop_more,//'Shop more',
+                        //                   child:Text(S .of(context).Shop_more,//'Shop more',
                         //                     style: TextStyle(color:Color(0xffff3333),fontSize: 12,fontWeight: FontWeight.w500,decoration: TextDecoration.none),),))])),
                         //   arrowTipDistance: 2,
                         //   minimumOutSidePadding: 10,
@@ -3176,7 +3380,7 @@ VxState.watch(context, on: [SetCartItem]);
                         //     });
                         //   },),
                         //   content: Text(
-                        //     S.of(context).Yay,
+                        //     S .of(context).Yay,
                         //     //'Yay!Free Delivery',
                         //     style: TextStyle(
                         //       fontSize: 12,
@@ -3197,7 +3401,7 @@ VxState.watch(context, on: [SetCartItem]);
                       children: [
 
                         Text(
-                          S.of(context).note//"Note: "
+                          S .of(context).note//"Note: "
                           ,style: TextStyle(
                             color: ColorCodes.greyColor,
                             fontSize: 10, fontWeight: FontWeight.w400
@@ -3226,6 +3430,8 @@ VxState.watch(context, on: [SetCartItem]);
               );
             })/*: SizedBox.shrink()*/ ;
     }
+
+
     Widget _deliveryTimeSlotText() {
       return Container(
         //height: MediaQuery.of(context).size.height * 0.11,
@@ -3245,7 +3451,7 @@ VxState.watch(context, on: [SetCartItem]);
                   width: 5,
                 ),
                 Text(
-                  S.of(context).delivery,//'Delivery',
+                  S .of(context).delivery,//'Delivery',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
@@ -3257,7 +3463,7 @@ VxState.watch(context, on: [SetCartItem]);
               height: 2,
             ),
             Text(
-              S.of(context).please_select_delivery_slot,//'Please select a time slot as per your convience. Your order will be delivered during the time slot.',
+              S .of(context).please_select_delivery_slot,//'Please select a time slot as per your convience. Your order will be delivered during the time slot.',
               style: TextStyle(
                 fontSize: 11,
                 color: ColorCodes.greyColor,
@@ -3272,39 +3478,189 @@ VxState.watch(context, on: [SetCartItem]);
     }
 
     _buildBottomNavigationBar() {
+
       return _isLoading
           ? null
-          :
+          : !_checkslots
+          ? /*GestureDetector(
+        onTap: () => {
+          Fluttertoast.showToast(
+              msg: S .of(context).currently_no_slot,//"currently there are no slots available",
+            fontSize: MediaQuery.of(context).textScaleFactor *13,),
+        },
+        child: Container(
+          width: MediaQuery.of(context).size.width,
+          color: Colors.grey,
+          height: 50.0,
+          padding: EdgeInsets.symmetric(horizontal: 20),
+          child:
+          Center(
+            child: Text(
+                S .of(context).confirm_order,//'CONFIRM ORDER',
+              style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold),
+            ),
+
+          ),
+        ),
+      )*/
       BottomNaviagation(
-        itemCount: CartCalculations.itemCount.toString() + " " + S.of(context).items,
-        title: S.current.proceed_pay,
+        itemCount: CartCalculations.itemCount.toString() + " " + S .of(context).items,
+        title: S .current.confirm_order,
+        total: "1",/*(_groupValue == 1)?
+        _checkmembership
+            ?
+            (Calculations.totalMember + finalSlotDelivery)
+                .toStringAsFixed(IConstants.decimaldigit)
+            :
+            (Calculations.total + finalSlotDelivery).toStringAsFixed(IConstants.decimaldigit)
+            :
+        _checkmembership
+            ?
+            (Calculations.totalMember + finalExpressDelivery)
+                .toStringAsFixed(IConstants.decimaldigit)
+            :
+            (Calculations.total + finalExpressDelivery).toStringAsFixed(IConstants.decimaldigit),*/
+        onPressed: (){
+          setState(() {
+            Fluttertoast.showToast(
+              msg: S .of(context).currently_no_slot,//"currently there are no slots available",
+              fontSize: MediaQuery.of(context).textScaleFactor *13,);
+          });
+        },
+      )
+          : /*GestureDetector(
+        onTap: () {
+          if (_isChangeAddress) {
+            Fluttertoast.showToast(
+                msg: S .of(context).please_select_delivery_address,//"Please select delivery address!",
+                fontSize: MediaQuery.of(context).textScaleFactor *13,
+                backgroundColor: Colors.black87,
+                textColor: Colors.white);
+          } else {
+            if (!_checkaddress) {
+              Fluttertoast.showToast(msg: S .of(context).please_provide_address,//"Please provide a address",
+                fontSize: MediaQuery.of(context).textScaleFactor *13,);
+            }   else if((_groupValue == 1 ) || _groupValue == 2){
+
+              prefs.setString("isPickup", "no");
+              finalSlotDelivery=  deliveryamount + deliveryDateamount1 + deliveryTimeamount1;
+              finalExpressDelivery= deliveryExpressamount + deliverySlotamount + deliveryfinalexpressdate + deliveryfinalexpressTime;
+
+              final cartItemsData = Provider.of<CartItems>(context,listen: false);
+              for(int i=0;i<cartItemsData.items.length;i++)
+                if(cartItemsData.items.length == 1 && cartItemsData.items[0].mode == 1){
+                  _deliveryChargeNormal="0";
+                  _deliveryChargeExpress="0";
+                  _deliveryChargePrime="0";
+                }
+              Navigator.of(context)
+                  .pushNamed(PaymentScreen.routeName, arguments: {
+                'minimumOrderAmountNoraml': _minimumOrderAmountNoraml,
+                'deliveryChargeNormal': _deliveryChargeNormal,
+                'minimumOrderAmountPrime': _minimumOrderAmountPrime,
+                'deliveryChargePrime': _deliveryChargePrime,
+                'minimumOrderAmountExpress': _minimumOrderAmountExpress,
+                'deliveryChargeExpress': _deliveryChargeExpress,
+                'deliveryType': (_groupValue == 1) ? "Default" : "OptionTwo",
+                'note': _message.text,
+                'deliveryCharge': (_groupValue == 1)? finalSlotDelivery.toString():finalExpressDelivery.toString(),
+                'deliveryDurationExpress' : _deliveryDurationExpress,
+              });
+            }else {
+              Fluttertoast.showToast(msg: S .of(context).pleasse_select_time_slot,  fontSize: MediaQuery.of(context).textScaleFactor *13,backgroundColor: Colors.black87, textColor: Colors.white);
+            }
+          }
+        },
+        child: Container(
+          width: MediaQuery.of(context).size.width,
+          color: _isChangeAddress
+              ? ColorCodes.greyColor
+              : Theme.of(context).primaryColor,
+          height: 50.0,
+          padding: EdgeInsets.symmetric(horizontal: 20),
+          child:
+          Center(
+            child: Text(
+              S .of(context).confirm_order,//'CONFIRM ORDER',
+              style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold),
+            ),
+          )
+
+        ),
+      );*/
+      BottomNaviagation(
+        itemCount: CartCalculations.itemCount.toString() + " " + S .of(context).items,
+        title: S .current.confirm_order,
         total: "1",
         onPressed: (){
           setState(() {
             if (_isChangeAddress) {
               Fluttertoast.showToast(
-                  msg: S.of(context).please_select_delivery_address,//"Please select delivery address!",
+                  msg: S .of(context).please_select_delivery_address,//"Please select delivery address!",
                   fontSize: MediaQuery.of(context).textScaleFactor *13,
+                  backgroundColor: Colors.black87,
+                  textColor: Colors.white);
+            }
+            else if(PrefUtils.prefs!.getString('fixtime')! == "" && ((_groupValue==2 && something.length > 0 && Features.isSplit) || (_groupValue==1 && DefaultSlot.length > 0))){
+              Fluttertoast.showToast(
+                  msg: S.of(context).pleasse_select_time_slot,//"Please select Time slot",
+                  fontSize: MediaQuery
+                      .of(context)
+                      .textScaleFactor * 13,
                   backgroundColor: Colors.black87,
                   textColor: Colors.white);
             }
             else {
               if (!_checkaddress) {
-                Fluttertoast.showToast(msg: S.of(context).please_provide_address,//"Please provide a address",
+                Fluttertoast.showToast(msg: S .of(context).please_provide_address,//"Please provide a address",
                   fontSize: MediaQuery.of(context).textScaleFactor *13,);
               }
               else if((_groupValue == 1 ) || _groupValue == 2){
+                final cartItemsData = Provider.of<CartItems>(context,listen: false);
+            final cartItemList =(VxState.store as GroceStore).CartItemList;
+                if ((VxState.store as GroceStore).userData.membership=="1") {
+                  _checkmembership = true;
+                } else {
+                  _checkmembership = false;
+                }
+                for (int i = 0; i < cartItemList.length; i++) {
+                  if (cartItemList[i].mode == "1") {
+                    _checkmembership = true;
+                  }
+                }
 
-                  if (_checkmembership) {
-                    if (double.parse((CartCalculations.totalMember).toStringAsFixed(
+                if (_checkmembership) {
+                    if (cartItemsData.items.length == 1 && cartItemsData.items[0].mode == 1) {
+                      Navigation(context, name: Routename.PaymentScreen, navigatore: NavigatoreTyp.Push,
+                          qparms: {
+                            'minimumOrderAmountNoraml': _minimumOrderAmountNoraml,
+                            'deliveryChargeNormal': _deliveryChargeNormal,
+                            'minimumOrderAmountPrime': _minimumOrderAmountPrime,
+                            'deliveryChargePrime': _deliveryChargePrime,
+                            'minimumOrderAmountExpress': _minimumOrderAmountExpress,
+                            'deliveryChargeExpress': _deliveryChargeExpress,
+                            'deliveryType': (_groupValue == 1) ? "Default" : "OptionTwo",
+                            'addressId': PrefUtils.prefs!.getString("addressId"),
+                            'note': _message.text,
+                            'deliveryCharge': (_groupValue == 1)? finalSlotDelivery.toString():finalExpressDelivery.toString(),
+                            'deliveryDurationExpress' : _deliveryDurationExpress,
+                            'fromScreen':'',
+                            'responsejson':"",
+                          });
+                    }
+                    else if ((double.parse((CartCalculations.totalMember).toStringAsFixed(
                         (IConstants.numberFormat == "1")
                             ?0:IConstants.decimaldigit)) <
-                        double.parse(IConstants.minimumOrderAmount)) {
-                          dialogforMinimumOrder();
+                        double.parse(IConstants.minimumOrderAmount)) && cartItemList.length != 1){
+                      dialogforMinimumOrder();
                     }
-                    else{
-                      prefs.setString("isPickup", "no");
 
+                    else{
+                      prefs!.setString("isPickup", "no");
                       finalSlotDelivery=  deliveryamount + deliveryDateamount1 + deliveryTimeamount1;
                       finalExpressDelivery= deliveryExpressamount + deliverySlotamount + deliveryfinalexpressdate + deliveryfinalexpressTime;
 
@@ -3316,36 +3672,52 @@ VxState.watch(context, on: [SetCartItem]);
                           _deliveryChargeExpress="0";
                           _deliveryChargePrime="0";
                         }
-                      Navigator.of(context)
-                          .pushNamed(PaymentScreen.routeName, arguments: {
-                        'minimumOrderAmountNoraml': _minimumOrderAmountNoraml,
-                        'deliveryChargeNormal': _deliveryChargeNormal,
-                        'minimumOrderAmountPrime': _minimumOrderAmountPrime,
-                        'deliveryChargePrime': _deliveryChargePrime,
-                        'minimumOrderAmountExpress': _minimumOrderAmountExpress,
-                        'deliveryChargeExpress': _deliveryChargeExpress,
-                        'deliveryType': (_groupValue == 1) ? "Default" : "OptionTwo",
-                        'addressId': PrefUtils.prefs.getString("addressId"),
-                        'note': _message.text,
-                        'deliveryCharge': (_groupValue == 1)? finalSlotDelivery.toString():finalExpressDelivery.toString(),
-                        'deliveryDurationExpress' : _deliveryDurationExpress,
-                        'fromScreen':'',
-                        'responsejson':"",
+                      Navigation(context, name: Routename.PaymentScreen, navigatore: NavigatoreTyp.Push,
+                          qparms: {
+                            'minimumOrderAmountNoraml': _minimumOrderAmountNoraml,
+                            'deliveryChargeNormal': _deliveryChargeNormal,
+                            'minimumOrderAmountPrime': _minimumOrderAmountPrime,
+                            'deliveryChargePrime': _deliveryChargePrime,
+                            'minimumOrderAmountExpress': _minimumOrderAmountExpress,
+                            'deliveryChargeExpress': _deliveryChargeExpress,
+                            'deliveryType': (_groupValue == 1) ? "Default" : "OptionTwo",
+                            'addressId': PrefUtils.prefs!.getString("addressId"),
+                            'note': _message.text,
+                            'deliveryCharge': (_groupValue == 1)? finalSlotDelivery.toString():finalExpressDelivery.toString(),
+                            'deliveryDurationExpress' : _deliveryDurationExpress,
+                            'fromScreen':'',
+                            'responsejson':"",
                       });
                     }
                   }
                   else
                   {
-                    if (double.parse((CartCalculations.total).toStringAsFixed(
+                    if (cartItemsData.items.length == 1 && cartItemsData.items[0].mode == 1) {
+                      Navigation(context, name: Routename.PaymentScreen, navigatore: NavigatoreTyp.Push,
+                          qparms: {
+                            'minimumOrderAmountNoraml': _minimumOrderAmountNoraml,
+                            'deliveryChargeNormal': _deliveryChargeNormal,
+                            'minimumOrderAmountPrime': _minimumOrderAmountPrime,
+                            'deliveryChargePrime': _deliveryChargePrime,
+                            'minimumOrderAmountExpress': _minimumOrderAmountExpress,
+                            'deliveryChargeExpress': _deliveryChargeExpress,
+                            'deliveryType': (_groupValue == 1) ? "Default" : "OptionTwo",
+                            'addressId': PrefUtils.prefs!.getString("addressId"),
+                            'note': _message.text,
+                            'deliveryCharge': (_groupValue == 1)? finalSlotDelivery.toString():finalExpressDelivery.toString(),
+                            'deliveryDurationExpress' : _deliveryDurationExpress,
+                            'fromScreen':'',
+                            'responsejson':"",
+                          });
+                    }
+                    else if (double.parse((CartCalculations.total).toStringAsFixed(
                         IConstants.numberFormat == "1"?0:IConstants.decimaldigit)) <
                         double.parse(IConstants.minimumOrderAmount)) {
                       dialogforMinimumOrder();
                     }else{
-                      prefs.setString("isPickup", "no");
-
+                      prefs!.setString("isPickup", "no");
                       finalSlotDelivery=  deliveryamount + deliveryDateamount1 + deliveryTimeamount1;
                       finalExpressDelivery= deliveryExpressamount + deliverySlotamount + deliveryfinalexpressdate + deliveryfinalexpressTime;
-
 
                       final cartItemsData = Provider.of<CartItems>(context,listen: false);
                       for(int i=0;i<cartItemsData.items.length;i++)
@@ -3354,7 +3726,7 @@ VxState.watch(context, on: [SetCartItem]);
                           _deliveryChargeExpress="0";
                           _deliveryChargePrime="0";
                         }
-                      Navigator.of(context)
+                 /*     Navigator.of(context)
                           .pushNamed(PaymentScreen.routeName, arguments: {
                         'minimumOrderAmountNoraml': _minimumOrderAmountNoraml,
                         'deliveryChargeNormal': _deliveryChargeNormal,
@@ -3363,19 +3735,33 @@ VxState.watch(context, on: [SetCartItem]);
                         'minimumOrderAmountExpress': _minimumOrderAmountExpress,
                         'deliveryChargeExpress': _deliveryChargeExpress,
                         'deliveryType': (_groupValue == 1) ? "Default" : "OptionTwo",
-                        'addressId': PrefUtils.prefs.getString("addressId"),
+                        'addressId': PrefUtils.prefs!.getString("addressId"),
                         'note': _message.text,
                         'deliveryCharge': (_groupValue == 1)? finalSlotDelivery.toString():finalExpressDelivery.toString(),
                         'deliveryDurationExpress' : _deliveryDurationExpress,
-                        'fromScreen':'',
-                        'responsejson':"",
-                      });
+                      });*/
+                      Navigation(context, name: Routename.PaymentScreen, navigatore: NavigatoreTyp.Push,
+                          qparms: {
+                            'minimumOrderAmountNoraml': _minimumOrderAmountNoraml,
+                            'deliveryChargeNormal': _deliveryChargeNormal,
+                            'minimumOrderAmountPrime': _minimumOrderAmountPrime,
+                            'deliveryChargePrime': _deliveryChargePrime,
+                            'minimumOrderAmountExpress': _minimumOrderAmountExpress,
+                            'deliveryChargeExpress': _deliveryChargeExpress,
+                            'deliveryType': (_groupValue == 1) ? "Default" : "OptionTwo",
+                            'addressId': PrefUtils.prefs!.getString("addressId"),
+                            'note': _message.text,
+                            'deliveryCharge': (_groupValue == 1)? finalSlotDelivery.toString():finalExpressDelivery.toString(),
+                            'deliveryDurationExpress' : _deliveryDurationExpress,
+                            'fromScreen':'',
+                            'responsejson':"",
+                          });
                     }
                   }
               }
-              else {
-                Fluttertoast.showToast(msg: S.of(context).pleasse_select_time_slot,  fontSize: MediaQuery.of(context).textScaleFactor *13,backgroundColor: Colors.black87, textColor: Colors.white);
-              }
+              // else {
+              //   Fluttertoast.showToast(msg: S .of(context).pleasse_select_time_slot,  fontSize: MediaQuery.of(context).textScaleFactor *13,backgroundColor: Colors.black87, textColor: Colors.white);
+              // }
             }
           });
         },
@@ -3385,273 +3771,259 @@ VxState.watch(context, on: [SetCartItem]);
 
     void _settingModalBottomSheet(context, String from) {
       showModalBottomSheet(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.only(topLeft: Radius.circular(15.0),topRight: Radius.circular(15.0)),
+          ),
           context: context,
           builder: (BuildContext bc) {
-            return  VxBuilder(
+            return VxBuilder(
                 mutations: {SetAddress,SetUserData},
-                builder: (ctx,  store,VxStatus state){
-                  addressdata = store.userData;
-                    return SingleChildScrollView(
-              child: Container(
-                color: ColorCodes.whiteColor,
-                padding: EdgeInsets.only(left: 0.0, top: 0.0, right: 0.0, bottom: iphonex ? 16.0 : 0.0),
-                child: new Wrap(
-                  children: <Widget>[
-                    Container(
-                      width: MediaQuery.of(context).size.width,
-                      height: 50.0,
-                      color: ColorCodes.lightColor,
-                      child: Column(
-                        children: <Widget>[
-                          Spacer(),
-                          Row(
-                            children: <Widget>[
-                              SizedBox(
-                                width: 20.0,
-                              ),
-                              Text(
-                                S.of(context).choose_delivery_address,//"Choose a delivery address",
-                                style: TextStyle(
-                                    fontSize: 16.0,
-                                    fontWeight: FontWeight.bold),
-                              ),
-                            ],
-                          ),
-                          Spacer(),
-                        ],
-                      ),
-                    ),
-                    SizedBox(
-                      height: 10.0,
-                    ),
-                    SizedBox(
-                      child: new ListView.builder(
-                        physics: NeverScrollableScrollPhysics(),
-                        shrinkWrap: true,
-                        itemCount: /*addressitemsData.items.length*/addressdata.billingAddress.length,
-                        itemBuilder: (_, i) => Column(
-                          children: [
-                            GestureDetector(
-                              onTap: () {
-                                String addsId = "";
-                                setState(() {
-                                  addsId = prefs.getString("addressId");
-                                  debugPrint("addsid..."+prefs.getString("addressId").toString());
-                                  /* _slotsLoading = true;
-                               prefs.setString("addressId", addressitemsData.items[i].userid);
-                               addtype = addressitemsData.items[i].useraddtype;
-                               address = addressitemsData.items[i].useraddress;
-                               addressicon = addressitemsData.items[i].addressicon;
-                               calldeliverslots(addressitemsData.items[i].userid);
-                               deliveryCharge(addressitemsData.items[i].userid);*/
-                                });
-                                if (from == "selectAddress") {
-                                  debugPrint("add1...");
-                                  Navigator.of(context).pop();
-                                  _dialogforProcessing();
+                builder: (ctx, store,VxStatus? state) {
+                addressdata = store!.userData;
 
-                                  cartCheck(
-                                      prefs.getString("addressId"),
-                                      addressdata.billingAddress[i].id.toString(),
-                                      addressdata.billingAddress[i].addressType,
-                                      addressdata.billingAddress[i].address,
-                                      addressdata.billingAddress[i].addressicon,
-                                      addressdata.billingAddress[i].fullName
-                                  );
-                                  /*setState(() {
-                                 _checkaddress = true;
-                                 addtype = addressitemsData.items[i].useraddtype;
-                                 address = addressitemsData.items[i].useraddress;
-                                 addressicon = addressitemsData.items[i].addressicon;
-                                 prefs.setString("addressId", addressitemsData.items[i].userid);
-                                 _slotsLoading = true;
-                                 _isChangeAddress = false;
-                                 calldeliverslots(addressitemsData.items[i].userid);
-                                 deliveryCharge(addressitemsData.items[i].userid);
-                               });*/
-                                } else {
-                                  debugPrint("add2...");
-                                  Navigator.of(context).pop();
-                                  if (addsId != /*addressitemsData.items[i].userid*/addressdata.billingAddress[i].id) {
-                                    /* _dialogforAvailability(
-                                   addsId,
-                                   addressitemsData.items[i].userid,
-                                   addressitemsData.items[i].useraddtype,
-                                   addressitemsData.items[i].useraddress,
-                                   addressitemsData.items[i].addressicon,
-                               );*/
-                                    _dialogforProcessing();
-                                    cartCheck(
-                                        prefs.getString("addressId"),
-                                        addressdata.billingAddress[i].id.toString(),
-                                        addressdata.billingAddress[i].addressType,
-                                        addressdata.billingAddress[i].address,
-                                        addressdata.billingAddress[i].addressicon,
-                                        addressdata.billingAddress[i].fullName
-                                    );
-                                  } else {
-                                    debugPrint("add3...");
-                                    setState(() {
-                                      _checkaddress = true;
-                                      addtype =
-                                          addressdata.billingAddress[i].addressType;
-                                      address =
-                                          addressdata.billingAddress[i].address;
-                                      name = addressdata.billingAddress[i].fullName;
-                                      addressicon =
-                                          addressdata.billingAddress[i].addressicon;
-                                      prefs.setString("addressId",
-                                          addressdata.billingAddress[i].id.toString());
-                                      //_slotsLoading = true;
-                                      _isChangeAddress = false;
-                                      //calldeliverslots(addressitemsData.items[i].userid);
-                                      //deliveryCharge(addressitemsData.items[i].userid);
-                                    });
-                                  }
-                                }
-                              },
-                              child: Row(
-                                children: <Widget>[
-                                  SizedBox(
-                                    width: 10.0,
-                                  ),
-                                  Icon(addressdata.billingAddress[i].addressicon),
-                                  SizedBox(
-                                    width: 10.0,
-                                  ),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                      CrossAxisAlignment.start,
-                                      children: <Widget>[
+                return StatefulBuilder(
+                    builder: (BuildContext context, StateSetter state) {
+                      return SingleChildScrollView(
+                          child: InkWell(
+                              onTap: () {},
+                              child: Container(
+                                  margin:
+                                  EdgeInsets.only(left: 10, right: 10, bottom: 10),
+                                  child: Column(
+                                      //mainAxisSize: MainAxisSize.max,
+                                      mainAxisAlignment: MainAxisAlignment.start,
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children:[
+                                        Padding(
+                                          padding: const EdgeInsets.only(left: 10, right: 10, bottom: 0,top: 10),
+                                          child: Container(
+                                            child: Text(
+                                                                S .of(context).choose_delivery_address,//"Choose a delivery address",
+                                                                style: TextStyle(
+                                                                    fontSize: 18.0,
+                                                                    fontWeight: FontWeight.bold),
+                                                              ),
+                                          ),
+                                        ),
+                                        SizedBox(
+                                          child: new ListView.builder(
+                                            physics: NeverScrollableScrollPhysics(),
+                                            shrinkWrap: true,
+                                            itemCount: /*addressitemsData.items.length*/addressdata!.billingAddress!.length,
+                                            itemBuilder: (_, i) => Column(
+                                              children: [
+                                                GestureDetector(
+                                                  onTap: () {
+                                                    String addsId = "";
+                                                    setState(() {
+                                                      addsId = prefs!.getString("addressId")!;
+                                                    });
+                                                    if (from == "selectAddress") {
+                                                      Navigator.of(context).pop();
+                                                      _dialogforProcessing();
+
+                                                      cartCheck(
+                                                          prefs!.getString("addressId")!,
+                                                          addressdata!.billingAddress![i].id.toString(),
+                                                          addressdata!.billingAddress![i].addressType!,
+                                                          addressdata!.billingAddress![i].address!,
+                                                          addressdata!.billingAddress![i].addressicon!,
+                                                          addressdata!.billingAddress![i].fullName,
+
+                                                      );
+
+                                                    } else {
+                                                      Navigator.of(context).pop();
+                                                      if (addsId != /*addressitemsData.items[i].userid*/addressdata!.billingAddress![i].id) {
+                                                        _dialogforProcessing();
+                                                        cartCheck(
+                                                            prefs!.getString("addressId")!,
+                                                            addressdata!.billingAddress![i].id.toString(),
+                                                            addressdata!.billingAddress![i].addressType!,
+                                                            addressdata!.billingAddress![i].address!,
+                                                            addressdata!.billingAddress![i].addressicon!,
+                                                            addressdata!.billingAddress![i].fullName,
+
+                                                        );
+                                                      } else {
+                                                        setState(() {
+                                                          _checkaddress = true;
+                                                          addtype =
+                                                              addressdata!.billingAddress![i].addressType;
+                                                          address =
+                                                          addressdata!.billingAddress![i].address!;
+                                                          name = addressdata!.billingAddress![i].fullName!;
+                                                          addressicon =
+                                                              addressdata!.billingAddress![i].addressicon;
+                                                          prefs!.setString("addressId",
+                                                              addressdata!.billingAddress![i].id.toString());
+                                                          //_slotsLoading = true;
+                                                          _isChangeAddress = false;
+                                                          //calldeliverslots(addressitemsData.items[i].userid);
+                                                          //deliveryCharge(addressitemsData.items[i].userid);
+                                                        });
+                                                      }
+                                                    }
+                                                  },
+                                                  child: Row(
+                                                    children: <Widget>[
+                                                      SizedBox(
+                                                        width: 10.0,
+                                                      ),
+                                                      Icon(addressdata!.billingAddress![i].addressicon),
+                                                      SizedBox(
+                                                        width: 10.0,
+                                                      ),
+                                                      Expanded(
+                                                        child: Column(
+                                                          crossAxisAlignment:
+                                                          CrossAxisAlignment.start,
+                                                          children: <Widget>[
+                                                            SizedBox(
+                                                              height: 15.0,
+                                                            ),
+                                                            Text(
+                                                              addressdata!.billingAddress![i].addressType!,
+                                                              style: TextStyle(
+                                                                  color: ColorCodes.blackColor/*Theme.of(context)
+                                                                      .primaryColor*/,
+                                                                  fontWeight: FontWeight.bold,
+                                                                  fontSize: 14.0),
+                                                            ),
+                                                            SizedBox(
+                                                              height: 5.0,
+                                                            ),
+                                                            Text(
+                                                              addressdata!.billingAddress![i].address!,
+                                                              style: TextStyle(
+                                                                color: Colors.grey,
+                                                                fontSize: 12.0,
+                                                              ),
+                                                            ),
+                                                            SizedBox(
+                                                              height: 10.0,
+                                                            ),
+                                                            Divider(
+                                                              color: Colors.grey,
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                      SizedBox(width: 20.0),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+
+                                        GestureDetector(
+                                          onTap: () async {
+                                              if(Vx.isWeb && !ResponsiveLayout.isSmallScreen(context)){
+                                              // _dialogforaddress(context);
+                                              AddressWeb(context,
+                                                addresstype: "new",
+                                                addressid: "",
+                                                delieveryLocation: "",
+                                                latitude: "",
+                                                longitude: "",
+                                                branch: "",);
+                                              }
+                                              else {
+                                                Navigation(context, name: Routename.AddressScreen,
+                                                    navigatore: NavigatoreTyp.Push,
+                                                    qparms: {
+                                                      'addresstype': "new",
+                                                      'addressid': "",
+                                                      'delieveryLocation': "",
+                                                      'latitude': "",
+                                                      'longitude': "",
+                                                      'branch': "",
+                                                    });
+                                              }
+                                          },
+                                          child: Padding(
+                                            padding: const EdgeInsets.only(bottom:5.0),
+                                            child: Container(
+                                                width: MediaQuery.of(context).size.width,
+                                                height: 50.0,
+                                                margin: EdgeInsets.only(
+                                                  left: 10.0, top: 5.0, right: 10.0, ),
+                                                decoration: BoxDecoration(
+                                                    color: Theme.of(context).primaryColor,
+                                                    borderRadius: BorderRadius.circular(12.0),
+                                                    border: Border(
+                                                      top: BorderSide(width: 1.0, color: Theme.of(context).primaryColor,),
+                                                      bottom: BorderSide(width: 1.0, color: Theme.of(context).primaryColor,),
+                                                      left: BorderSide(width: 1.0, color: Theme.of(context).primaryColor,),
+                                                      right: BorderSide(width: 1.0, color: Theme.of(context).primaryColor,),
+                                                    )),
+                                                child: Row(
+                                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                                  mainAxisAlignment: MainAxisAlignment.center,
+                                                  children: <Widget>[
+                                                    Text(
+                                                S .of(context).add_new_address,//'Save & Proceed',
+                                                      style: TextStyle(
+                                                          color: Colors.white, fontSize: 18.0),
+                                                    ),
+                                                  ],
+                                                )),
+                                          ),
+                                        ),
+                                        // GestureDetector(
+                                        //   onTap: () {
+                                        //     Navigation(context, name: Routename.AddressScreen, navigatore: NavigatoreTyp.Push,
+                                        //         qparms: {
+                                        //           'addresstype': "new",
+                                        //           'addressid': "",
+                                        //           'delieveryLocation': "",
+                                        //           'latitude': "",
+                                        //           'longitude': "",
+                                        //           'branch': "",
+                                        //         });
+                                        //   },
+                                        //   child: Row(
+                                        //     children: <Widget>[
+                                        //       SizedBox(
+                                        //         width: 10.0,
+                                        //       ),
+                                        //       Icon(
+                                        //         Icons.add,
+                                        //         color: Colors.orange,
+                                        //       ),
+                                        //       SizedBox(
+                                        //         width: 10.0,
+                                        //       ),
+                                        //       Expanded(
+                                        //         child: Column(
+                                        //           crossAxisAlignment: CrossAxisAlignment.start,
+                                        //           children: <Widget>[
+                                        //             SizedBox(
+                                        //               height: 15.0,
+                                        //             ),
+                                        //             Text(
+                                        //               S .of(context).add_new_address,//"Add new Address",
+                                        //               style: TextStyle(
+                                        //                   color: Colors.orange, fontSize: 16.0),
+                                        //             ),
+                                        //             SizedBox(
+                                        //               height: 15.0,
+                                        //             ),
+                                        //           ],
+                                        //         ),
+                                        //       ),
+                                        //     ],
+                                        //   ),
+                                        // ),
                                         SizedBox(
                                           height: 10.0,
                                         ),
-                                        Text(
-                                          addressdata.billingAddress[i].addressType,
-                                          style: TextStyle(
-                                              color: ColorCodes.discountoff,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 14.0),
-                                        ),
-                                        SizedBox(
-                                          height: 5.0,
-                                        ),
-                                    new RichText(textAlign: TextAlign.start,
-                                      text: new TextSpan(
-                                        // Note: Styles for TextSpans must be explicitly defined.
-                                        // Child text spans will inherit styles from parent
-                                        style: new TextStyle(
-                                            fontSize:15,
-                                            fontWeight: FontWeight.w500,
-                                            color: ColorCodes.greyColor
-                                        ),
-                                        children: <TextSpan>[
-                                          new TextSpan(text: addressdata.billingAddress[i].fullName + "\n",
-                                            style:new TextStyle(fontSize: 16,fontWeight: FontWeight.w800,color: ColorCodes.blackColor), ),
-                                          new TextSpan(
-                                              text: addressdata.billingAddress[i].houseno + " " + addressdata.billingAddress[i].area +  " " + addressdata.billingAddress[i].landmark +"\n",
-                                              style:new TextStyle(fontSize:13,
-                                                  color: ColorCodes.darkGrey, fontWeight: FontWeight.normal)
-                                            // style: new TextStyle(color: ColorCodes.darkgreen),
-                                          ),
-                                          new TextSpan(
-                                              text: addressdata.billingAddress[i].city + " " + addressdata.billingAddress[i].state +  "\n",
-                                              style:new TextStyle(fontSize:13,
-                                                  color: ColorCodes.darkGrey, fontWeight: FontWeight.normal)
-                                            // style: new TextStyle(color: ColorCodes.darkgreen),
-                                          ),
-                                          new TextSpan(
-                                              text: "Pin Code: " + addressdata.billingAddress[i].pincode +  "\n",
-                                              style:new TextStyle(fontSize:13,
-                                                  color: ColorCodes.darkGrey, fontWeight: FontWeight.normal)
-                                            // style: new TextStyle(color: ColorCodes.darkgreen),
-                                          ),
-                                          new TextSpan(
-                                              text: "Mobile: " + addressdata.billingAddress[i].mobile +  "\n",
-                                              style:new TextStyle(fontSize:13,
-                                                  color: ColorCodes.darkGrey, fontWeight: FontWeight.normal)
-                                            // style: new TextStyle(color: ColorCodes.darkgreen),
-                                          ),
-
-                                        ],
-                                      ),
-                                    ),
-                                        // SizedBox(
-                                        //   height: 5.0,
-                                        // ),
-                                        Divider(
-                                          color: Colors.grey,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  SizedBox(width: 20.0),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    //Divider(color: Colors.black,),
-                    GestureDetector(
-                      onTap: () {
-                       // Navigator.of(context).pop();
-                       // Navigator.of(context).pop();
-                        PrefUtils.prefs.setString("addressbook", "confirm");
-                        Navigator.of(context)
-                            .pushNamed(AddInfo.routeName,arguments: {
-                          'addresstype': "new",
-                          'addressid': "",
-                          'title': "",
-                          'delieveryLocation': "",//prefs.getString("restaurant_location"),
-                          'latitude': "",//prefs.getString("restaurant_lat"),
-                          'longitude': "",//prefs.getString("restaurant_long"),
-                          'branch': "",//prefs.getString("branch"),
-                        });
-                      },
-                      child: Row(
-                        children: <Widget>[
-                          SizedBox(
-                            width: 10.0,
-                          ),
-                          Icon(
-                            Icons.add,
-                            color: ColorCodes.discountoff,
-                          ),
-                          SizedBox(
-                            width: 10.0,
-                          ),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: <Widget>[
-                                SizedBox(
-                                  height: 15.0,
-                                ),
-                                Text(
-                                  S.of(context).add_new_address,//"Add new Address",
-                                  style: TextStyle(
-                                      color: ColorCodes.discountoff, fontWeight: FontWeight.w800, fontSize: 16.0),
-                                ),
-                                SizedBox(
-                                  height: 15.0,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    SizedBox(
-                      height: 10.0,
-                    ),
-                  ],
-                ),
-              ),
-            );
-                }
+                                     ]
+                                      ))));
+                    });
+              }
             );
           });
     }
@@ -3713,15 +4085,25 @@ VxState.watch(context, on: [SetCartItem]);
             context, CartScreen.routeName, (route) => false);*/
         removeToCart();
         // Navigator.of(context).pop();
-        Navigator.of(context).pushNamed(CartScreen.routeName,arguments: {
-          "after_login": ""
-        });
+       /* Navigator.of(context).pushReplacementNamed(CartScreen.routeName,arguments: {
+          "afterlogin": ""
+        });*/
+        //Navigation(context, name: Routename.Cart, navigatore: NavigatoreTyp.Push,qparms: {"afterlogin":null});
+        //Navigation(context, navigatore: NavigatoreTyp.Pop);
+        if(widget.prev["prev"].toString() == "cart_screen") {
+          PrefUtils.prefs!.setString("confirmback", "yes");
+          Navigation(context, name: Routename.Cart, navigatore: NavigatoreTyp.Push,qparms: {"afterlogin":""});
+        }
+        else{
+          // Navigation(context, navigatore: NavigatoreTyp.Pop);
+          Navigation(context, name: Routename.Cart, navigatore: NavigatoreTyp.Push,qparms: {"afterlogin":""});
+        }
         return Future.value(false);
       },
       child: Scaffold(
         appBar: (_checkaddress)?
         gradientappbarmobile():null,
-        backgroundColor: ColorCodes.backgroundcolor,
+        backgroundColor: ColorCodes.whiteColor,
         body: _loading
             ? Center(
           child:
@@ -3732,292 +4114,377 @@ VxState.watch(context, on: [SetCartItem]);
         SingleChildScrollView(
           child: Container(
             // height: MediaQuery.of(context).size.height,
-            color: ColorCodes.backgroundcolor,
+            color: ColorCodes.whiteColor,
             // padding: EdgeInsets.only(left: 10.0, top: 10.0, ),
             child: Column(
               children: <Widget>[
                 SizedBox(height: 15,),
                 !_isChangeAddress?
                 _checkaddress
-                    ? Column(
-                      children: [
-                        Container(
-                          padding: EdgeInsets.only(right: 15, left: 15),
-                          decoration: BoxDecoration(
-                            boxShadow: [
-                              BoxShadow(
-                                color: ColorCodes.grey.withOpacity(0.2),
-                                spreadRadius: 5,
-                                blurRadius: 5,
-                                offset: Offset(0, 5),
-                              )
-                            ],
-                            color: ColorCodes.whiteColor,
-                          ),
-                          child: Row(
-                            children: <Widget>[
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: <Widget>[
-                                    SizedBox(height: 15,),
-                                    Row(
-                                      children: [
-                                        Text(
-                                          "Delivery to",//"Select delivery address",
-                                          style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 16.0,
-                                              color: ColorCodes.blackColor),
-                                        ),
-                                      ],
-                                    ),
-                                    SizedBox(
-                                      height: 10.0,
-                                    ),
-                                    Row(
-                                      children: [
-                                        Container(
-                                            child: Text(addressdata.billingAddress[0].fullName,
-                                              style: TextStyle(fontSize: 18,fontWeight: FontWeight.w800,color: ColorCodes.blackColor),),
-                                            ),
-                                        Spacer(),
-                                        Container(
-                                          child:  Text(addressdata.billingAddress[0].addressType,
-                                            style:new TextStyle(fontSize:13,
-                                              fontWeight: FontWeight.w500,
-                                              color: ColorCodes.discountoff, background: Paint()..color = ColorCodes.searchwebbackground
-                                                ..strokeWidth = 10
-                                                ..style = PaintingStyle.stroke, ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    SizedBox(height: 15),
-                                    Container(
-                                      width: MediaQuery.of(context).size.width / 1.2,
-                                      child: Column(
+                    ?
+                //   Card(
+                  // elevation: 5,
+                  // shape: RoundedRectangleBorder(
+                  //   borderRadius: BorderRadius.circular(2),
+                  // ),
+                  // child:
+                  Column(
+                    children: [
+                      Container(
+                        color: ColorCodes.whiteColor,
+                        padding: EdgeInsets.symmetric(
+                            vertical: 10, horizontal: 15),
+                        child: Row(
+                          children: <Widget>[
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: <Widget>[
+                                  Row(
+                                    children: [
+                                      // (addtype == "home")? Image.asset(Images.homeConfirm,
+                                      //   height: 30,
+                                      //   width: 30,
+                                      //   color: ColorCodes.greenColor,
+                                      // ):(addtype == "Work")?Image.asset(Images.workConfirm,
+                                      //   height: 30,
+                                      //   width: 30,
+                                      //   color: ColorCodes.greenColor,
+                                      // ):Image.asset(Images.otherConfirm,
+                                      //   height: 30,
+                                      //   width: 30,
+                                      //   color: ColorCodes.greenColor,
+                                      // ),
+                                      // SizedBox(width: 10,),
+                                      Text(
+                                        S .of(context).select_delivery_address,//"Select delivery address",
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16.0,
+                                            color: ColorCodes.blackColor),
+                                      ),
+                                    ],
+                                  ),
+                                  SizedBox(
+                                    height: 10.0,
+                                  ),
+                                  Column(
+                                    children: [
+                                      Row(
                                         mainAxisAlignment: MainAxisAlignment.start,
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
-                                          Text(addressdata.billingAddress[0].houseno + ", " + addressdata.billingAddress[0].area + ", " +
-                                              addressdata.billingAddress[0].landmark + " " + addressdata.billingAddress[0].city + ", " +
-                                              addressdata.billingAddress[0].state ,maxLines: 3, style:new TextStyle(fontSize: 13, height: 1.5, color: ColorCodes.darkGrey, fontWeight: FontWeight.normal,)),
-                                          SizedBox(height: 5,),
-                                          Text("Pin Code: " + addressdata.billingAddress[0].pincode , style:new TextStyle(fontSize: 13, color: ColorCodes.darkGrey, fontWeight: FontWeight.normal)),
-                                          SizedBox(height: 5,),
-                                          Text("Mobile: " + addressdata.billingAddress[0].mobile , style:new TextStyle(fontSize: 13, color: ColorCodes.darkGrey, fontWeight: FontWeight.normal)),
-                                          SizedBox(height: 10,),
-
-                                        ],
-                                      ),
-                                    ),
-                                    SizedBox(height: 10),
-                                    Container(
-                                      height: 45,
-                                      decoration: BoxDecoration(
-                                        //color: ColorCodes.cyanColor,
-                                        border: Border.all(
-                                            width: 1.5,
-                                            color: ColorCodes
-                                                .lightGreyColor),
-                                        borderRadius:
-                                        BorderRadius.circular(
-                                            10),
-                                      ),
-                                      child: Row(
-                                        //crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Container(
-                                            width: MediaQuery.of(
-                                                context)
-                                                .size
-                                                .width /
-                                                2.3,
-                                            child: Center(
-                                              child: FlatButton(
-                                                child: Text(
-                                                  "Edit Address",
-                                                  //"EDIT",
-                                                  style:
-                                                  TextStyle(
-                                                    color: ColorCodes
-                                                        .blackColor,
-                                                    fontWeight:
-                                                    FontWeight
-                                                        .w700,
-                                                    fontSize:
-                                                    14.0,
-                                                  ),
-                                                ),
-                                                padding:
-                                                EdgeInsets
-                                                    .all(0),
-                                                //  icon: Icon(Icons.edit, size: 20),
-                                                // color: Colors.grey,
-                                                onPressed: () {
-                                                  debugPrint("id addrss...."+addressdata
-                                                      .billingAddress[0]
-                                                      .id
-                                                      .toString());
-                                                  setState(() {
-                                                    PrefUtils
-                                                        .prefs
-                                                        .setString(
-                                                        "addressbook",
-                                                        "confirm");
-                                                    Navigator.of(
-                                                        context)
-                                                        .pushReplacementNamed(
-                                                        AddInfo
-                                                            .routeName,
-                                                        arguments: {
-                                                          'addresstype': "edit",
-                                                          'addressid': addressdata
-                                                              .billingAddress[0]
-                                                              .id
-                                                              .toString(),
-                                                          'delieveryLocation': deliverylocation,
-                                                          'latitude': addressdata
-                                                              .billingAddress[0]
-                                                              .lattitude
-                                                              .toString(),
-                                                          //"",
-                                                          'longitude': addressdata
-                                                              .billingAddress[0]
-                                                              .logingitude
-                                                              .toString(),
-                                                          //"",
-                                                          'branch':
-                                                          "",
-                                                          'fullName': addressdata
-                                                              .billingAddress[0]
-                                                              .fullName,
-                                                          'houseno': addressdata
-                                                              .billingAddress[0]
-                                                              .houseno,
-                                                          'area': addressdata
-                                                              .billingAddress[0]
-                                                              .area,
-                                                          'landmark': addressdata
-                                                              .billingAddress[0]
-                                                              .landmark,
-                                                          'city': addressdata
-                                                              .billingAddress[0]
-                                                              .city,
-                                                          'state': addressdata
-                                                              .billingAddress[0]
-                                                              .state,
-                                                          'pincode': addressdata
-                                                              .billingAddress[0]
-                                                              .pincode,
-                                                          'mobile': addressdata
-                                                              .billingAddress[0]
-                                                              .mobile,
-                                                          'addresstag': addressdata
-                                                              .billingAddress[0]
-                                                              .type,
-                                                          "prev": "",
-                                                          'title': "",
-                                                        });
-                                                  });
-                                                },
+                                          //SizedBox(width: 40,),
+                                          (addtype == "home")? Image.asset(Images.homeConfirm,
+                                            height: 25,
+                                            width: 30,
+                                            color: ColorCodes.greenColor,
+                                          ):(addtype == "Work")?Image.asset(Images.workConfirm,
+                                            height: 25,
+                                            width: 30,
+                                            color: ColorCodes.greenColor,
+                                          ):Image.asset(Images.otherConfirm,
+                                            height: 25,
+                                            width: 30,
+                                            color: ColorCodes.greenColor,
+                                          ),
+                                          SizedBox(width: 10,),
+                                          Expanded(
+                                            child: Text(
+                                              name,
+                                              style: TextStyle(
+                                                color: ColorCodes.blackColor,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 16.0,
                                               ),
                                             ),
                                           ),
-                                          Container(
-                                            height: 45.0,
-                                            child:
-                                            VerticalDivider(
-                                              color: ColorCodes
-                                                  .lightGreyColor,
-                                              thickness: 1,
-                                            ),
-                                          ),
-                                          Container(
-                                            width: MediaQuery.of(
-                                                context)
-                                                .size
-                                                .width /
-                                                2.4,
-                                            child: Center(
-                                              child: FlatButton(
-                                                  child: Text(
-                                                   "Change Address",
-                                                    //"DELETE",
-                                                    style:
-                                                    TextStyle(
-                                                      color: ColorCodes
-                                                          .discountoff,
-                                                      fontWeight:
-                                                      FontWeight
-                                                          .w700,
-                                                      fontSize:
-                                                      14.0,
-                                                    ),
-                                                  ),
-                                                  padding:
-                                                  EdgeInsets
-                                                      .all(0),
-                                                  /*icon: Icon(Icons.delete_outline,
-                                         size: 20),*/
-                                                  // color: Colors.grey,
-                                                  onPressed: () {
-                                                    _settingModalBottomSheet(context, "change");
-                                                    // _dialogforSaveadd(context);
-                                                    /*_dialogforDeleteAdd(
-                                                        context,
-                                                        addressdata
-                                                            .billingAddress[
-                                                        0]
-                                                            .id
-                                                            .toString());*/
-                                                  }),
-                                            ),
-                                          ),
+                                          Spacer(),
+                                          GestureDetector(
+                                              behavior: HitTestBehavior.translucent,
+                                              onTap: () {
+                                                _settingModalBottomSheet(context, "change");
+                                              },
+                                              child: Container(
+
+                                                child: Text(
+                                                  S .of(context).change_caps,//"CHANGE",
+                                                  style: TextStyle(
+                                                    //decoration: TextDecoration.underline,
+                                                      decorationStyle:
+                                                      TextDecorationStyle.dashed,
+                                                      fontWeight: FontWeight.bold,
+                                                      color: ColorCodes.blackColor,
+                                                      fontSize: 13.0),
+                                                ),
+                                              )),
                                         ],
                                       ),
-                                    ),
-                                    SizedBox(height: 10),
-                                  ],
-                                ),
-                              ),
+                                      //  Spacer(),
 
-                            ],
+                                      // SizedBox(width: 40,),
+
+                                    ],
+                                  ),
+                                  SizedBox(height: 3,),
+                                  Row(
+                                    children: [
+                                      SizedBox(width: 40,),
+                                      Flexible(
+
+                                        child: Text(
+                                          address,
+                                          style: TextStyle(
+                                            color: Colors.grey,
+                                            fontSize: 12.0,
+                                          ),
+                                        ),
+                                      ),
+
+                                      SizedBox(
+                                        width: 60.0,
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                          ],
+                        ),
+                      ),
+                      SizedBox(height: 10,),
+                      ListTile(
+                        dense:true,
+                        contentPadding: EdgeInsets.only(left: 10.0),
+                        leading: Image.asset(Images.request,
+                          height: 30,
+                          width: 30,
+                          color: ColorCodes.greenColor,
+                        ),
+                        title: Transform(
+                          transform: Matrix4.translationValues(-16, 0.0, 0.0),
+                          child: TextField(
+                            controller: _message,
+                            decoration: InputDecoration.collapsed(
+                                hintText: S .of(context).any_request,//"Any request? We promise to pass it on",
+                                hintStyle: TextStyle(fontSize: 12.0),
+                                //contentPadding: EdgeInsets.all(16),
+                                //border: OutlineInputBorder(),
+                                fillColor: ColorCodes.lightGreyColor),
+                            //minLines: 3,
+                            maxLines: 1,
                           ),
                         ),
-                        SizedBox(height: 10,),
-                      ],
-                    )
-                    : Container(
-                  padding: EdgeInsets.only(right: 15, left: 15),
-                  decoration: BoxDecoration(
-                    boxShadow: [
-                      BoxShadow(
-                        color: ColorCodes.grey.withOpacity(0.2),
-                        spreadRadius: 5,
-                        blurRadius: 5,
-                        offset: Offset(0, 5),
-                      )
+                      ),
                     ],
-                    color: ColorCodes.whiteColor,
-                  ),
-                      child: Column(
-                          children: [
+                  )
+                //)
+                   :
+                //     Card(
+                //   elevation: 5,
+                //   shape: RoundedRectangleBorder(
+                //     borderRadius: BorderRadius.circular(2),
+                //   ),
+                //   child:
+                  Column(
+                    children: [
+                      Row(
+                        children: <Widget>[
+                          SizedBox(
+                            width: 5.0,
+                          ),
+                          Spacer(),
+                          FlatButton(
+                            color: Theme.of(context).primaryColor,
+                            textColor: Theme.of(context).buttonColor,
+                            shape: new RoundedRectangleBorder(
+                              borderRadius: new BorderRadius.circular(3.0),
+                            ),
+                            onPressed: () {
+                     /*         Navigator.of(context).pushReplacementNamed(
+                                  AddressScreen.routeName,
+                                  arguments: {
+                                    'addresstype': "new",
+                                    'addressid': "",
+                                    'delieveryLocation': "",
+                                    'latitude': "",
+                                    'longitude': "",
+                                    'branch': ""
+                                  })*/
+                              PrefUtils.prefs!.setString("addressbook", "confirmorder");
+                              if(Vx.isWeb && !ResponsiveLayout.isSmallScreen(context)){
+                                // _dialogforaddress(context);
+                                AddressWeb(context,
+                                  addresstype: "new",
+                                  addressid: "",
+                                  delieveryLocation: "",
+                                  latitude: "",
+                                  longitude: "",
+                                  branch: "",);
+                              }
+                              else {
+                                Navigation(
+                                    context, name: Routename.AddressScreen,
+                                    navigatore: NavigatoreTyp.Push,
+                                    qparms: {
+                                      'addresstype': "new",
+                                      'addressid': "",
+                                      'delieveryLocation': "",
+                                      'latitude': "",
+                                      'longitude': "",
+                                      'branch': "",
+                                    });
+                              }
+                            },
+                            child: Text(
+                              S .of(context).add_address,//'Add Address',
+                              style: TextStyle(fontSize: 12.0),
+                            ),
+                          ),
+                          SizedBox(
+                            width: 5.0,
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 20,),
+                      SizedBox(height: 20,),
+                      ListTile(
+                        dense:true,
+                        contentPadding: EdgeInsets.only(left: 10.0),
+                        leading: Image.asset(Images.request,
+                          height: 30,
+                          width: 30,
+                        ),
+                        title: Transform(
+                          transform: Matrix4.translationValues(-16, 0.0, 0.0),
+                          child: TextField(
+                            controller: _message,
+                            decoration: InputDecoration.collapsed(
+                                hintText: S .of(context).any_request,//"Any request? We promise to pass it on",
+                                hintStyle: TextStyle(fontSize: 12.0),
+                                //contentPadding: EdgeInsets.all(16),
+                                //border: OutlineInputBorder(),
+                                fillColor: ColorCodes.lightGreyColor),
+                            //minLines: 3,
+                            maxLines: 1,
+                          ),
+                        ),
+                      ),
+                    ],
+                  )
+                //)
+                    :
+                // Card(
+                //   elevation: 5,
+                //   shape: RoundedRectangleBorder(
+                //     borderRadius: BorderRadius.circular(2),
+                //   ),
+                //   child:
+                  Column(
+                    children: [
+                      Container(
+                        margin: EdgeInsets.all(5.0),
+                        color: Colors.white,
+                        child: Column(
+                          children: <Widget>[
                             Row(
                               children: <Widget>[
                                 SizedBox(
-                                  width: 5.0,
+                                  width: 10.0,
                                 ),
-                                Spacer(),
-                                FlatButton(
-                                  color: Theme.of(context).primaryColor,
-                                  textColor: Theme.of(context).buttonColor,
-                                  shape: new RoundedRectangleBorder(
-                                    borderRadius: new BorderRadius.circular(3.0),
+                                Icon(Icons.location_on),
+                                SizedBox(
+                                  width: 10.0,
+                                ),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                    CrossAxisAlignment.start,
+                                    children: <Widget>[
+                                      SizedBox(
+                                        height: 15.0,
+                                      ),
+                                      Text(
+                                        S .of(context).your_in_new_location,//"You are in a new location!",
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 14.0),
+                                      ),
+                                      SizedBox(
+                                        height: 5.0,
+                                      ),
+                                      Text(
+                                        deliverlocation,
+                                        style: TextStyle(
+                                          color: Colors.grey,
+                                          fontSize: 12.0,
+                                        ),
+                                      ),
+                                      SizedBox(
+                                        height: 15.0,
+                                      ),
+                                    ],
                                   ),
-                                  onPressed: () => {
-                                    Navigator.of(context).pushReplacementNamed(
+                                ),
+                              ],
+                            ),
+                            Row(
+                              mainAxisAlignment:
+                              MainAxisAlignment.spaceBetween,
+                              children: <Widget>[
+                                GestureDetector(
+                                  onTap: () {
+                                    _settingModalBottomSheet(
+                                        context, "selectAddress");
+                                  },
+                                  child: Container(
+                                    width: MediaQuery
+                                        .of(context)
+                                        .size
+                                        .width *
+                                        43 /
+                                        100,
+                                    margin: EdgeInsets.only(
+                                        left: 10.0, right: 5.0, bottom: 10.0),
+                                    decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius:
+                                        BorderRadius.circular(5.0),
+                                        border: Border(
+                                          top: BorderSide(width: 1.0, color: Theme
+                                              .of(context)
+                                              .primaryColor,),
+                                          bottom: BorderSide(
+                                            width: 1.0, color: Theme
+                                              .of(context)
+                                              .primaryColor,),
+                                          left: BorderSide(width: 1.0, color: Theme
+                                              .of(context)
+                                              .primaryColor,),
+                                          right: BorderSide(width: 1.0, color: Theme
+                                              .of(context)
+                                              .primaryColor,),
+                                        )),
+                                    height: 40.0,
+                                    child: Center(
+                                      child: Text(
+                                        S .of(context).select_address,//'Select Address',
+                                        style: TextStyle(
+                                          fontSize: 14.0,
+                                          color:
+                                          Theme
+                                              .of(context)
+                                              .primaryColor,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                GestureDetector(
+                                  onTap: () {
+                                    Navigator.of(context).pop();
+                                /*    Navigator.of(context).pushReplacementNamed(
                                         AddressScreen.routeName,
                                         arguments: {
                                           'addresstype': "new",
@@ -4026,302 +4493,125 @@ VxState.watch(context, on: [SetCartItem]);
                                           'latitude': "",
                                           'longitude': "",
                                           'branch': ""
-                                        })
+                                        });*/
+                                    PrefUtils.prefs!.setString("addressbook", "confirmorder");
+                                    if(Vx.isWeb && !ResponsiveLayout.isSmallScreen(context)){
+                                      // _dialogforaddress(context);
+                                      AddressWeb(context,
+                                        addresstype: "new",
+                                        addressid: "",
+                                        delieveryLocation: "",
+                                        latitude: "",
+                                        longitude: "",
+                                        branch: "",);
+                                    }
+                                    else {
+                                      Navigation(context,
+                                          name: Routename.AddressScreen,
+                                          navigatore: NavigatoreTyp.Push,
+                                          qparms: {
+                                            'addresstype': "new",
+                                            'addressid': "",
+                                            'delieveryLocation': "",
+                                            'latitude': "",
+                                            'longitude': "",
+                                            'branch': "",
+                                          });
+                                    }
                                   },
-                                  child: Text(
-                                    S.of(context).add_address,//'Add Address',
-                                    style: TextStyle(fontSize: 12.0),
+                                  child: Container(
+                                    width: MediaQuery
+                                        .of(context)
+                                        .size
+                                        .width * 43 / 100,
+                                    margin: EdgeInsets.only(
+                                        left: 5.0, right: 10.0, bottom: 10.0),
+                                    decoration: BoxDecoration(
+                                        color: Theme
+                                            .of(context)
+                                            .primaryColor,
+                                        borderRadius:
+                                        BorderRadius.circular(5.0),
+                                        border: Border(
+                                          top: BorderSide(width: 1.0, color:
+                                          Theme
+                                              .of(context)
+                                              .primaryColor,
+                                          ),
+                                          bottom: BorderSide(
+                                            width: 1.0,
+                                            color:
+                                            Theme
+                                                .of(context)
+                                                .primaryColor,
+                                          ),
+                                          left: BorderSide(
+                                            width: 1.0,
+                                            color:
+                                            Theme
+                                                .of(context)
+                                                .primaryColor,
+                                          ),
+                                          right: BorderSide(
+                                            width: 1.0,
+                                            color:
+                                            Theme
+                                                .of(context)
+                                                .primaryColor,
+                                          ),
+                                        )),
+                                    height: 40.0,
+                                    child: Center(
+                                      child: Text(
+                                        S .of(context).add_address,//'Add Address',
+                                        style: TextStyle(
+                                          fontSize: 14.0,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ),
                                   ),
-                                ),
-                                SizedBox(
-                                  width: 5.0,
                                 ),
                               ],
-                            ),
-                            SizedBox(height: 20,),
-                            SizedBox(height: 20,),
-                            ListTile(
-                              dense:true,
-                              contentPadding: EdgeInsets.only(left: 10.0),
-                              leading: Image.asset(Images.request,
-                                height: 30,
-                                width: 30,
-                              ),
-                              title: Transform(
-                                transform: Matrix4.translationValues(-16, 0.0, 0.0),
-                                child: TextField(
-                                  controller: _message,
-                                  decoration: InputDecoration.collapsed(
-                                      hintText: S.of(context).any_request,//"Any request? We promise to pass it on",
-                                      hintStyle: TextStyle(fontSize: 12.0),
-                                      //contentPadding: EdgeInsets.all(16),
-                                      //border: OutlineInputBorder(),
-                                      fillColor: ColorCodes.lightGreyColor),
-                                  //minLines: 3,
-                                  maxLines: 1,
-                                ),
-                              ),
-                            ),
+                            )
                           ],
-                      ),
-                    )
-                    : Container(
-                  padding: EdgeInsets.only(right: 15, left: 15),
-                  decoration: BoxDecoration(
-                    boxShadow: [
-                      BoxShadow(
-                        color: ColorCodes.grey.withOpacity(0.2),
-                        spreadRadius: 5,
-                        blurRadius: 5,
-                        offset: Offset(0, 5),
-                      )
-                    ],
-                    color: ColorCodes.whiteColor,
-                  ),
-                      child: Column(
-                          children: [
-                            Container(
-                              margin: EdgeInsets.all(5.0),
-                              color: Colors.white,
-                              child: Column(
-                                children: <Widget>[
-                                  Row(
-                                    children: <Widget>[
-                                      SizedBox(
-                                        width: 10.0,
-                                      ),
-                                      Icon(Icons.location_on),
-                                      SizedBox(
-                                        width: 10.0,
-                                      ),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                          children: <Widget>[
-                                            SizedBox(
-                                              height: 15.0,
-                                            ),
-                                            Text(
-                                              S.of(context).your_in_new_location,//"You are in a new location!",
-                                              style: TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 14.0),
-                                            ),
-                                            SizedBox(
-                                              height: 5.0,
-                                            ),
-                                            Text(
-                                              deliverlocation,
-                                              style: TextStyle(
-                                                color: Colors.grey,
-                                                fontSize: 12.0,
-                                              ),
-                                            ),
-                                            SizedBox(
-                                              height: 15.0,
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  Row(
-                                    mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                    children: <Widget>[
-                                      GestureDetector(
-                                        onTap: () {
-                                          _settingModalBottomSheet(
-                                              context, "selectAddress");
-                                        },
-                                        child: Container(
-                                          width: MediaQuery
-                                              .of(context)
-                                              .size
-                                              .width *
-                                              43 /
-                                              100,
-                                          margin: EdgeInsets.only(
-                                              left: 10.0, right: 5.0, bottom: 10.0),
-                                          decoration: BoxDecoration(
-                                              color: Colors.white,
-                                              borderRadius:
-                                              BorderRadius.circular(5.0),
-                                              border: Border(
-                                                top: BorderSide(width: 1.0, color: Theme
-                                                    .of(context)
-                                                    .primaryColor,),
-                                                bottom: BorderSide(
-                                                  width: 1.0, color: Theme
-                                                    .of(context)
-                                                    .primaryColor,),
-                                                left: BorderSide(width: 1.0, color: Theme
-                                                    .of(context)
-                                                    .primaryColor,),
-                                                right: BorderSide(width: 1.0, color: Theme
-                                                    .of(context)
-                                                    .primaryColor,),
-                                              )),
-                                          height: 40.0,
-                                          child: Center(
-                                            child: Text(
-                                              S.of(context).select_address,//'Select Address',
-                                              style: TextStyle(
-                                                fontSize: 14.0,
-                                                color:
-                                                Theme
-                                                    .of(context)
-                                                    .primaryColor,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                      GestureDetector(
-                                        onTap: () {
-                                          Navigator.of(context).pop();
-                                          Navigator.of(context).pushReplacementNamed(
-                                              AddressScreen.routeName,
-                                              arguments: {
-                                                'addresstype': "new",
-                                                'addressid': "",
-                                                'delieveryLocation': "",
-                                                'latitude': "",
-                                                'longitude': "",
-                                                'branch': ""
-                                              });
-                                        },
-                                        child: Container(
-                                          width: MediaQuery
-                                              .of(context)
-                                              .size
-                                              .width * 43 / 100,
-                                          margin: EdgeInsets.only(
-                                              left: 5.0, right: 10.0, bottom: 10.0),
-                                          decoration: BoxDecoration(
-                                              color: Theme
-                                                  .of(context)
-                                                  .primaryColor,
-                                              borderRadius:
-                                              BorderRadius.circular(5.0),
-                                              border: Border(
-                                                top: BorderSide(width: 1.0, color:
-                                                Theme
-                                                    .of(context)
-                                                    .primaryColor,
-                                                ),
-                                                bottom: BorderSide(
-                                                  width: 1.0,
-                                                  color:
-                                                  Theme
-                                                      .of(context)
-                                                      .primaryColor,
-                                                ),
-                                                left: BorderSide(
-                                                  width: 1.0,
-                                                  color:
-                                                  Theme
-                                                      .of(context)
-                                                      .primaryColor,
-                                                ),
-                                                right: BorderSide(
-                                                  width: 1.0,
-                                                  color:
-                                                  Theme
-                                                      .of(context)
-                                                      .primaryColor,
-                                                ),
-                                              )),
-                                          height: 40.0,
-                                          child: Center(
-                                            child: Text(
-                                              S.of(context).add_address,//'Add Address',
-                                              style: TextStyle(
-                                                fontSize: 14.0,
-                                                color: Colors.white,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  )
-                                ],
-                              ),
-                            ),
-
-                            SizedBox(height: 20,),
-                            ListTile(
-                              dense:true,
-                              contentPadding: EdgeInsets.only(left: 10.0),
-                              leading: Image.asset(Images.request,
-                                height: 30,
-                                width: 30,
-                              ),
-                              title: Transform(
-                                transform: Matrix4.translationValues(-16, 0.0, 0.0),
-                                child: TextField(
-                                  controller: _message,
-                                  decoration: InputDecoration.collapsed(
-                                      hintText: S.of(context).any_request,//"Any request? We promise to pass it on",
-                                      hintStyle: TextStyle(fontSize: 12.0),
-                                      //contentPadding: EdgeInsets.all(16),
-                                      //border: OutlineInputBorder(),
-                                      fillColor: ColorCodes.lightGreyColor),
-                                  //minLines: 3,
-                                  maxLines: 1,
-                                ),
-                              ),
-                            ),
-                          ],
-                      ),
-                    ),
-                SizedBox(
-                  height: 0.0,
-                ),
-                GestureDetector(
-                  onTap: () {
-                    PrefUtils.prefs.setString("addressbook", "confirm");
-                    Navigator.of(context)
-                        .pushReplacementNamed(AddInfo.routeName, arguments: {
-                      'addresstype': "new",
-                      'addressid': "",
-                      'title': "",
-                      'delieveryLocation': "",
-                      'latitude': "",
-                      'longitude': "",
-                      'branch': "",
-                      "prev": "",
-                    });
-                  },
-                  child: Container(
-                    width: MediaQuery.of(context).size.width ,
-                    padding: EdgeInsets.only(right: 15, left: 15, top: 20, bottom: 20),
-                    decoration: BoxDecoration(
-                      boxShadow: [
-                        BoxShadow(
-                          color: ColorCodes.grey.withOpacity(0.2),
-                          spreadRadius: 5,
-                          blurRadius: 5,
-                          offset: Offset(0, 5),
-                        )
-                      ],
-                      color: ColorCodes.whiteColor,
-                    ),
-                    child: Row(
-                      children: [
-                        Text(S.of(context).add_new_address, style: TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.w800,),
                         ),
-                        Spacer(),
-                        Icon(Icons.keyboard_arrow_right,),
-                      ],
-                    ),
+                      ),
+
+                      SizedBox(height: 20,),
+                      ListTile(
+                        dense:true,
+                        contentPadding: EdgeInsets.only(left: 10.0),
+                        leading: Image.asset(Images.request,
+                          height: 30,
+                          width: 30,
+                        ),
+                        title: Transform(
+                          transform: Matrix4.translationValues(-16, 0.0, 0.0),
+                          child: TextField(
+                            controller: _message,
+                            decoration: InputDecoration.collapsed(
+                                hintText: S .of(context).any_request,//"Any request? We promise to pass it on",
+                                hintStyle: TextStyle(fontSize: 12.0),
+                                //contentPadding: EdgeInsets.all(16),
+                                //border: OutlineInputBorder(),
+                                fillColor: ColorCodes.lightGreyColor),
+                            //minLines: 3,
+                            maxLines: 1,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
+                //),
+                SizedBox(
+                  height: 10.0,
                 ),
 
-
+                Container(
+                  height:5,
+                  color: ColorCodes.backgroundcolor,
+                ),
                 //SizedBox(height: 8.0,),
                 /*  Divider(
                   color: ColorCodes.lightGreyColor,
@@ -4332,12 +4622,521 @@ VxState.watch(context, on: [SetCartItem]);
                 // Delivery time slot banner with text
                 //  _deliveryTimeSlotText(),
 
+                if (!_isChangeAddress)
+                  !_slotsLoading
+                      ? _checkslots?
+                  //  ? Column(
+                  // mainAxisAlignment: MainAxisAlignment.start,
+                  //    crossAxisAlignment: CrossAxisAlignment.start,
+                  //    children: <Widget>[
+                  // VxBuilder(
+                  // mutations: {SetCartItem},
+                  //    builder: (context,store,state){
+
+                       // Card(
+                       //   elevation: 5,
+                       //   child:
+                         Column(
+                           children: [
+                             SizedBox(height: 20,),
+                             (ExpressDetails.length <= 0)?  SizedBox.shrink(): Row(
+                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                               crossAxisAlignment: CrossAxisAlignment.start,
+                               children: [
+                                 SizedBox(width: 5,),
+                                 GestureDetector(
+                                   onTap: (){
+                                     setState(() {
+                                       visiblestand = true;
+                                       visibleexpress = false;
+                                       dividerSlot = ColorCodes.primaryColor;
+                                       dividerExpress = ColorCodes.whiteColor;
+                                       ContainerSlot = ColorCodes.varcolor;
+                                       ContainerExpress = ColorCodes.whiteColor;
+                                       _groupValue = 1;
+                                     });
+
+                                   },
+                                   child: Card(
+                                     child: Container(
+                                       height: 160,
+                                       width: 160,
+                                       decoration: BoxDecoration(
+                                           color: ContainerSlot,
+                                           border: Border(
+                                             bottom: BorderSide(width: 3.0, color: dividerSlot),
+                                           )),
+
+                                       child: Column(
+                                         mainAxisAlignment: MainAxisAlignment.center,
+                                         crossAxisAlignment: CrossAxisAlignment.center,
+                                         children: [
+                                           Image.asset(Images.Standard,
+                                             height: 40,
+                                             width: 40,
+                                             color: ColorCodes.greenColor,
+                                           ),
+                                           SizedBox(height: 10,),
+                                           Text(S .of(context).slot_based_delivery,
+                                             style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: ColorCodes.cartgreenColor),
+                                           ),
+                                           SizedBox(height: 5,),
+                                           Text(" \n ",textAlign: TextAlign.center, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w400, color: ColorCodes.greyColor),),
+
+                                         ],
+                                       ),
+                                     ),
+                                   ),
+                                 ),
+                                 //Spacer(),
+                                 GestureDetector(
+                                   onTap: (){
+                                     setState(() {
+                                       visibleexpress = true;
+                                       visiblestand = false;
+                                       dividerSlot = ColorCodes.whiteColor;
+                                       dividerExpress = ColorCodes.primaryColor;
+                                       ContainerSlot = ColorCodes.whiteColor;
+                                       ContainerExpress = ColorCodes.varcolor;
+                                       _groupValue = 2;
+                                     });
+
+                                   },
+                                   child: Card(
+                                     child:  Container(
+                                       height: 160,
+                                       width: 160,
+                                       decoration: BoxDecoration(
+                                           color: ContainerExpress,
+                                           border: Border(
+                                             bottom: BorderSide(width: 3.0, color: dividerExpress),
+                                           )),
+
+                                       child: Column(
+                                         mainAxisAlignment: MainAxisAlignment.center,
+                                         crossAxisAlignment: CrossAxisAlignment.center,
+                                         children: [
+                                           Image.asset(Images.express,
+                                             height: 40,
+                                             width: 40,
+                                             color: ColorCodes.greenColor,
+                                           ),
+                                           SizedBox(height: 10,),
+                                           Text(S .of(context).express_delivery,
+                                             style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: ColorCodes.cartgreenColor),
+                                           ),
+                                           SizedBox(height: 5,),
+                                           Text(/*S .of(context).delivery_in+" "+*/_deliveryDurationExpress, textAlign: TextAlign.center,style: TextStyle(fontSize: 15, fontWeight: FontWeight.w400, color: ColorCodes.greyColor),),
+                                         ],
+                                       ),
+                                     ),
+                                   ),
+                                 ),
+                                 SizedBox(width: 5,),
+                               ],
+                             ),
+                             //SizedBox(width: 20,),
+                             Visibility(
+                               visible: visiblestand,
+                               child: StandardDelivery(),
+                             ),
+                             (Features.isSplit) ? Visibility(
+                               visible: visibleexpress,
+                               child: ExpressDelivery(),
+                             ) : SizedBox.shrink(),
+                             SizedBox(height: 20,),
+                           ],
+                         )
+
+                       //)
+                  //    },
+                  // )
+                  /* GestureDetector(
+                           behavior: HitTestBehavior.translucent,
+                           onTap: () {
+                             setState(() {
+                               _groupValue = 1;
+                             });
+                           },
+                           child: ListTile(
+                             dense: true,
+                             leading:  Container(
+                               child: _myRadioButton(
+                                 value: 1,
+                                 onChanged: (newValue) {
+                                   setState(() {
+                                     _groupValue = newValue;
+                                   });
+                                 },
+                               ),
+                             ),
+                             contentPadding: EdgeInsets.all(0.0),
+                             title:  Row(
+                               children: [
+                                 Container(
+                                   width: MediaQuery.of(context).size.width * 50 /100,
+                                   child: Text(
+                                   S .of(context).slot_based_delivery,//'Slot Based Delivery',
+                                       style: TextStyle(
+                                           color: ColorCodes.blackColor,
+                                           fontSize: 16, fontWeight: FontWeight.bold
+                                       )
+                                   ),
+                                 ),
+
+                               ],
+                             ),
+                           ),
+                         ),
+                         (_groupValue == 1)?
+                         Container(
+                           color: ColorCodes.whiteColor,
+                           padding: EdgeInsets.only(left: 20,right: 20),
+                           child: Column(
+                             children: [
+                               SizedBox(height: 5,),
+                               (DefaultSlot.length > 0) ?
+                               Column(
+                                 children: [
+                                   SizedBox(height: 5,),
+                                   Row(
+                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                     children: [
+                                          Text(
+                                         S .of(context).shipment +" "//"Shipment "
+                                             +(count++).toString(),//Slot Based Delivery",
+                                         style: TextStyle(fontSize: 14,fontWeight: FontWeight.w400),
+                                       ),
+                                       Text(S .of(context).slot_based_delivery,
+                                         style: TextStyle(fontSize: 14,
+                                             fontWeight: FontWeight.w400,
+                                             color: Theme.of(context).primaryColor
+                                         ),
+                                       ),
+                                       GestureDetector(
+                                         behavior: HitTestBehavior.translucent,
+                                         onTap: (){
+                                           dialogforViewAllProductDefaultSlot();
+                                         },
+                                         child: Container(
+                                           padding: EdgeInsets.only(left: 5,right: 5),
+                                           decoration: BoxDecoration(
+                                               border: Border(
+                                                 top: BorderSide(width: 1.0, color: ColorCodes.darkgreen,),
+                                                 bottom: BorderSide(width: 1.0, color: ColorCodes.darkgreen,),
+                                                 left: BorderSide(width: 1.0, color: ColorCodes.darkgreen,),
+                                                 right: BorderSide(width: 1.0, color: ColorCodes.darkgreen,),
+                                               )
+                                           ),
+                                           height: 25,
+                                           child: Center(
+                                             child: Text(
+                                               S .of(context).view//"View "
+                                                   + " " + DefaultSlot.length.toString()+" "+
+                                                   S .of(context).items,//"Items",
+                                               style: TextStyle(
+                                                   color: ColorCodes.darkgreen,
+                                                   fontSize: 14
+                                               ),
+                                             ),
+                                           ),
+                                         ),
+                                       ),
+
+                                     ],
+                                   ),
+                                   Row(
+                                     children: [
+
+                                       Text(
+                                         S .of(context).delivery_charge,//"Delivery Charge: ",
+                                         style: TextStyle(
+                                             color: ColorCodes.blackColor,
+                                             fontSize: 10, fontWeight: FontWeight.w400
+                                         ),),
+                                       SizedBox(width: 2,),
+                                       Text(
+                                         deliverychargetextdefault
+                                         ,style: TextStyle(
+                                         color: (deliverychargetextdefault == "FREE")? ColorCodes.blackColor:
+                                         ColorCodes.blackColor,
+                                         fontSize: 10,
+                                       ),)
+                                       ,
+                                     ],
+                                   ),
+                                   SizedBox(height: 10,),
+
+                                   Row(
+                                     children: [
+                                       Text(
+                                         S .of(context).select_TimeSlot,//"Delivery Charge: ",
+                                         style: TextStyle(
+
+                                             fontSize: 14, fontWeight: FontWeight.w400
+                                         ),),
+                                     ],
+                                   ),
+                                   SizedBox(height: 5,),
+                                   SelectDate(),
+                                   SizedBox(height: 5,),
+                                   Divider(thickness: 1,color: ColorCodes.greyColor,),
+                                 ],
+                               ):
+                               SizedBox.shrink(),
+
+
+                               ShipmentfirstdateDelivery(),
+
+                               ShipmentfirsttimeDelivery(),
+                               SizedBox(height: 10,),
+
+                             ],
+                           ),
+                         )
+                             :SizedBox.shrink(),
+                         (ExpressDetails.length >0)?
+                         GestureDetector(
+                           behavior: HitTestBehavior.translucent,
+                           onTap: () {
+                             setState(() {
+
+                               _groupValue = 2;
+
+                             });
+                           },
+                           child: ListTile(
+                             dense: true,
+                             contentPadding: EdgeInsets.all(0.0),
+                             leading: Container(
+                               child: _myRadioButton(
+                                 value: 2,
+                                 onChanged: (newValue) {
+                                   setState(() {
+                                     _groupValue = newValue;
+                                   });
+                                 },
+                               ),
+                             ),
+                             title:
+                             Row(
+                               children: [
+                                 Container(
+
+                                   child: Text(
+                                      S .of(context).express_delivery,//'Express Delivery',
+                                       style: TextStyle(
+                                           color: ColorCodes.blackColor,
+                                           fontSize: 16, fontWeight: FontWeight.bold
+                                       )
+                                   ),
+                                 ),
+
+                               ],
+                             ),
+                           ),
+                         ) : SizedBox.shrink(),
+                         (_groupValue == 2)?
+                         Container(
+                           color: ColorCodes.searchwebbackground,
+                           padding: EdgeInsets.only(left: 20,right: 20),
+                           child: Column(
+                             children: [
+                               SizedBox(height: 5,),
+                               (something.length > 0) ?
+                               Column(
+                                 children: [
+                                   SizedBox(height: 5,),
+                                   Row(
+                                     children: [
+                                        Text(
+                                         S .of(context).shipment//"Shipment "
+                                             + (countTime++).toString()+": "+ S .of(context).slot_based_delivery,//Slot Based Delivery",
+                                         style: TextStyle(fontSize: 14,fontWeight: FontWeight.w400),
+                                       ),
+                                       Spacer(),
+                                       GestureDetector(
+                                         behavior: HitTestBehavior.translucent,
+                                         onTap: (){
+                                           dialogforViewAllProductSecond();
+                                         },
+                                         child: Container(
+                                           padding: EdgeInsets.only(left: 5,right: 5),
+                                           decoration: BoxDecoration(
+                                               color: Color(0xffEBECF0),
+                                               borderRadius: BorderRadius.circular(3),
+                                               border: Border(
+                                                 top: BorderSide(width: 1.0, color: ColorCodes.greyColor,),
+                                                 bottom: BorderSide(width: 1.0, color: ColorCodes.greyColor,),
+                                                 left: BorderSide(width: 1.0, color: ColorCodes.greyColor,),
+                                                 right: BorderSide(width: 1.0, color: ColorCodes.greyColor,),
+                                               )
+                                           ),
+                                           height: 20,
+                                           child: Center(
+                                             child: Text(
+                                               S .of(context).view//"View "
+                                                   + something.length.toString()+" "+
+                                                   S .of(context).items ,//"Items",
+                                               style: TextStyle(
+                                                   color: ColorCodes.blackColor,
+                                                   fontSize: 11
+                                               ),
+                                             ),
+                                           ),
+                                         ),
+                                       ),
+                                     ],
+                                   ),
+                                   SizedBox(height: 10,),
+                                   Row(
+                                     children: [
+                                       Text(
+                                         S .of(context).select_TimeSlot,//"Delivery Charge: ",
+                                         style: TextStyle(
+
+                                             fontSize: 14, fontWeight: FontWeight.w400
+                                         ),),
+                                     ],
+                                   ),
+                                   SizedBox(height: 5,),
+                                   SelectDate(),
+                                   SizedBox(height: 5,),
+                                   Divider(thickness: 1,color: ColorCodes.greyColor,),
+                                   Row(
+                                     children: [
+
+                                       Text(
+                                        S .of(context).delivery_charge,//"Delivery Charge: ",
+                                         style: TextStyle(
+                                           color: ColorCodes.blackColor,
+                                           fontSize: 10, fontWeight: FontWeight.w400
+                                       ),),
+                                       SizedBox(width: 2,),
+                                       Text(
+                                         deliverychargetextSecond
+                                         ,style: TextStyle(
+                                         color: (deliverychargetextSecond == "FREE")? ColorCodes.blackColor:
+                                         ColorCodes.blackColor,
+                                         fontSize: 10,
+                                       ),)
+                                       ,
+                                     ],
+                                   ),
+                                   SizedBox(height: 10,),
+                                 ],
+                               ):
+                               SizedBox.shrink(),
+                               Divider(thickness: 1,color: ColorCodes.greyColor,),
+                               (ExpressDetails.length >0)?
+                               Column(
+                                 children: [
+                                   Row(
+                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                     children: [
+                                       (ExpressDetails.length >0)?   Text(
+                                         S .of(context).shipment//"Shipment "
+                                             + (countTime++).toString() ,//Express Delivery",
+                                         style: TextStyle(fontSize: 14,fontWeight: FontWeight.w400),
+                                       ):SizedBox.shrink(),
+                                     Text( S .of(context).express_delivery,
+                                         style: TextStyle(fontSize: 14,fontWeight: FontWeight.w400,color: ColorCodes.primaryColor)),
+                                       GestureDetector(
+                                         behavior: HitTestBehavior.translucent,
+                                         onTap: (){
+                                           dialogforViewAllProductExpress();
+                                         },
+                                         child: Container(
+                                           padding: EdgeInsets.only(left: 5,right: 5),
+                                           decoration: BoxDecoration(
+                                               color: Color(0xffEBECF0),
+                                               borderRadius: BorderRadius.circular(3),
+                                               border: Border(
+                                                 top: BorderSide(width: 1.0, color: ColorCodes.darkgreen,),
+                                                 bottom: BorderSide(width: 1.0, color: ColorCodes.darkgreen,),
+                                                 left: BorderSide(width: 1.0, color: ColorCodes.darkgreen,),
+                                                 right: BorderSide(width: 1.0, color: ColorCodes.darkgreen,),
+                                               )
+                                           ),
+                                           height: 20,
+                                           child: Center(
+                                             child: Text(
+                                               S .of(context).view//"View "
+                                                   + ExpressDetails.length.toString()+" "+
+                                                   S .of(context).items,//"Items",
+                                               style: TextStyle(
+                                                   color: ColorCodes.darkgreen,
+                                                   fontSize: 14
+                                               ),
+                                             ),
+                                           ),
+                                         ),
+                                       ),
+
+                                     ],
+                                   ),
+                                   SizedBox(height: 5,),
+                                   Row(
+                                     children: [
+
+                                       Text(
+                                         S .of(context).delivery_charge//"Delivery Charge: "
+                                         ,style: TextStyle(
+                                           color: ColorCodes.blackColor,
+                                           fontSize: 10, fontWeight: FontWeight.w400
+                                       ),),
+                                       SizedBox(width: 2,),
+                                       Text(
+                                         (deliverychargetextExpress)
+                                         ,style: TextStyle(
+                                         color: (deliverychargetextExpress == "FREE")? ColorCodes.blackColor:
+                                         ColorCodes.blackColor,
+                                         fontSize: 10,
+                                       ),)
+                                       ,
+                                     ],
+                                   ),
+                                   SizedBox(height: 10,),
+                                   Divider(thickness: 1,color: ColorCodes.greyColor,),
+                                 ],
+                               ):
+                               SizedBox.shrink(),
+
+                               (newMap2 != null)?ShipmentTwoDelivery():SizedBox.shrink(),
+                               (newMap3 != null)?ShipmentThreeDelivery():SizedBox.shrink(),
+
+                             ],
+                           ),
+                         )
+                             :SizedBox.shrink(),*/
+                  //
+                  //   ],
+                  // )
+                      : Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: <Widget>[
+                      SizedBox(
+                        width: 5.0,
+                      ),
+                      if(_checkaddress)
+                        Text(
+                          S .of(context).currently_no_slot,//"Currently there is no slots available",
+                          style: TextStyle(
+                              fontSize: 16.0,
+                              fontWeight: FontWeight.bold),
+                        ),
+                    ],
+                  )
+                      : Center(
+                    child: CircularProgressIndicator(),
+                  )
               ],
             ),
           ),
         ),
 
-        bottomNavigationBar:(_checkaddress && !_loading)? Container(
+        bottomNavigationBar:(_checkaddress && !_loading)? (Vx.isWeb && !ResponsiveLayout.isSmallScreen(context)) ? SizedBox.shrink() :Container(
           color: Colors.white,
           child: Padding(
               padding: EdgeInsets.only(left: 0.0, top: 0.0, right: 0.0, bottom: iphonex ? 16.0 : 0.0),
@@ -4950,44 +5749,44 @@ VxState.watch(context, on: [SetCartItem]);
     );
   }
 
-  Widget dialogforViewAllProduct1() {
-    for(int i=0;i<productBox.length;i++)
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (BuildContext context) {
-          return Container(
-            width: (_isWeb && !ResponsiveLayout.isSmallScreen(context))
-                ? MediaQuery.of(context).size.width * 0.40
-                : MediaQuery.of(context).size.width,
-            decoration: new BoxDecoration(
-              boxShadow: [
-                //background color of box
-                BoxShadow(
-                  color: ColorCodes.lightGreyColor,
-                  blurRadius: 25.0, // soften the shadow
-                  spreadRadius: 5.0, //extend the shadow
-                  offset: Offset(15.0, // Move to right 10  horizontally
-                    15.0, // Move to bottom 10 Vertically
-                  ),
-                )
-              ],
-            ),
-            child: Card(
-              shape: RoundedRectangleBorder(
-                side:
-                BorderSide(color: ColorCodes.lightGreyColor, width: 1),
-              ),
-              margin: EdgeInsets.only(left: 12, right: 12, bottom: 12),
-              child: Text( productBox[i]
-                  .itemName,
-                  style: TextStyle(fontSize: 12.0)),
-            ),
-          );
-        },
-      );
-
-  }
+  // Widget dialogforViewAllProduct1() {
+  //   for(int i=0;i<productBox.length;i++)
+  //     showDialog(
+  //       context: context,
+  //       barrierDismissible: false,
+  //       builder: (BuildContext context) {
+  //         return Container(
+  //           width: (_isWeb && !ResponsiveLayout.isSmallScreen(context))
+  //               ? MediaQuery.of(context).size.width * 0.40
+  //               : MediaQuery.of(context).size.width,
+  //           decoration: new BoxDecoration(
+  //             boxShadow: [
+  //               //background color of box
+  //               BoxShadow(
+  //                 color: ColorCodes.lightGreyColor,
+  //                 blurRadius: 25.0, // soften the shadow
+  //                 spreadRadius: 5.0, //extend the shadow
+  //                 offset: Offset(15.0, // Move to right 10  horizontally
+  //                   15.0, // Move to bottom 10 Vertically
+  //                 ),
+  //               )
+  //             ],
+  //           ),
+  //           child: Card(
+  //             shape: RoundedRectangleBorder(
+  //               side:
+  //               BorderSide(color: ColorCodes.lightGreyColor, width: 1),
+  //             ),
+  //             margin: EdgeInsets.only(left: 12, right: 12, bottom: 12),
+  //             child: Text( productBox[i]
+  //                 .itemName!,
+  //                 style: TextStyle(fontSize: 12.0)),
+  //           ),
+  //         );
+  //       },
+  //     );
+  //
+  // }
 
   int currentTime() {
 
@@ -4999,11 +5798,11 @@ VxState.watch(context, on: [SetCartItem]);
 
   dialogforViewAllProductSecond(int count, String slot_based_delivery, int length) {
 
-    showDialog(
+    /*showDialog(
       context: context,
       builder: (BuildContext context1) {
        return VxBuilder(mutations: {SetCartItem},
-          builder: (context, store,state) {
+          builder: (context,GroceStore store,state) {
            // something =store.CartItemList;
           return Dialog(
 
@@ -5049,7 +5848,7 @@ VxState.watch(context, on: [SetCartItem]);
                             shrinkWrap: true,
                             itemCount: something.length,
                             itemBuilder: (_, i) =>
-                            (int.parse(something[i].quantity)>0)?
+                            (int.parse(something[i].quantity!)>0)?
                                 Column(children: [
                                   Container(
                                     color: Colors.white,
@@ -5072,7 +5871,7 @@ VxState.watch(context, on: [SetCartItem]);
                                           )
                                               : FadeInImage(
                                             image: NetworkImage(
-                                                something[i].itemImage),
+                                                something[i].itemImage!),
                                             placeholder: AssetImage(
                                               Images.defaultProductImg,
                                             ),
@@ -5092,7 +5891,7 @@ VxState.watch(context, on: [SetCartItem]);
 
                                                     Container(
                                                       child: Text(
-                                                        something[i].itemName,
+                                                        something[i].itemName!,
                                                         overflow: TextOverflow
                                                             .ellipsis,
                                                         maxLines: 2,
@@ -5127,17 +5926,30 @@ VxState.watch(context, on: [SetCartItem]);
                                                   ])),
                                           Container(
                                             child: Text(
-                                              _checkmembership ? (IConstants
+                                              _checkmembership ?
+                                              Features.iscurrencyformatalign?
+                                              ((double.parse(something[i]
+                                                          .membershipPrice!) *
+                                                          int.parse(something[i]
+                                                              .quantity!))
+                                                          .toString()  + " " + IConstants
+                                                  .currencyFormat):
+                                              (IConstants
                                                   .currencyFormat + " " +
                                                   (double.parse(something[i]
-                                                      .membershipPrice) *
+                                                      .membershipPrice!) *
                                                       int.parse(something[i]
-                                                          .quantity))
+                                                          .quantity!))
                                                       .toString()) :
-                                              (IConstants.currencyFormat + " " +
-                                                  (double.parse(something[i].price) *
+                                              Features.iscurrencyformatalign?
+                                              ((double.parse(something[i].price!) *
                                                       int.parse(something[i]
-                                                          .quantity))
+                                                          .quantity!))
+                                                      .toString() + " " + IConstants.currencyFormat):
+                                              (IConstants.currencyFormat + " " +
+                                                  (double.parse(something[i].price!) *
+                                                      int.parse(something[i]
+                                                          .quantity!))
                                                       .toString()),
                                               overflow: TextOverflow.ellipsis,
                                               maxLines: 1,
@@ -5155,11 +5967,12 @@ VxState.watch(context, on: [SetCartItem]);
                                               // _dialogforDeleting();
                                               _updateCart(0, CartStatus.remove,
                                                   something[i].varId.toString(),
-                                                  something[i].price
-                                                      .toString());
-                                              /* incrementToCart(0,something[i].varId,something[i].itemName ,something[i].itemId,something[i].varName,something[i].varMinItem
+                                                  something[i].price.toString(),
+                                                something[i].increment.toString(),
+                                              );
+                                              *//* incrementToCart(0,something[i].varId,something[i].itemName ,something[i].itemId,something[i].varName,something[i].varMinItem
                                             ,something[i].varMaxItem,something[i].varStock,something[i].varMrp,something[i].quantity,something[i].price,
-                                            something[i].membershipPrice,something[i].itemActualprice,something[i].itemImage,something[i].veg_type,something[i].type);*/
+                                            something[i].membershipPrice,something[i].itemActualprice,something[i].itemImage,something[i].veg_type,something[i].type);*//*
 
 
                                             },
@@ -5195,17 +6008,434 @@ VxState.watch(context, on: [SetCartItem]);
           );
         });
       },
-    );
+    );*/
+
+
+    showModalBottomSheet(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.only(topLeft: Radius.circular(15.0),topRight: Radius.circular(15.0)),
+        ),
+        context: context,
+        builder: (BuildContext bc) {
+          return VxBuilder(mutations: {SetCartItem},
+              builder: (context,store,state) {
+                //  DefaultSlot=store.CartItemList;
+                return Stack(
+                  //overflow: Overflow.visible,
+                  children: [
+                    SingleChildScrollView(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          Padding(
+                            padding: const EdgeInsets.all(10.0),
+                            child: Container(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  SizedBox(height: 10,),
+                                  Text(S
+                                      .of(context)
+                                      .shipment + " " + count.toString() ,
+
+                                    style: TextStyle(color: ColorCodes.blackColor,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 18),
+                                  ),
+                                  SizedBox(height: 10,),
+                                  IntrinsicHeight(
+                                    child: Row(
+                                      children: [
+                                        Text( slot_based_delivery ,
+                                          style: TextStyle(color: ColorCodes.blackColor,
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 15),
+                                        ),
+                                        VerticalDivider(color: ColorCodes.blackColor,
+                                          thickness: 2,),
+                                        Text( length.toString() + " " + S
+                                            .of(context)
+                                            .items,
+                                          style: TextStyle(color: ColorCodes.blackColor,
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 15),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  SizedBox(height: 20,),
+                                  // Divider(thickness: 2, color: ColorCodes.greyColor,),
+                                  //SizedBox(height: 10,),
+                                ],
+                              ),
+                            ),
+                          ),
+                          if(something.length > 0)
+                            SizedBox(
+                              child: new ListView.separated(
+                                separatorBuilder: (context, index) =>
+                                    Divider(
+                                      color: ColorCodes.lightGreyColor,
+                                    ),
+                                physics: NeverScrollableScrollPhysics(),
+                                shrinkWrap: true,
+                                itemCount: something.length,
+                                itemBuilder: (_, i) =>
+                                (int.parse(something[i].quantity!)>0)?
+                                Column(children: [
+                                  Container(
+                                    color: Colors.white,
+                                    child: Card(
+                                      /* shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(4),
+                                        side: new BorderSide(color: ColorCodes.primaryColor, width: 1.0),
+                                      ),*/
+                                      elevation: 0,
+                                      margin: EdgeInsets.all(5),
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment
+                                            .spaceBetween,
+                                        children: <Widget>[
+                                          (productBox[i].mode == "1")
+                                              ? Image.asset(
+                                            Images.membershipImg,
+                                            width: 80,
+                                            height: 80,
+                                            color: Theme
+                                                .of(context)
+                                                .primaryColor,
+                                          )
+                                              : FadeInImage(
+                                            image: NetworkImage(
+                                                something[i].itemImage!),
+                                            placeholder: AssetImage(
+                                              Images.defaultProductImg,
+                                            ),
+                                            width: 80,
+                                            height: 80,
+                                            fit: BoxFit.cover,
+                                          ),
+
+                                          Expanded(
+                                              child: Column(
+                                                  crossAxisAlignment: CrossAxisAlignment
+                                                      .start,
+                                                  mainAxisSize: MainAxisSize
+                                                      .min,
+                                                  children: [
+                                                    //SizedBox(height: 10,),
+
+                                                    Row(
+                                                      children: [
+                                                        Expanded(
+                                                          child: Padding(
+                                                            padding: const EdgeInsets.only(left:5.0),
+                                                            child: Container(
+                                                              child: Text(
+                                                                something[i]
+                                                                    .itemName!,
+                                                                overflow: TextOverflow
+                                                                    .ellipsis,
+                                                                maxLines: 2,
+                                                                style: TextStyle(
+                                                                    fontSize: 15,
+                                                                    fontWeight: FontWeight
+                                                                        .w600,
+                                                                    color: ColorCodes.blackColor),
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ),
+                                                        // Spacer(),
+                                                        IconButton(
+                                                          icon: Image.asset(
+                                                            Images.Delete,
+                                                            height: 22.0,
+                                                            color: ColorCodes.primaryColor,
+                                                          ),//Icon(Icons.delete_outline,color: ColorCodes.primaryColor,),
+                                                          color: Colors.grey,
+                                                          onPressed: () {
+                                                            Navigator.of(context).pop();
+                                                            // _dialogforDeleting();
+                                                            _updateCart(0, CartStatus.remove,
+                                                              something[i].varId
+                                                                  .toString(),
+                                                              something[i].price
+                                                                  .toString(),
+                                                              something[i].increment.toString(),
+                                                              productBox
+                                                                  .where((element) =>
+                                                              element.id! == something[i].id
+                                                              ).first.parent_id.toString(),
+
+                                                            );
+                                                            /*  incrementToCart(0,DefaultSlot[i].varId,DefaultSlot[i].itemName ,DefaultSlot[i].itemId,DefaultSlot[i].varName,DefaultSlot[i].varMinItem
+                                                ,DefaultSlot[i].varMaxItem,DefaultSlot[i].varStock,DefaultSlot[i].varMrp,DefaultSlot[i].quantity,DefaultSlot[i].price,
+                                                DefaultSlot[i].membershipPrice,DefaultSlot[i].itemActualprice,DefaultSlot[i].itemImage,DefaultSlot[i].veg_type,DefaultSlot[i].type);
+*/
+
+                                                          },
+                                                        ),
+                                                      ],
+                                                    ),
+                                                    SizedBox(height: 5,),
+                                                    Row(
+                                                      children: [
+                                                        Padding(
+                                                          padding: const EdgeInsets.only(left:5.0),
+                                                          child: Container(
+                                                            child: Text(
+
+                                                              something[i].type == "1"?
+                                                              something[i]
+                                                                  .varName! +
+                                                                  " * " +
+                                                                  something[i]
+                                                                      .weight
+                                                                      .toString()
+                                                                  :something[i]
+                                                                  .varName! +
+                                                                  " * " +
+                                                                  something[i]
+                                                                      .quantity
+                                                                      .toString()
+
+                                                              ,
+                                                              overflow: TextOverflow
+                                                                  .ellipsis,
+                                                              maxLines: 1,
+                                                              style: TextStyle(
+                                                                  fontSize: 12,
+                                                                  fontWeight: FontWeight
+                                                                      .w400,
+                                                                  color: Colors
+                                                                      .grey),
+                                                            ),
+                                                          ),
+                                                        ),
+                                                        Spacer(),
+
+                                                        RichText(
+                                                            text: new TextSpan(
+                                                              children: <TextSpan>[
+                                                                new TextSpan(
+                                                                  text:_checkmembership ?
+                                                                  Features.iscurrencyformatalign?
+                                                                  something[i].type == "1"?
+                                                                  ((double.parse(something[i]
+                                                                      .membershipPrice!) *
+                                                                      double.parse(something[i]
+                                                                          .weight!))
+                                                                      .toString() + " " + IConstants
+                                                                      .currencyFormat):
+                                                                  ((double.parse(something[i]
+                                                                      .membershipPrice!) *
+                                                                      int.parse(something[i]
+                                                                          .quantity!))
+                                                                      .toString() + " " + IConstants
+                                                                      .currencyFormat):
+                                                                  something[i].type == "1"?
+                                                                  (IConstants
+                                                                      .currencyFormat + " " +
+                                                                      (double.parse(something[i]
+                                                                          .membershipPrice!) *
+                                                                          double.parse(something[i]
+                                                                              .weight!))
+                                                                          .toString()):
+                                                                  (IConstants
+                                                                      .currencyFormat + " " +
+                                                                      (double.parse(something[i]
+                                                                          .membershipPrice!) *
+                                                                          int.parse(something[i]
+                                                                              .quantity!))
+                                                                          .toString()) :
+                                                                  Features.iscurrencyformatalign?
+                                                                  something[i].type == "1"?
+                                                                  ((double.parse(something[i].price!)*
+                                                                      double.parse(something[i]
+                                                                          .weight!))
+                                                                      .toString()+
+                                                                      " " + IConstants.currencyFormat):
+                                                                  ((double.parse(something[i].price!)*
+                                                                      int.parse(something[i]
+                                                                          .quantity!))
+                                                                      .toString()+
+                                                                      " " + IConstants.currencyFormat):
+                                                                  something[i].type == "1"?
+                                                                  (IConstants.currencyFormat +
+                                                                      " " +
+                                                                      (double.parse(something[i].price!)*
+                                                                          double.parse(something[i]
+                                                                              .weight!))
+                                                                          .toString()):
+                                                                  (IConstants.currencyFormat +
+                                                                      " " +
+                                                                      (double.parse(something[i].price!)*
+                                                                          int.parse(something[i]
+                                                                              .quantity!))
+                                                                          .toString()) ,// 'HOME DELIVERY',
+                                                                  style: TextStyle(
+                                                                    color: ColorCodes.blackColor,
+                                                                    fontWeight: FontWeight.bold,
+                                                                    fontSize:13,
+                                                                  ),
+                                                                ),
+                                                                new TextSpan(
+                                                                  text: _checkmembership ?
+                                                                  Features.iscurrencyformatalign?
+                                                                  something[i].type == "1"?
+                                                                  ((double.parse(something[i]
+                                                                      .varMrp!) *
+                                                                      double.parse(something[i]
+                                                                          .weight!))
+                                                                      .toString() + " " + IConstants
+                                                                      .currencyFormat):
+                                                                  ((double.parse(something[i]
+                                                                      .varMrp!) *
+                                                                      int.parse(something[i]
+                                                                          .quantity!))
+                                                                      .toString() + " " + IConstants
+                                                                      .currencyFormat):
+                                                                  something[i].type == "1"?
+                                                                  (IConstants
+                                                                      .currencyFormat + " " +
+                                                                      (double.parse(something[i]
+                                                                          .varMrp!) *
+                                                                          double.parse(something[i]
+                                                                              .weight!))
+                                                                          .toString())
+                                                                      :
+                                                                  (IConstants
+                                                                      .currencyFormat + " " +
+                                                                      (double.parse(something[i]
+                                                                          .varMrp!) *
+                                                                          int.parse(something[i]
+                                                                              .quantity!))
+                                                                          .toString()) :
+                                                                  Features.iscurrencyformatalign?
+                                                                  something[i].type == "1"?
+                                                                  ((double.parse(something[i].varMrp!)*
+                                                                      double.parse(something[i]
+                                                                          .weight!))
+                                                                      .toString()+
+                                                                      " " + IConstants.currencyFormat):
+                                                                  ((double.parse(something[i].varMrp!)*
+                                                                      int.parse(something[i]
+                                                                          .quantity!))
+                                                                      .toString()+
+                                                                      " " + IConstants.currencyFormat):
+                                                                  something[i].type == "1"?
+                                                                  (IConstants.currencyFormat +
+                                                                      " " +
+                                                                      (double.parse(something[i].varMrp!)*
+                                                                          double.parse(something[i]
+                                                                              .weight!))
+                                                                          .toString())
+
+                                                                      :(IConstants.currencyFormat +
+                                                                      " " +
+                                                                      (double.parse(something[i].varMrp!)*
+                                                                          int.parse(something[i]
+                                                                              .quantity!))
+                                                                          .toString()) ,// 'HOME DELIVERY',
+                                                                  style: TextStyle(
+                                                                    color: ColorCodes.greyColor,
+                                                                    // fontWeight: FontWeight.bold,
+                                                                    fontSize:9,
+                                                                    decoration:TextDecoration.lineThrough,
+
+                                                                  ),
+                                                                ),
+                                                              ],
+                                                            )),
+
+
+                                                        /*Container(
+                                                          child: Text(
+                                                            _checkmembership ?
+                                                            Features.iscurrencyformatalign?
+                                                            ((double.parse(DefaultSlot[i]
+                                                                .membershipPrice!) *
+                                                                int.parse(DefaultSlot[i]
+                                                                    .quantity!))
+                                                                .toString() + " " + IConstants
+                                                                .currencyFormat):
+                                                            (IConstants
+                                                                .currencyFormat + " " +
+                                                                (double.parse(DefaultSlot[i]
+                                                                    .membershipPrice!) *
+                                                                    int.parse(DefaultSlot[i]
+                                                                        .quantity!))
+                                                                    .toString()) :
+                                                            Features.iscurrencyformatalign?
+                                                            ((double.parse(DefaultSlot[i].price!)*
+                                                                int.parse(DefaultSlot[i]
+                                                                    .quantity!))
+                                                                .toString()+
+                                                                " " + IConstants.currencyFormat):
+                                                            (IConstants.currencyFormat +
+                                                                " " +
+                                                                (double.parse(DefaultSlot[i].price!)*
+                                                                    int.parse(DefaultSlot[i]
+                                                                        .quantity!))
+                                                                    .toString()),
+                                                            overflow: TextOverflow.ellipsis,
+                                                            maxLines: 1,
+                                                            style: TextStyle(
+                                                                fontSize: 13,
+                                                                fontWeight: FontWeight.w600,
+                                                                color: Colors.black),
+                                                          ),
+                                                        ),*/
+                                                      ],
+                                                    ),
+                                                  ])),
+
+
+
+                                        ],
+                                      ),
+                                    ),
+                                  )
+                                ],
+                                ):SizedBox.shrink(),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    Positioned(
+                      right: -5,
+                      top: -5,
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.translucent,
+                        onTap: () {
+                          Navigator.of(context).pop();
+                        },
+                        child: CircleAvatar(
+                          radius: 14.0,
+                          backgroundColor: Colors.grey,
+                          child: Icon(Icons.close, color: Colors.white),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              });
+        });
+
 
 
   }
   dialogforViewAllProductExpress(int count, String express_delivery, int length) {
 
-    showDialog(
+    /*showDialog(
       context: context,
       builder: (BuildContext context1) {
         return VxBuilder(mutations: {SetCartItem},
-          builder: (context, store,state) {
+          builder: (context,GroceStore store,state) {
            // ExpressDetails =store.CartItemList;
           return Dialog(
 
@@ -5251,7 +6481,7 @@ VxState.watch(context, on: [SetCartItem]);
                             shrinkWrap: true,
                             itemCount: ExpressDetails.length,
                             itemBuilder: (_, i) =>
-                                (int.parse(ExpressDetails[i].quantity)>0)?
+                                (int.parse(ExpressDetails[i].quantity!)>0)?
                                 Column(children: [
                                   Container(
                                     color: Colors.white,
@@ -5265,7 +6495,7 @@ VxState.watch(context, on: [SetCartItem]);
                                         children: <Widget>[
                                           FadeInImage(
                                             image: NetworkImage(
-                                                ExpressDetails[i].itemImage),
+                                                ExpressDetails[i].itemImage!),
                                             placeholder: AssetImage(
                                               Images.defaultProductImg,
                                             ),
@@ -5286,7 +6516,7 @@ VxState.watch(context, on: [SetCartItem]);
                                                     Container(
                                                       child: Text(
                                                         ExpressDetails[i]
-                                                            .itemName,
+                                                            .itemName!,
                                                         overflow: TextOverflow
                                                             .ellipsis,
                                                         maxLines: 2,
@@ -5322,20 +6552,35 @@ VxState.watch(context, on: [SetCartItem]);
                                                   ])),
                                           Container(
                                             child: Text(
-                                              _checkmembership ? (IConstants
+                                              _checkmembership ? Features.iscurrencyformatalign?
+                                              ((double.parse(
+                                                      ExpressDetails[i]
+                                                          .membershipPrice!) *
+                                                      int.parse(
+                                                          ExpressDetails[i]
+                                                              .quantity!))
+                                                      .toString() + " " + IConstants
+                                                      .currencyFormat):
+                                              (IConstants
                                                   .currencyFormat + " " +
                                                   (double.parse(
                                                       ExpressDetails[i]
-                                                          .membershipPrice) *
+                                                          .membershipPrice!) *
                                                       int.parse(
                                                           ExpressDetails[i]
-                                                              .quantity))
+                                                              .quantity!))
                                                       .toString()) :
-                                              (IConstants.currencyFormat + " " +
-                                                  (double.parse(ExpressDetails[i].price)*
+                                              Features.iscurrencyformatalign?
+                                              ((double.parse(ExpressDetails[i].price!)*
                                                       int.parse(
                                                           ExpressDetails[i]
-                                                              .quantity))
+                                                              .quantity!))
+                                                      .toString() + " " + IConstants.currencyFormat):
+                                              (IConstants.currencyFormat + " " +
+                                                  (double.parse(ExpressDetails[i].price!)*
+                                                      int.parse(
+                                                          ExpressDetails[i]
+                                                              .quantity!))
                                                       .toString()),
                                               overflow: TextOverflow.ellipsis,
                                               maxLines: 1,
@@ -5355,11 +6600,13 @@ VxState.watch(context, on: [SetCartItem]);
                                                   ExpressDetails[i].varId
                                                       .toString(),
                                                   ExpressDetails[i].price
-                                                      .toString());
-                                              /*  incrementToCart(0,ExpressDetails[i].varId,ExpressDetails[i].itemName ,ExpressDetails[i].itemId,ExpressDetails[i].varName,ExpressDetails[i].varMinItem
+                                                      .toString(),
+                                                ExpressDetails[i].increment.toString(),
+                                              );
+                                              *//*  incrementToCart(0,ExpressDetails[i].varId,ExpressDetails[i].itemName ,ExpressDetails[i].itemId,ExpressDetails[i].varName,ExpressDetails[i].varMinItem
                                             ,ExpressDetails[i].varMaxItem,ExpressDetails[i].varStock,ExpressDetails[i].varMrp,ExpressDetails[i].quantity,ExpressDetails[i].price,
                                             ExpressDetails[i].membershipPrice,ExpressDetails[i].itemActualprice,ExpressDetails[i].itemImage,ExpressDetails[i].veg_type,ExpressDetails[i].type);
-*/
+*//*
 
                                             },
                                           ),
@@ -5394,22 +6641,434 @@ VxState.watch(context, on: [SetCartItem]);
           );
         });
       },
-    );
+    );*/
+
+
+
+    showModalBottomSheet(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.only(topLeft: Radius.circular(15.0),topRight: Radius.circular(15.0)),
+        ),
+        context: context,
+        builder: (BuildContext bc) {
+          return VxBuilder(mutations: {SetCartItem},
+              builder: (context,store,state) {
+                //  DefaultSlot=store.CartItemList;
+                return Stack(
+                  //overflow: Overflow.visible,
+                  children: [
+                    SingleChildScrollView(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          Padding(
+                            padding: const EdgeInsets.all(10.0),
+                            child: Container(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  SizedBox(height: 10,),
+                                  Text(S
+                                      .of(context)
+                                      .shipment + " " + count.toString() ,
+
+                                    style: TextStyle(color: ColorCodes.blackColor,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 18),
+                                  ),
+                                  SizedBox(height: 10,),
+                                  IntrinsicHeight(
+                                    child: Row(
+                                      children: [
+                                        Text( express_delivery ,
+                                          style: TextStyle(color: ColorCodes.blackColor,
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 15),
+                                        ),
+                                        VerticalDivider(color: ColorCodes.blackColor,
+                                          thickness: 2,),
+                                        Text( length.toString() + " " + S
+                                            .of(context)
+                                            .items,
+                                          style: TextStyle(color: ColorCodes.blackColor,
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 15),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  SizedBox(height: 20,),
+                                  // Divider(thickness: 2, color: ColorCodes.greyColor,),
+                                  //SizedBox(height: 10,),
+                                ],
+                              ),
+                            ),
+                          ),
+                          if(ExpressDetails.length > 0)
+                            SizedBox(
+                              child: new ListView.separated(
+                                separatorBuilder: (context, index) =>
+                                    Divider(
+                                      color: ColorCodes.lightGreyColor,
+                                    ),
+                                physics: NeverScrollableScrollPhysics(),
+                                shrinkWrap: true,
+                                itemCount: ExpressDetails.length,
+                                itemBuilder: (_, i) =>
+                                (int.parse(ExpressDetails[i].quantity!)>0)?
+                                Column(children: [
+                                  Container(
+                                    color: Colors.white,
+                                    child: Card(
+                                      /* shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(4),
+                                        side: new BorderSide(color: ColorCodes.primaryColor, width: 1.0),
+                                      ),*/
+                                      elevation: 0,
+                                      margin: EdgeInsets.all(5),
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment
+                                            .spaceBetween,
+                                        children: <Widget>[
+                                          (productBox[i].mode == "1")
+                                              ? Image.asset(
+                                            Images.membershipImg,
+                                            width: 80,
+                                            height: 80,
+                                            color: Theme
+                                                .of(context)
+                                                .primaryColor,
+                                          )
+                                              : FadeInImage(
+                                            image: NetworkImage(
+                                                ExpressDetails[i].itemImage!),
+                                            placeholder: AssetImage(
+                                              Images.defaultProductImg,
+                                            ),
+                                            width: 80,
+                                            height: 80,
+                                            fit: BoxFit.cover,
+                                          ),
+
+                                          Expanded(
+                                              child: Column(
+                                                  crossAxisAlignment: CrossAxisAlignment
+                                                      .start,
+                                                  mainAxisSize: MainAxisSize
+                                                      .min,
+                                                  children: [
+                                                    //SizedBox(height: 10,),
+
+                                                    Row(
+                                                      children: [
+                                                        Expanded(
+                                                          child: Padding(
+                                                            padding: const EdgeInsets.only(left:5.0),
+                                                            child: Container(
+                                                              child: Text(
+                                                                ExpressDetails[i]
+                                                                    .itemName!,
+                                                                overflow: TextOverflow
+                                                                    .ellipsis,
+                                                                maxLines: 2,
+                                                                style: TextStyle(
+                                                                    fontSize: 15,
+                                                                    fontWeight: FontWeight
+                                                                        .w600,
+                                                                    color: ColorCodes.blackColor),
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ),
+                                                        // Spacer(),
+                                                        IconButton(
+                                                          icon: Image.asset(
+                                                            Images.Delete,
+                                                            height: 22.0,
+                                                            color: ColorCodes.primaryColor,
+                                                          ),//Icon(Icons.delete_outline,color: ColorCodes.primaryColor,),
+                                                          color: Colors.grey,
+                                                          onPressed: () {
+                                                            Navigator.of(context).pop();
+                                                            // _dialogforDeleting();
+                                                            _updateCart(0, CartStatus.remove,
+                                                              ExpressDetails[i].varId
+                                                                  .toString(),
+                                                              ExpressDetails[i].price
+                                                                  .toString(),
+                                                              ExpressDetails[i].increment.toString(),
+                                                              productBox
+                                                                  .where((element) =>
+                                                              element.id! == ExpressDetails[i].id
+                                                              ).first.parent_id.toString(),
+
+                                                            );
+                                                            /*  incrementToCart(0,DefaultSlot[i].varId,DefaultSlot[i].itemName ,DefaultSlot[i].itemId,DefaultSlot[i].varName,DefaultSlot[i].varMinItem
+                                                ,DefaultSlot[i].varMaxItem,DefaultSlot[i].varStock,DefaultSlot[i].varMrp,DefaultSlot[i].quantity,DefaultSlot[i].price,
+                                                DefaultSlot[i].membershipPrice,DefaultSlot[i].itemActualprice,DefaultSlot[i].itemImage,DefaultSlot[i].veg_type,DefaultSlot[i].type);
+*/
+
+                                                          },
+                                                        ),
+                                                      ],
+                                                    ),
+                                                    SizedBox(height: 5,),
+                                                    Row(
+                                                      children: [
+                                                        Padding(
+                                                          padding: const EdgeInsets.only(left:5.0),
+                                                          child: Container(
+                                                            child: Text(
+
+                                                              ExpressDetails[i].type == "1"?
+                                                              ExpressDetails[i]
+                                                                  .varName! +
+                                                                  " * " +
+                                                                  ExpressDetails[i]
+                                                                      .weight
+                                                                      .toString()
+                                                                  :ExpressDetails[i]
+                                                                  .varName! +
+                                                                  " * " +
+                                                                  ExpressDetails[i]
+                                                                      .quantity
+                                                                      .toString()
+
+                                                              ,
+                                                              overflow: TextOverflow
+                                                                  .ellipsis,
+                                                              maxLines: 1,
+                                                              style: TextStyle(
+                                                                  fontSize: 12,
+                                                                  fontWeight: FontWeight
+                                                                      .w400,
+                                                                  color: Colors
+                                                                      .grey),
+                                                            ),
+                                                          ),
+                                                        ),
+                                                        Spacer(),
+
+                                                        RichText(
+                                                            text: new TextSpan(
+                                                              children: <TextSpan>[
+                                                                new TextSpan(
+                                                                  text:_checkmembership ?
+                                                                  Features.iscurrencyformatalign?
+                                                                  ExpressDetails[i].type == "1"?
+                                                                  ((double.parse(ExpressDetails[i]
+                                                                      .membershipPrice!) *
+                                                                      double.parse(ExpressDetails[i]
+                                                                          .weight!))
+                                                                      .toString() + " " + IConstants
+                                                                      .currencyFormat):
+                                                                  ((double.parse(ExpressDetails[i]
+                                                                      .membershipPrice!) *
+                                                                      int.parse(ExpressDetails[i]
+                                                                          .quantity!))
+                                                                      .toString() + " " + IConstants
+                                                                      .currencyFormat):   ExpressDetails[i].type == "1"?
+                                                                  (IConstants
+                                                                      .currencyFormat + " " +
+                                                                      (double.parse(ExpressDetails[i]
+                                                                          .membershipPrice!) *
+                                                                          double.parse(ExpressDetails[i]
+                                                                              .weight!))
+                                                                          .toString())
+
+                                                                      :(IConstants
+                                                                      .currencyFormat + " " +
+                                                                      (double.parse(ExpressDetails[i]
+                                                                          .membershipPrice!) *
+                                                                          int.parse(ExpressDetails[i]
+                                                                              .quantity!))
+                                                                          .toString()) :
+                                                                  Features.iscurrencyformatalign?
+                                                                  ExpressDetails[i].type == "1"?
+                                                                  ((double.parse(ExpressDetails[i].price!)*
+                                                                      double.parse(ExpressDetails[i]
+                                                                          .weight!))
+                                                                      .toString()+
+                                                                      " " + IConstants.currencyFormat):
+                                                                  ((double.parse(ExpressDetails[i].price!)*
+                                                                      int.parse(ExpressDetails[i]
+                                                                          .quantity!))
+                                                                      .toString()+
+                                                                      " " + IConstants.currencyFormat):
+                                                                  ExpressDetails[i].type == "1"?
+                                                                  (IConstants.currencyFormat +
+                                                                      " " +
+                                                                      (double.parse(ExpressDetails[i].price!)*
+                                                                          double.parse(ExpressDetails[i]
+                                                                              .weight!))
+                                                                          .toString())
+                                                                      :(IConstants.currencyFormat +
+                                                                      " " +
+                                                                      (double.parse(ExpressDetails[i].price!)*
+                                                                          int.parse(ExpressDetails[i]
+                                                                              .quantity!))
+                                                                          .toString()) ,// 'HOME DELIVERY',
+                                                                  style: TextStyle(
+                                                                    color: ColorCodes.blackColor,
+                                                                    fontWeight: FontWeight.bold,
+                                                                    fontSize:13,
+                                                                  ),
+                                                                ),
+                                                                new TextSpan(
+                                                                  text: _checkmembership ?
+                                                                  Features.iscurrencyformatalign?ExpressDetails[i].type == "1"?
+                                                                  ((double.parse(ExpressDetails[i]
+                                                                      .varMrp!) *
+                                                                      double.parse(ExpressDetails[i]
+                                                                          .weight!))
+                                                                      .toString() + " " + IConstants
+                                                                      .currencyFormat)
+                                                                      :((double.parse(ExpressDetails[i]
+                                                                      .varMrp!) *
+                                                                      int.parse(ExpressDetails[i]
+                                                                          .quantity!))
+                                                                      .toString() + " " + IConstants
+                                                                      .currencyFormat):ExpressDetails[i].type == "1"?
+                                                                  (IConstants
+                                                                      .currencyFormat + " " +
+                                                                      (double.parse(ExpressDetails[i]
+                                                                          .varMrp!) *
+                                                                          double.parse(ExpressDetails[i]
+                                                                              .weight!))
+                                                                          .toString()):
+                                                                  (IConstants
+                                                                      .currencyFormat + " " +
+                                                                      (double.parse(ExpressDetails[i]
+                                                                          .varMrp!) *
+                                                                          int.parse(ExpressDetails[i]
+                                                                              .quantity!))
+                                                                          .toString()) :
+                                                                  Features.iscurrencyformatalign?ExpressDetails[i].type == "1"?
+                                                                  ((double.parse(ExpressDetails[i].varMrp!)*
+                                                                      double.parse(ExpressDetails[i]
+                                                                          .weight!))
+                                                                      .toString()+
+                                                                      " " + IConstants.currencyFormat):
+                                                                  ((double.parse(ExpressDetails[i].varMrp!)*
+                                                                      int.parse(ExpressDetails[i]
+                                                                          .quantity!))
+                                                                      .toString()+
+                                                                      " " + IConstants.currencyFormat):
+                                                                  ExpressDetails[i].type == "1"?
+                                                                  (IConstants.currencyFormat +
+                                                                      " " +
+                                                                      (double.parse(ExpressDetails[i].varMrp!)*
+                                                                          double.parse(ExpressDetails[i]
+                                                                              .weight!))
+                                                                          .toString()):
+                                                                  (IConstants.currencyFormat +
+                                                                      " " +
+                                                                      (double.parse(ExpressDetails[i].varMrp!)*
+                                                                          int.parse(ExpressDetails[i]
+                                                                              .quantity!))
+                                                                          .toString()) ,// 'HOME DELIVERY',
+                                                                  style: TextStyle(
+                                                                    color: ColorCodes.greyColor,
+                                                                    // fontWeight: FontWeight.bold,
+                                                                    fontSize:9,
+                                                                    decoration:TextDecoration.lineThrough,
+
+                                                                  ),
+                                                                ),
+                                                              ],
+                                                            )),
+
+
+                                                        /*Container(
+                                                          child: Text(
+                                                            _checkmembership ?
+                                                            Features.iscurrencyformatalign?
+                                                            ((double.parse(DefaultSlot[i]
+                                                                .membershipPrice!) *
+                                                                int.parse(DefaultSlot[i]
+                                                                    .quantity!))
+                                                                .toString() + " " + IConstants
+                                                                .currencyFormat):
+                                                            (IConstants
+                                                                .currencyFormat + " " +
+                                                                (double.parse(DefaultSlot[i]
+                                                                    .membershipPrice!) *
+                                                                    int.parse(DefaultSlot[i]
+                                                                        .quantity!))
+                                                                    .toString()) :
+                                                            Features.iscurrencyformatalign?
+                                                            ((double.parse(DefaultSlot[i].price!)*
+                                                                int.parse(DefaultSlot[i]
+                                                                    .quantity!))
+                                                                .toString()+
+                                                                " " + IConstants.currencyFormat):
+                                                            (IConstants.currencyFormat +
+                                                                " " +
+                                                                (double.parse(DefaultSlot[i].price!)*
+                                                                    int.parse(DefaultSlot[i]
+                                                                        .quantity!))
+                                                                    .toString()),
+                                                            overflow: TextOverflow.ellipsis,
+                                                            maxLines: 1,
+                                                            style: TextStyle(
+                                                                fontSize: 13,
+                                                                fontWeight: FontWeight.w600,
+                                                                color: Colors.black),
+                                                          ),
+                                                        ),*/
+                                                      ],
+                                                    ),
+                                                  ])),
+
+
+
+                                        ],
+                                      ),
+                                    ),
+                                  )
+                                ],
+                                ):SizedBox.shrink(),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    Positioned(
+                      right: -5,
+                      top: -5,
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.translucent,
+                        onTap: () {
+                          Navigator.of(context).pop();
+                        },
+                        child: CircleAvatar(
+                          radius: 14.0,
+                          backgroundColor: Colors.grey,
+                          child: Icon(Icons.close, color: Colors.white),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              });
+        });
 
 
   }
 
   dialogforViewAllDateTimeProduct(List<CartItem> orderLinesDate, int count, String delivery_on, String date, int length) {
 
-    showDialog(
+    /*showDialog(
       context: context,
       builder: (BuildContext context1) {
       return  VxBuilder(mutations: {SetCartItem},
-          builder: (context, store,state) {
+          builder: (context,GroceStore store,state) {
            //  orderLinesDate =store.CartItemList;
         return Dialog(
-          /*shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12.0)),*/
+          *//*shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12.0)),*//*
           child: Stack(
             overflow: Overflow.visible,
             children: [
@@ -5454,7 +7113,7 @@ VxState.watch(context, on: [SetCartItem]);
                           shrinkWrap: true,
                           itemCount: orderLinesDate.length,
                           itemBuilder: (_, i) =>
-                          (int.parse(orderLinesDate[i].quantity)>0)?
+                          (int.parse(orderLinesDate[i].quantity!)>0)?
                               Column(children: [
                                 Container(
                                   color: Colors.white,
@@ -5466,7 +7125,7 @@ VxState.watch(context, on: [SetCartItem]);
                                       children: <Widget>[
                                         FadeInImage(
                                           image: NetworkImage(orderLinesDate[i]
-                                              .itemImage),
+                                              .itemImage!),
                                           placeholder: AssetImage(
                                             Images.defaultProductImg,
                                           ),
@@ -5486,7 +7145,7 @@ VxState.watch(context, on: [SetCartItem]);
                                                   Container(
                                                     child: Text(
                                                       orderLinesDate[i]
-                                                          .itemName,
+                                                          .itemName!,
                                                       overflow: TextOverflow
                                                           .ellipsis,
                                                       maxLines: 2,
@@ -5522,17 +7181,29 @@ VxState.watch(context, on: [SetCartItem]);
                                         Container(
                                           child: Text(
                                             _checkmembership
-                                                ? (IConstants.currencyFormat +
+                                                ?
+                                            Features.iscurrencyformatalign?
+                                            ((double.parse(
+                                                orderLinesDate[i]
+                                                    .membershipPrice!) *
+                                                int.parse(orderLinesDate[i]
+                                                    .quantity!)).toString() +
+                                                " " + IConstants.currencyFormat):
+                                            (IConstants.currencyFormat +
                                                 " " + (double.parse(
                                                 orderLinesDate[i]
-                                                    .membershipPrice) *
+                                                    .membershipPrice!) *
                                                 int.parse(orderLinesDate[i]
-                                                    .quantity)).toString())
+                                                    .quantity!)).toString())
                                                 :
+                                                Features.iscurrencyformatalign?
+                                                ((double.parse(orderLinesDate[i].price!) *
+                                                        int.parse(orderLinesDate[i]
+                                                            .quantity!)).toString() + " " + IConstants.currencyFormat):
                                             (IConstants.currencyFormat + " " +
-                                                (double.parse(orderLinesDate[i].price) *
+                                                (double.parse(orderLinesDate[i].price!) *
                                                     int.parse(orderLinesDate[i]
-                                                        .quantity)).toString()),
+                                                        .quantity!)).toString()),
                                             overflow: TextOverflow
                                                 .ellipsis,
                                             maxLines: 1,
@@ -5553,11 +7224,13 @@ VxState.watch(context, on: [SetCartItem]);
                                                 orderLinesDate[i].varId
                                                     .toString(),
                                                 orderLinesDate[i].price
-                                                    .toString());
-                                            /* incrementToCart(0,orderLinesDate[i].varId,orderLinesDate[i].itemName,orderLinesDate[i].itemId,orderLinesDate[i].varName,orderLinesDate[i].varMinItem
+                                                    .toString(),
+                                              orderLinesDate[i].increment.toString(),
+                                            );
+                                            *//* incrementToCart(0,orderLinesDate[i].varId,orderLinesDate[i].itemName,orderLinesDate[i].itemId,orderLinesDate[i].varName,orderLinesDate[i].varMinItem
                                                 ,orderLinesDate[i].varMaxItem,orderLinesDate[i].varStock,orderLinesDate[i].varMrp,orderLinesDate[i].quantity,orderLinesDate[i].price,
                                                 orderLinesDate[i].membershipPrice,orderLinesDate[i].itemActualprice,orderLinesDate[i].itemImage,orderLinesDate[i].veg_type,orderLinesDate[i].type);
-*/
+*//*
                                           },
                                         ),
                                       ],
@@ -5591,485 +7264,426 @@ VxState.watch(context, on: [SetCartItem]);
         );
       });
       },
-    );
-  }
-  /*dialogforViewAllDateProductDefault(List<Product> orderLines, int count, String delivery_on, String date, int length) {
+    );*/
 
-    showDialog(
-      context: context,
-      builder: (BuildContext context1) {
-
-        return Dialog(
-
-          child: Stack(
-            overflow: Overflow.visible,
-            children: [
-              SingleChildScrollView(
-                child: Column(
-                  children: <Widget>[
-                    Container(
+    showModalBottomSheet(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.only(topLeft: Radius.circular(15.0),topRight: Radius.circular(15.0)),
+        ),
+        context: context,
+        builder: (BuildContext bc) {
+          return VxBuilder(mutations: {SetCartItem},
+              builder: (context,store,state) {
+                //  DefaultSlot=store.CartItemList;
+                return Stack(
+                  //overflow: Overflow.visible,
+                  children: [
+                    SingleChildScrollView(
                       child: Column(
-                        children: [
-                          SizedBox(height: 10,),
-                          Text(S.of(context).shipment+ " "+count.toString()+": " + delivery_on +" "+ date,
-                            style: TextStyle(color: ColorCodes.blackColor, fontWeight: FontWeight.bold, fontSize: 16),
-                          ),
-                          SizedBox(height: 10,),
-                          Text(length.toString()+" " + S.of(context).items,
-                            style: TextStyle(color: ColorCodes.greyColor, fontWeight: FontWeight.w400, fontSize: 14),
-                          ),
-                          SizedBox(height: 20,),
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          Padding(
+                            padding: const EdgeInsets.all(10.0),
+                            child: Container(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  SizedBox(height: 10,),
+                                  Text(S
+                                      .of(context)
+                                      .shipment + " " + count.toString() ,
 
-                        ],
-                      ),
-                    ),
-                    if(orderLines.length > 0)
-                      SizedBox(
-                        child: new ListView.separated(
-                          separatorBuilder: (context, index) => Divider(
-                            color: ColorCodes.lightGreyColor,
-                          ),
-                          physics: NeverScrollableScrollPhysics(),
-                          shrinkWrap: true,
-                          itemCount: orderLines.length,
-                          itemBuilder: (_, i) =>
-                              Column(children: [
-                                Container(
-                                  color: Colors.white,
-                                  child: Card(
-
-                                    elevation: 0,
-                                    margin: EdgeInsets.all(5),
+                                    style: TextStyle(color: ColorCodes.blackColor,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 18),
+                                  ),
+                                  SizedBox(height: 10,),
+                                  IntrinsicHeight(
                                     child: Row(
-                                      children: <Widget>[
-                                        FadeInImage(
-                                          image: NetworkImage(orderLines.elementAt(i).itemImage),
-                                          placeholder: AssetImage(
-                                            Images.defaultProductImg,
-                                          ),
-                                          width: 80,
-                                          height: 80,
-                                          fit: BoxFit.cover,
+                                      children: [
+                                        Text( delivery_on + " "+ date ,
+                                          style: TextStyle(color: ColorCodes.blackColor,
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 15),
                                         ),
-
-                                        Expanded(
-                                            child: Column(
-                                                crossAxisAlignment: CrossAxisAlignment
-                                                    .start,
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  //SizedBox(height: 10,),
-
-                                                  Container(
-                                                    child: Text(
-                                                      orderLines
-                                                          .elementAt(i)
-                                                          .itemName,
-                                                      overflow: TextOverflow
-                                                          .ellipsis,
-                                                      maxLines: 2,
-                                                      style: TextStyle(
-                                                          fontSize: 15,
-                                                          fontWeight: FontWeight
-                                                              .w600,
-                                                          color: Colors.black54),
-                                                    ),
-                                                  ),
-                                                  SizedBox(height: 5,),
-                                                  Container(
-                                                    child: Text(
-                                                      orderLines
-                                                          .elementAt(i)
-                                                          .quantity
-                                                          .toString()+" * "+ orderLines
-                                                          .elementAt(i).varName
-                                                          .toString(),
-                                                      overflow: TextOverflow
-                                                          .ellipsis,
-                                                      maxLines: 1,
-                                                      style: TextStyle(
-                                                          fontSize: 12,
-                                                          fontWeight: FontWeight
-                                                              .w400,
-                                                          color: Colors.grey),
-                                                    ),
-                                                  ),
-
-
-                                                ])),
-
-                                        Container(
-                                          child: Text(
-                                            _checkmembership? (IConstants.currencyFormat+ " "+(double.parse(orderLines[i].membershipPrice) * orderLines[i].quantity).toString()):
-                                            (IConstants.currencyFormat+ " "+(orderLines[i].price * orderLines[i].quantity).toString()),
-                                            overflow: TextOverflow
-                                                .ellipsis,
-                                            maxLines: 1,
-                                            style: TextStyle(
-                                                fontSize: 15,
-                                                fontWeight: FontWeight
-                                                    .w400,
-                                                color: Colors.black),
-                                          ),
-                                        ),
-                                        SizedBox(
-                                          width: 5,
+                                        VerticalDivider(color: ColorCodes.blackColor,
+                                          thickness: 2,),
+                                        Text( length.toString() + " " + S
+                                            .of(context)
+                                            .items,
+                                          style: TextStyle(color: ColorCodes.blackColor,
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 15),
                                         ),
                                       ],
                                     ),
                                   ),
-                                )
-                              ],
+                                  SizedBox(height: 20,),
+                                  // Divider(thickness: 2, color: ColorCodes.greyColor,),
+                                  //SizedBox(height: 10,),
+                                ],
                               ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-              Positioned(
-                right: -5,
-                top: -5,
-                child: GestureDetector(
-                  behavior: HitTestBehavior.translucent,
-                  onTap: () {
-                      Navigator.of(context).pop();
-                  },
-                  child: CircleAvatar(
-                    radius: 14.0,
-                    backgroundColor: Colors.grey,
-                    child: Icon(Icons.close, color: Colors.white),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-  dialogforViewAllTimeProduct(List<Product> orderLinesTime, int count, String delivery_in, String date, int length) {
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context1) {
-
-        return Dialog(
-
-          child: Stack(
-            overflow: Overflow.visible,
-            children: [
-
-              SingleChildScrollView(
-                child: Column(
-                  children: <Widget>[
-                    Container(
-                      child: Column(
-                        children: [
-                          SizedBox(height: 10,),
-                          Text(S.of(context).shipment+ " "+count.toString()+": " + delivery_in +" "+ date,
-                            style: TextStyle(color: ColorCodes.blackColor, fontWeight: FontWeight.bold, fontSize: 16),
+                            ),
                           ),
-                          SizedBox(height: 10,),
-                          Text(length.toString()+" " + S.of(context).items,
-                            style: TextStyle(color: ColorCodes.greyColor, fontWeight: FontWeight.w400, fontSize: 14),
-                          ),
-                          SizedBox(height: 20,),
+                          if(orderLinesDate.length > 0)
+                            SizedBox(
+                              child: new ListView.separated(
+                                separatorBuilder: (context, index) =>
+                                    Divider(
+                                      color: ColorCodes.lightGreyColor,
+                                    ),
+                                physics: NeverScrollableScrollPhysics(),
+                                shrinkWrap: true,
+                                itemCount: orderLinesDate.length,
+                                itemBuilder: (_, i) =>
+                                (int.parse(orderLinesDate[i].quantity!)>0)?
+                                Column(children: [
+                                  Container(
+                                    color: Colors.white,
+                                    child: Card(
+                                      /* shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(4),
+                                        side: new BorderSide(color: ColorCodes.primaryColor, width: 1.0),
+                                      ),*/
+                                      elevation: 0,
+                                      margin: EdgeInsets.all(5),
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment
+                                            .spaceBetween,
+                                        children: <Widget>[
+                                          (productBox[i].mode == "1")
+                                              ? Image.asset(
+                                            Images.membershipImg,
+                                            width: 80,
+                                            height: 80,
+                                            color: Theme
+                                                .of(context)
+                                                .primaryColor,
+                                          )
+                                              : FadeInImage(
+                                            image: NetworkImage(
+                                                orderLinesDate[i].itemImage!),
+                                            placeholder: AssetImage(
+                                              Images.defaultProductImg,
+                                            ),
+                                            width: 80,
+                                            height: 80,
+                                            fit: BoxFit.cover,
+                                          ),
 
+                                          Expanded(
+                                              child: Column(
+                                                  crossAxisAlignment: CrossAxisAlignment
+                                                      .start,
+                                                  mainAxisSize: MainAxisSize
+                                                      .min,
+                                                  children: [
+                                                    //SizedBox(height: 10,),
+
+                                                    Row(
+                                                      children: [
+                                                        Expanded(
+                                                          child: Padding(
+                                                            padding: const EdgeInsets.only(left:5.0),
+                                                            child: Container(
+                                                              child: Text(
+                                                                orderLinesDate[i]
+                                                                    .itemName!,
+                                                                overflow: TextOverflow
+                                                                    .ellipsis,
+                                                                maxLines: 2,
+                                                                style: TextStyle(
+                                                                    fontSize: 15,
+                                                                    fontWeight: FontWeight
+                                                                        .w600,
+                                                                    color: ColorCodes.blackColor),
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ),
+                                                        // Spacer(),
+                                                        IconButton(
+                                                          icon: Image.asset(
+                                                            Images.Delete,
+                                                            height: 22.0,
+                                                            color: ColorCodes.primaryColor,
+                                                          ),//Icon(Icons.delete_outline,color: ColorCodes.primaryColor,),
+                                                          color: Colors.grey,
+                                                          onPressed: () {
+                                                            Navigator.of(context).pop();
+                                                            // _dialogforDeleting();
+                                                            _updateCart(0, CartStatus.remove,
+                                                              orderLinesDate[i].varId
+                                                                  .toString(),
+                                                              orderLinesDate[i].price
+                                                                  .toString(),
+                                                              orderLinesDate[i].increment.toString(),
+                                                              productBox
+                                                                  .where((element) =>
+                                                              element.id! == orderLinesDate[i].id
+                                                              ).first.parent_id.toString(),
+
+                                                            );
+                                                            /*  incrementToCart(0,DefaultSlot[i].varId,DefaultSlot[i].itemName ,DefaultSlot[i].itemId,DefaultSlot[i].varName,DefaultSlot[i].varMinItem
+                                                ,DefaultSlot[i].varMaxItem,DefaultSlot[i].varStock,DefaultSlot[i].varMrp,DefaultSlot[i].quantity,DefaultSlot[i].price,
+                                                DefaultSlot[i].membershipPrice,DefaultSlot[i].itemActualprice,DefaultSlot[i].itemImage,DefaultSlot[i].veg_type,DefaultSlot[i].type);
+*/
+
+                                                          },
+                                                        ),
+                                                      ],
+                                                    ),
+                                                    SizedBox(height: 5,),
+                                                    Row(
+                                                      children: [
+                                                        Padding(
+                                                          padding: const EdgeInsets.only(left:5.0),
+                                                          child: Container(
+                                                            child: Text(
+                                                              orderLinesDate[i].type == "1"?
+                                                              orderLinesDate[i]
+                                                                  .varName! +
+                                                                  " * " +
+                                                                  orderLinesDate[i]
+                                                                      .weight
+                                                                      .toString()
+                                                                  :orderLinesDate[i]
+                                                                  .varName! +
+                                                                  " * " +
+                                                                  orderLinesDate[i]
+                                                                      .quantity
+                                                                      .toString()
+
+                                                              ,
+                                                              overflow: TextOverflow
+                                                                  .ellipsis,
+                                                              maxLines: 1,
+                                                              style: TextStyle(
+                                                                  fontSize: 12,
+                                                                  fontWeight: FontWeight
+                                                                      .w400,
+                                                                  color: Colors
+                                                                      .grey),
+                                                            ),
+                                                          ),
+                                                        ),
+                                                        Spacer(),
+
+                                                        RichText(
+                                                            text: new TextSpan(
+                                                              children: <TextSpan>[
+                                                                new TextSpan(
+                                                                  text:_checkmembership ?
+                                                                  Features.iscurrencyformatalign?orderLinesDate[i].type == "1"?
+                                                                  ((double.parse(orderLinesDate[i]
+                                                                      .membershipPrice!) *
+                                                                      double.parse(orderLinesDate[i]
+                                                                          .weight!))
+                                                                      .toString() + " " + IConstants
+                                                                      .currencyFormat):
+                                                                  ((double.parse(orderLinesDate[i]
+                                                                      .membershipPrice!) *
+                                                                      int.parse(orderLinesDate[i]
+                                                                          .quantity!))
+                                                                      .toString() + " " + IConstants
+                                                                      .currencyFormat):
+                                                                  orderLinesDate[i].type == "1"?
+                                                                  (IConstants
+                                                                      .currencyFormat + " " +
+                                                                      (double.parse(orderLinesDate[i]
+                                                                          .membershipPrice!) *
+                                                                          double.parse(orderLinesDate[i]
+                                                                              .weight!))
+                                                                          .toString()):
+                                                                  (IConstants
+                                                                      .currencyFormat + " " +
+                                                                      (double.parse(orderLinesDate[i]
+                                                                          .membershipPrice!) *
+                                                                          int.parse(orderLinesDate[i]
+                                                                              .quantity!))
+                                                                          .toString()) :
+                                                                  Features.iscurrencyformatalign?orderLinesDate[i].type == "1"?
+                                                                  ((double.parse(orderLinesDate[i].price!)*
+                                                                      double.parse(orderLinesDate[i]
+                                                                          .weight!))
+                                                                      .toString()+
+                                                                      " " + IConstants.currencyFormat):
+                                                                  ((double.parse(orderLinesDate[i].price!)*
+                                                                      int.parse(orderLinesDate[i]
+                                                                          .quantity!))
+                                                                      .toString()+
+                                                                      " " + IConstants.currencyFormat):
+                                                                  orderLinesDate[i].type == "1"?
+                                                                  (IConstants.currencyFormat +
+                                                                      " " +
+                                                                      (double.parse(orderLinesDate[i].price!)*
+                                                                          double.parse(orderLinesDate[i]
+                                                                              .weight!))
+                                                                          .toString())
+                                                                      :
+                                                                  (IConstants.currencyFormat +
+                                                                      " " +
+                                                                      (double.parse(orderLinesDate[i].price!)*
+                                                                          int.parse(orderLinesDate[i]
+                                                                              .quantity!))
+                                                                          .toString()) ,// 'HOME DELIVERY',
+                                                                  style: TextStyle(
+                                                                    color: ColorCodes.blackColor,
+                                                                    fontWeight: FontWeight.bold,
+                                                                    fontSize:13,
+                                                                  ),
+                                                                ),
+                                                                new TextSpan(
+                                                                  text: _checkmembership ?
+                                                                  Features.iscurrencyformatalign? orderLinesDate[i].type == "1"?
+                                                                  ((double.parse(orderLinesDate[i]
+                                                                      .varMrp!) *
+                                                                      double.parse(orderLinesDate[i]
+                                                                          .weight!))
+                                                                      .toString() + " " + IConstants
+                                                                      .currencyFormat):
+                                                                  ((double.parse(orderLinesDate[i]
+                                                                      .varMrp!) *
+                                                                      int.parse(orderLinesDate[i]
+                                                                          .quantity!))
+                                                                      .toString() + " " + IConstants
+                                                                      .currencyFormat):orderLinesDate[i].type == "1"?
+                                                                  (IConstants
+                                                                      .currencyFormat + " " +
+                                                                      (double.parse(orderLinesDate[i]
+                                                                          .varMrp!) *
+                                                                          double.parse(orderLinesDate[i]
+                                                                              .weight!))
+                                                                          .toString()):
+                                                                  (IConstants
+                                                                      .currencyFormat + " " +
+                                                                      (double.parse(orderLinesDate[i]
+                                                                          .varMrp!) *
+                                                                          int.parse(orderLinesDate[i]
+                                                                              .quantity!))
+                                                                          .toString()) :
+                                                                  Features.iscurrencyformatalign?orderLinesDate[i].type == "1"?
+                                                                  ((double.parse(orderLinesDate[i].varMrp!)*
+                                                                      double.parse(orderLinesDate[i]
+                                                                          .weight!))
+                                                                      .toString()+
+                                                                      " " + IConstants.currencyFormat):
+                                                                  ((double.parse(orderLinesDate[i].varMrp!)*
+                                                                      int.parse(orderLinesDate[i]
+                                                                          .quantity!))
+                                                                      .toString()+
+                                                                      " " + IConstants.currencyFormat):orderLinesDate[i].type == "1"?
+                                                                  (IConstants.currencyFormat +
+                                                                      " " +
+                                                                      (double.parse(orderLinesDate[i].varMrp!)*
+                                                                          double.parse(orderLinesDate[i]
+                                                                              .weight!))
+                                                                          .toString()):
+                                                                  (IConstants.currencyFormat +
+                                                                      " " +
+                                                                      (double.parse(orderLinesDate[i].varMrp!)*
+                                                                          int.parse(orderLinesDate[i]
+                                                                              .quantity!))
+                                                                          .toString()) ,// 'HOME DELIVERY',
+                                                                  style: TextStyle(
+                                                                    color: ColorCodes.greyColor,
+                                                                    // fontWeight: FontWeight.bold,
+                                                                    fontSize:9,
+                                                                    decoration:TextDecoration.lineThrough,
+
+                                                                  ),
+                                                                ),
+                                                              ],
+                                                            )),
+
+
+                                                        /*Container(
+                                                          child: Text(
+                                                            _checkmembership ?
+                                                            Features.iscurrencyformatalign?
+                                                            ((double.parse(DefaultSlot[i]
+                                                                .membershipPrice!) *
+                                                                int.parse(DefaultSlot[i]
+                                                                    .quantity!))
+                                                                .toString() + " " + IConstants
+                                                                .currencyFormat):
+                                                            (IConstants
+                                                                .currencyFormat + " " +
+                                                                (double.parse(DefaultSlot[i]
+                                                                    .membershipPrice!) *
+                                                                    int.parse(DefaultSlot[i]
+                                                                        .quantity!))
+                                                                    .toString()) :
+                                                            Features.iscurrencyformatalign?
+                                                            ((double.parse(DefaultSlot[i].price!)*
+                                                                int.parse(DefaultSlot[i]
+                                                                    .quantity!))
+                                                                .toString()+
+                                                                " " + IConstants.currencyFormat):
+                                                            (IConstants.currencyFormat +
+                                                                " " +
+                                                                (double.parse(DefaultSlot[i].price!)*
+                                                                    int.parse(DefaultSlot[i]
+                                                                        .quantity!))
+                                                                    .toString()),
+                                                            overflow: TextOverflow.ellipsis,
+                                                            maxLines: 1,
+                                                            style: TextStyle(
+                                                                fontSize: 13,
+                                                                fontWeight: FontWeight.w600,
+                                                                color: Colors.black),
+                                                          ),
+                                                        ),*/
+                                                      ],
+                                                    ),
+                                                  ])),
+
+
+
+                                        ],
+                                      ),
+                                    ),
+                                  )
+                                ],
+                                ):SizedBox.shrink(),
+                              ),
+                            ),
                         ],
                       ),
                     ),
-                    if(orderLinesTime.length > 0)
-                      SizedBox(
-                        child: new ListView.separated(
-                          separatorBuilder: (context, index) => Divider(
-                            color: ColorCodes.lightGreyColor,
-                          ),
-                          physics: NeverScrollableScrollPhysics(),
-                          shrinkWrap: true,
-                          itemCount: orderLinesTime.length,
-                          itemBuilder: (_, i) =>
-                              Column(children: [
-                                Container(
-                                  color: Colors.white,
-                                  child: Card(
-
-                                    elevation: 0,
-                                    margin: EdgeInsets.all(5),
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: <Widget>[
-                                       FadeInImage(
-                                          image: NetworkImage(orderLinesTime.elementAt(i).itemImage),
-                                          placeholder: AssetImage(
-                                            Images.defaultProductImg,
-                                          ),
-                                          width: 80,
-                                          height: 80,
-                                          fit: BoxFit.cover,
-                                        ),
-
-                                        Expanded(
-                                            child: Column(
-                                                crossAxisAlignment: CrossAxisAlignment
-                                                    .start,
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  //SizedBox(height: 10,),
-
-                                                  Container(
-                                                    child: Text(
-                                                      orderLinesTime
-                                                          .elementAt(i)
-                                                          .itemName,
-                                                      overflow: TextOverflow
-                                                          .ellipsis,
-                                                      maxLines: 2,
-                                                      style: TextStyle(
-                                                          fontSize: 15,
-                                                          fontWeight: FontWeight
-                                                              .w600,
-                                                          color: Colors.black54),
-                                                    ),
-                                                  ),
-                                                  SizedBox(height: 5,),
-                                                  Container(
-                                                    child: Text(
-                                                      orderLinesTime
-                                                          .elementAt(i)
-                                                          .quantity
-                                                          .toString()+" * "+ orderLinesTime
-                                                          .elementAt(i).varName
-                                                          .toString(),
-                                                      overflow: TextOverflow
-                                                          .ellipsis,
-                                                      maxLines: 1,
-                                                      style: TextStyle(
-                                                          fontSize: 12,
-                                                          fontWeight: FontWeight
-                                                              .w400,
-                                                          color: Colors.grey),
-                                                    ),
-                                                  ),
-
-                                                ])),
-
-                                        Container(
-                                          child: Text(
-                                            _checkmembership? (IConstants.currencyFormat+ " "+(double.parse(orderLinesTime[i].membershipPrice) * orderLinesTime[i].quantity).toString()):
-                                            (IConstants.currencyFormat+ " "+(orderLinesTime[i].price * orderLinesTime[i].quantity).toString()),
-                                            overflow: TextOverflow
-                                                .ellipsis,
-                                            maxLines: 1,
-                                            style: TextStyle(
-                                                fontSize: 15,
-                                                fontWeight: FontWeight
-                                                    .w400,
-                                                color: Colors.black),
-                                          ),
-                                        ),
-                                        SizedBox(
-                                          width: 5,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                )
-                              ],
-                              ),
+                    Positioned(
+                      right: -5,
+                      top: -5,
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.translucent,
+                        onTap: () {
+                          Navigator.of(context).pop();
+                        },
+                        child: CircleAvatar(
+                          radius: 14.0,
+                          backgroundColor: Colors.grey,
+                          child: Icon(Icons.close, color: Colors.white),
                         ),
-                      ),
-                  ],
-                ),
-              ),
-              Positioned(
-                right: -5,
-                top: -5,
-                child: GestureDetector(
-                  behavior: HitTestBehavior.translucent,
-                  onTap: () {
-                      Navigator.of(context).pop();
-                  },
-                  child: CircleAvatar(
-                    radius: 14.0,
-                    backgroundColor: Colors.grey,
-                    child: Icon(Icons.close, color: Colors.white),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-  dialogforViewAllTimeProductSec(List<Product> orderLinesSecTime, int count, String delivery_in, String date, int length) {
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context1) {
-
-        return Dialog(
-
-          child: Stack(
-            overflow: Overflow.visible,
-            children: [
-
-              SingleChildScrollView(
-                child: Column(
-                  children: <Widget>[
-                    Container(
-                      child: Column(
-                        children: [
-                          SizedBox(height: 10,),
-                          Text(S.of(context).shipment+ " "+count.toString()+": " + delivery_in +" "+ date,
-                            style: TextStyle(color: ColorCodes.blackColor, fontWeight: FontWeight.bold, fontSize: 16),
-                          ),
-                          SizedBox(height: 10,),
-                          Text(length.toString()+" " + S.of(context).items,
-                            style: TextStyle(color: ColorCodes.greyColor, fontWeight: FontWeight.w400, fontSize: 14),
-                          ),
-                          SizedBox(height: 20,),
-                         // Divider(thickness: 2, color: ColorCodes.greyColor,),
-                         // SizedBox(height: 10,),
-                        ],
                       ),
                     ),
-                    if(orderLinesSecTime.length > 0)
-                      SizedBox(
-                        child: new ListView.separated(
-                          separatorBuilder: (context, index) => Divider(
-                            color: ColorCodes.lightGreyColor,
-                          ),
-                          physics: NeverScrollableScrollPhysics(),
-                          shrinkWrap: true,
-                          itemCount: orderLinesSecTime.length,
-                          itemBuilder: (_, i) =>
-                              Column(children: [
-                                Container(
-                                  color: Colors.white,
-                                  child: Card(
-
-                                    elevation: 0,
-                                    margin: EdgeInsets.all(5),
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: <Widget>[
-                                       FadeInImage(
-                                          image: NetworkImage(orderLinesSecTime.elementAt(i).itemImage),
-                                          placeholder: AssetImage(
-                                            Images.defaultProductImg,
-                                          ),
-                                          width: 80,
-                                          height: 80,
-                                          fit: BoxFit.cover,
-                                        ),
-
-                                        Expanded(
-                                            child: Column(
-                                                crossAxisAlignment: CrossAxisAlignment
-                                                    .start,
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  //SizedBox(height: 10,),
-
-                                                  Container(
-                                                    child: Text(
-                                                      orderLinesSecTime
-                                                          .elementAt(i)
-                                                          .itemName,
-                                                      overflow: TextOverflow
-                                                          .ellipsis,
-                                                      maxLines: 2,
-                                                      style: TextStyle(
-                                                          fontSize: 15,
-                                                          fontWeight: FontWeight
-                                                              .w600,
-                                                          color: Colors.black54),
-                                                    ),
-                                                  ),
-                                                  SizedBox(height: 5,),
-                                                  Container(
-                                                    child: Text(
-                                                      orderLinesSecTime
-                                                          .elementAt(i)
-                                                          .quantity.toString() +" * "+ orderLinesSecTime
-                                                          .elementAt(i).varName
-                                                          .toString(),
-                                                      overflow: TextOverflow
-                                                          .ellipsis,
-                                                      maxLines: 1,
-                                                      style: TextStyle(
-                                                          fontSize: 12,
-                                                          fontWeight: FontWeight
-                                                              .w400,
-                                                          color: Colors.grey),
-                                                    ),
-                                                  ),
-
-                                                ])),
-
-
-                                        Container(
-                                          child: Text(
-                                            _checkmembership? (IConstants.currencyFormat+ " "+(double.parse(orderLinesSecTime[i].membershipPrice) * orderLinesSecTime[i].quantity).toString()):
-                                            (IConstants.currencyFormat+ " "+(orderLinesSecTime[i].price * orderLinesSecTime[i].quantity).toString()),
-                                            overflow: TextOverflow
-                                                .ellipsis,
-                                            maxLines: 1,
-                                            style: TextStyle(
-                                                fontSize: 15,
-                                                fontWeight: FontWeight
-                                                    .w400,
-                                                color: Colors.black),
-                                          ),
-                                        ),
-                                        SizedBox(
-                                          width: 5,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                )
-
-                              ],
-                              ),
-                        ),
-                      ),
                   ],
-                ),
-              ),
-              Positioned(
-                right: -5,
-                top: -5,
-                child: GestureDetector(
-                  behavior: HitTestBehavior.translucent,
-                  onTap: () {
-                      Navigator.of(context).pop();
-                  },
-                  child: CircleAvatar(
-                    radius: 14.0,
-                    backgroundColor: Colors.grey,
-                    child: Icon(Icons.close, color: Colors.white),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }*/
-
+                );
+              });
+        });
+  }
   dialogforViewAllProductSlotExpress(int count, String slot_based_delivery, int length) {
-    showDialog(
+    /* showDialog(
       context: context,
       builder: ( context){
-      return VxBuilder(mutations: {SetCartItem},
-          builder: (context, store,state) {
+      return
+        VxBuilder(mutations: {SetCartItem},
+          builder: (context,GroceStore store,state) {
           //  DefaultSlot=store.CartItemList;
             return Dialog(
-              /* shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12.0)),*/
+              *//* shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12.0)),*//*
               child: Stack(
                 overflow: Overflow.visible,
                 children: [
@@ -6113,15 +7727,15 @@ VxState.watch(context, on: [SetCartItem]);
                               shrinkWrap: true,
                               itemCount: DefaultSlot.length,
                               itemBuilder: (_, i) =>
-            (int.parse(DefaultSlot[i].quantity)>0)?
+            (int.parse(DefaultSlot[i].quantity!)>0)?
                                   Column(children: [
                                     Container(
                                       color: Colors.white,
                                       child: Card(
-                                        /* shape: RoundedRectangleBorder(
+                                        *//* shape: RoundedRectangleBorder(
                                           borderRadius: BorderRadius.circular(4),
                                           side: new BorderSide(color: ColorCodes.primaryColor, width: 1.0),
-                                        ),*/
+                                        ),*//*
                                         elevation: 0,
                                         margin: EdgeInsets.all(5),
                                         child: Row(
@@ -6139,7 +7753,7 @@ VxState.watch(context, on: [SetCartItem]);
                                             )
                                                 : FadeInImage(
                                               image: NetworkImage(
-                                                  DefaultSlot[i].itemImage),
+                                                  DefaultSlot[i].itemImage!),
                                               placeholder: AssetImage(
                                                 Images.defaultProductImg,
                                               ),
@@ -6160,7 +7774,7 @@ VxState.watch(context, on: [SetCartItem]);
                                                       Container(
                                                         child: Text(
                                                           DefaultSlot[i]
-                                                              .itemName,
+                                                              .itemName!,
                                                           overflow: TextOverflow
                                                               .ellipsis,
                                                           maxLines: 2,
@@ -6180,7 +7794,7 @@ VxState.watch(context, on: [SetCartItem]);
                                                               .toString() +
                                                               " * " +
                                                               DefaultSlot[i]
-                                                                  .varName,
+                                                                  .varName!,
                                                           overflow: TextOverflow
                                                               .ellipsis,
                                                           maxLines: 1,
@@ -6195,18 +7809,32 @@ VxState.watch(context, on: [SetCartItem]);
                                                     ])),
                                             Container(
                                               child: Text(
-                                                _checkmembership ? (IConstants
+                                                _checkmembership ?
+                                                Features.iscurrencyformatalign?
+                                                ((double.parse(DefaultSlot[i]
+                                                        .membershipPrice!) *
+                                                        int.parse(DefaultSlot[i]
+                                                            .quantity!))
+                                                        .toString() + " " + IConstants
+                                                        .currencyFormat):
+                                                (IConstants
                                                     .currencyFormat + " " +
                                                     (double.parse(DefaultSlot[i]
-                                                        .membershipPrice) *
+                                                        .membershipPrice!) *
                                                         int.parse(DefaultSlot[i]
-                                                            .quantity))
+                                                            .quantity!))
                                                         .toString()) :
+                                                    Features.iscurrencyformatalign?
+                                                    ((double.parse(DefaultSlot[i].price!)*
+                                                            int.parse(DefaultSlot[i]
+                                                                .quantity!))
+                                                            .toString()+
+                                                        " " + IConstants.currencyFormat):
                                                 (IConstants.currencyFormat +
                                                     " " +
-                                                    (double.parse(DefaultSlot[i].price)*
+                                                    (double.parse(DefaultSlot[i].price!)*
                                                         int.parse(DefaultSlot[i]
-                                                            .quantity))
+                                                            .quantity!))
                                                         .toString()),
                                                 overflow: TextOverflow.ellipsis,
                                                 maxLines: 1,
@@ -6226,11 +7854,13 @@ VxState.watch(context, on: [SetCartItem]);
                                                     DefaultSlot[i].varId
                                                         .toString(),
                                                     DefaultSlot[i].price
-                                                        .toString());
-                                                /*  incrementToCart(0,DefaultSlot[i].varId,DefaultSlot[i].itemName ,DefaultSlot[i].itemId,DefaultSlot[i].varName,DefaultSlot[i].varMinItem
+                                                        .toString(),
+                                                  DefaultSlot[i].increment.toString(),
+                                                );
+                                                *//*  incrementToCart(0,DefaultSlot[i].varId,DefaultSlot[i].itemName ,DefaultSlot[i].itemId,DefaultSlot[i].varName,DefaultSlot[i].varMinItem
                                                   ,DefaultSlot[i].varMaxItem,DefaultSlot[i].varStock,DefaultSlot[i].varMrp,DefaultSlot[i].quantity,DefaultSlot[i].price,
                                                   DefaultSlot[i].membershipPrice,DefaultSlot[i].itemActualprice,DefaultSlot[i].itemImage,DefaultSlot[i].veg_type,DefaultSlot[i].type);
-*/
+*//*
 
                                               },
                                             ),
@@ -6265,8 +7895,416 @@ VxState.watch(context, on: [SetCartItem]);
               ),
             );
           });
-    });
+    });*/
+
+
+    showModalBottomSheet(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.only(topLeft: Radius.circular(15.0),topRight: Radius.circular(15.0)),
+        ),
+        context: context,
+        builder: (BuildContext bc) {
+          return VxBuilder(mutations: {SetCartItem},
+              builder: (context,store,state) {
+                //  DefaultSlot=store.CartItemList;
+                return Stack(
+                  //overflow: Overflow.visible,
+                  children: [
+                    SingleChildScrollView(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          Padding(
+                            padding: const EdgeInsets.all(10.0),
+                            child: Container(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  SizedBox(height: 10,),
+                                  Text(S
+                                      .of(context)
+                                      .shipment + " " + count.toString() ,
+
+                                    style: TextStyle(color: ColorCodes.blackColor,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 18),
+                                  ),
+                                  SizedBox(height: 10,),
+                                  IntrinsicHeight(
+                                    child: Row(
+                                      children: [
+                                        Text( slot_based_delivery ,
+                                          style: TextStyle(color: ColorCodes.blackColor,
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 15),
+                                        ),
+                                        VerticalDivider(color: ColorCodes.blackColor,
+                                          thickness: 2,),
+                                        Text( length.toString() + " " + S
+                                            .of(context)
+                                            .items,
+                                          style: TextStyle(color: ColorCodes.blackColor,
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 15),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  SizedBox(height: 20,),
+                                  // Divider(thickness: 2, color: ColorCodes.greyColor,),
+                                  //SizedBox(height: 10,),
+                                ],
+                              ),
+                            ),
+                          ),
+                          if(DefaultSlot.length > 0)
+                            SizedBox(
+                              child: new ListView.separated(
+                                separatorBuilder: (context, index) =>
+                                    Divider(
+                                      color: ColorCodes.lightGreyColor,
+                                    ),
+                                physics: NeverScrollableScrollPhysics(),
+                                shrinkWrap: true,
+                                itemCount: DefaultSlot.length,
+                                itemBuilder: (_, i) =>
+                                (int.parse(DefaultSlot[i].quantity!)>0)?
+                                Column(children: [
+                                  Container(
+                                    color: Colors.white,
+                                    child: Card(
+                                      /* shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(4),
+                                        side: new BorderSide(color: ColorCodes.primaryColor, width: 1.0),
+                                      ),*/
+                                      elevation: 0,
+                                      margin: EdgeInsets.all(5),
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment
+                                            .spaceBetween,
+                                        children: <Widget>[
+                                          (productBox[i].mode == "1")
+                                              ? Image.asset(
+                                            Images.membershipImg,
+                                            width: 80,
+                                            height: 80,
+                                            color: Theme
+                                                .of(context)
+                                                .primaryColor,
+                                          )
+                                              : FadeInImage(
+                                            image: NetworkImage(
+                                                DefaultSlot[i].itemImage!),
+                                            placeholder: AssetImage(
+                                              Images.defaultProductImg,
+                                            ),
+                                            width: 80,
+                                            height: 80,
+                                            fit: BoxFit.cover,
+                                          ),
+
+                                          Expanded(
+                                              child: Column(
+                                                  crossAxisAlignment: CrossAxisAlignment
+                                                      .start,
+                                                  mainAxisSize: MainAxisSize
+                                                      .min,
+                                                  children: [
+                                                    //SizedBox(height: 10,),
+
+                                                    Row(
+                                                      children: [
+                                                        Expanded(
+                                                          child: Padding(
+                                                            padding: const EdgeInsets.only(left:5.0),
+                                                            child: Container(
+                                                              child: Text(
+                                                                DefaultSlot[i]
+                                                                    .itemName!,
+                                                                overflow: TextOverflow
+                                                                    .ellipsis,
+                                                                maxLines: 2,
+                                                                style: TextStyle(
+                                                                    fontSize: 15,
+                                                                    fontWeight: FontWeight
+                                                                        .w600,
+                                                                    color: ColorCodes.blackColor),
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ),
+                                                        // Spacer(),
+                                                        IconButton(
+                                                          icon: Image.asset(
+                                                            Images.Delete,
+                                                            height: 22.0,
+                                                            color: ColorCodes.primaryColor,
+                                                          ),//Icon(Icons.delete_outline,color: ColorCodes.primaryColor,),
+                                                          color: Colors.grey,
+                                                          onPressed: () {
+                                                            Navigator.of(context).pop();
+                                                            _updateCart(0, CartStatus.remove,
+                                                              DefaultSlot[i].varId
+                                                                  .toString(),
+                                                              DefaultSlot[i].price
+                                                                  .toString(),
+                                                              DefaultSlot[i].increment.toString(),
+
+                                                              productBox
+                                                                  .where((element) =>
+                                                              element.id! == DefaultSlot[i].id
+                                                              ).first.parent_id.toString(),
+                                                            );
+                                                            /*  incrementToCart(0,DefaultSlot[i].varId,DefaultSlot[i].itemName ,DefaultSlot[i].itemId,DefaultSlot[i].varName,DefaultSlot[i].varMinItem
+                                                ,DefaultSlot[i].varMaxItem,DefaultSlot[i].varStock,DefaultSlot[i].varMrp,DefaultSlot[i].quantity,DefaultSlot[i].price,
+                                                DefaultSlot[i].membershipPrice,DefaultSlot[i].itemActualprice,DefaultSlot[i].itemImage,DefaultSlot[i].veg_type,DefaultSlot[i].type);
+*/
+
+                                                          },
+                                                        ),
+                                                      ],
+                                                    ),
+                                                    SizedBox(height: 5,),
+                                                    Row(
+                                                      children: [
+                                                        Padding(
+                                                          padding: const EdgeInsets.only(left:5.0),
+                                                          child: Container(
+                                                            child: Text(
+                                                              DefaultSlot[i].type == "1"?
+                                                              DefaultSlot[i]
+                                                                  .varName! +
+                                                                  " * " +
+                                                                  DefaultSlot[i]
+                                                                      .weight
+                                                                      .toString()
+                                                                  :DefaultSlot[i]
+                                                                  .varName! +
+                                                                  " * " +
+                                                                  DefaultSlot[i]
+                                                                      .quantity
+                                                                      .toString()
+
+                                                              ,
+                                                              overflow: TextOverflow
+                                                                  .ellipsis,
+                                                              maxLines: 1,
+                                                              style: TextStyle(
+                                                                  fontSize: 12,
+                                                                  fontWeight: FontWeight
+                                                                      .w400,
+                                                                  color: Colors
+                                                                      .grey),
+                                                            ),
+                                                          ),
+                                                        ),
+                                                        Spacer(),
+
+                                                        RichText(
+                                                            text: new TextSpan(
+                                                              children: <TextSpan>[
+                                                                new TextSpan(
+                                                                  text:_checkmembership ?
+                                                                  Features.iscurrencyformatalign?DefaultSlot[i].type == "1"?
+                                                                  ((double.parse(DefaultSlot[i]
+                                                                      .membershipPrice!) *
+                                                                      double.parse(DefaultSlot[i]
+                                                                          .weight!))
+                                                                      .toString() + " " + IConstants
+                                                                      .currencyFormat):
+                                                                  ((double.parse(DefaultSlot[i]
+                                                                      .membershipPrice!) *
+                                                                      int.parse(DefaultSlot[i]
+                                                                          .quantity!))
+                                                                      .toString() + " " + IConstants
+                                                                      .currencyFormat):DefaultSlot[i].type == "1"?
+                                                                  (IConstants
+                                                                      .currencyFormat + " " +
+                                                                      (double.parse(DefaultSlot[i]
+                                                                          .membershipPrice!) *
+                                                                          double.parse(DefaultSlot[i]
+                                                                              .weight!))
+                                                                          .toString())
+
+                                                                      :(IConstants
+                                                                      .currencyFormat + " " +
+                                                                      (double.parse(DefaultSlot[i]
+                                                                          .membershipPrice!) *
+                                                                          int.parse(DefaultSlot[i]
+                                                                              .quantity!))
+                                                                          .toString()) :
+                                                                  Features.iscurrencyformatalign?
+                                                                  DefaultSlot[i].type == "1"?
+                                                                  ((double.parse(DefaultSlot[i].price!)*
+                                                                      double.parse(DefaultSlot[i]
+                                                                          .weight!))
+                                                                      .toString()+
+                                                                      " " + IConstants.currencyFormat):
+                                                                  ((double.parse(DefaultSlot[i].price!)*
+                                                                      int.parse(DefaultSlot[i]
+                                                                          .quantity!))
+                                                                      .toString()+
+                                                                      " " + IConstants.currencyFormat):
+                                                                  DefaultSlot[i].type == "1"?
+                                                                  (IConstants.currencyFormat +
+                                                                      " " +
+                                                                      (double.parse(DefaultSlot[i].price!)*
+                                                                          double.parse(DefaultSlot[i]
+                                                                              .weight!))
+                                                                          .toString())
+                                                                      :(IConstants.currencyFormat +
+                                                                      " " +
+                                                                      (double.parse(DefaultSlot[i].price!)*
+                                                                          int.parse(DefaultSlot[i]
+                                                                              .quantity!))
+                                                                          .toString()) ,// 'HOME DELIVERY',
+                                                                  style: TextStyle(
+                                                                    color: ColorCodes.blackColor,
+                                                                    fontWeight: FontWeight.bold,
+                                                                    fontSize:13,
+                                                                  ),
+                                                                ),
+                                                                new TextSpan(
+                                                                  text: _checkmembership ?
+                                                                  Features.iscurrencyformatalign?DefaultSlot[i].type == "1"?
+                                                                  ((double.parse(DefaultSlot[i]
+                                                                      .varMrp!) *
+                                                                      double.parse(DefaultSlot[i]
+                                                                          .weight!))
+                                                                      .toString() + " " + IConstants
+                                                                      .currencyFormat):
+                                                                  ((double.parse(DefaultSlot[i]
+                                                                      .varMrp!) *
+                                                                      int.parse(DefaultSlot[i]
+                                                                          .quantity!))
+                                                                      .toString() + " " + IConstants
+                                                                      .currencyFormat):DefaultSlot[i].type == "1"?
+                                                                  (IConstants
+                                                                      .currencyFormat + " " +
+                                                                      (double.parse(DefaultSlot[i]
+                                                                          .varMrp!) *
+                                                                          double.parse(DefaultSlot[i]
+                                                                              .weight!))
+                                                                          .toString()):
+                                                                  (IConstants
+                                                                      .currencyFormat + " " +
+                                                                      (double.parse(DefaultSlot[i]
+                                                                          .varMrp!) *
+                                                                          int.parse(DefaultSlot[i]
+                                                                              .quantity!))
+                                                                          .toString()) :
+                                                                  Features.iscurrencyformatalign?DefaultSlot[i].type == "1"?
+                                                                  ((double.parse(DefaultSlot[i].varMrp!)*
+                                                                      double.parse(DefaultSlot[i]
+                                                                          .weight!))
+                                                                      .toString()+
+                                                                      " " + IConstants.currencyFormat):
+                                                                  ((double.parse(DefaultSlot[i].varMrp!)*
+                                                                      int.parse(DefaultSlot[i]
+                                                                          .quantity!))
+                                                                      .toString()+
+                                                                      " " + IConstants.currencyFormat):DefaultSlot[i].type == "1"?
+                                                                  (IConstants.currencyFormat +
+                                                                      " " +
+                                                                      (double.parse(DefaultSlot[i].varMrp!)*
+                                                                          double.parse(DefaultSlot[i]
+                                                                              .weight!))
+                                                                          .toString()):
+                                                                  (IConstants.currencyFormat +
+                                                                      " " +
+                                                                      (double.parse(DefaultSlot[i].varMrp!)*
+                                                                          int.parse(DefaultSlot[i]
+                                                                              .quantity!))
+                                                                          .toString()) ,// 'HOME DELIVERY',
+                                                                  style: TextStyle(
+                                                                    color: ColorCodes.greyColor,
+                                                                    // fontWeight: FontWeight.bold,
+                                                                    fontSize:9,
+                                                                    decoration:TextDecoration.lineThrough,
+
+                                                                  ),
+                                                                ),
+                                                              ],
+                                                            )),
+
+
+                                                        /*Container(
+                                                          child: Text(
+                                                            _checkmembership ?
+                                                            Features.iscurrencyformatalign?
+                                                            ((double.parse(DefaultSlot[i]
+                                                                .membershipPrice!) *
+                                                                int.parse(DefaultSlot[i]
+                                                                    .quantity!))
+                                                                .toString() + " " + IConstants
+                                                                .currencyFormat):
+                                                            (IConstants
+                                                                .currencyFormat + " " +
+                                                                (double.parse(DefaultSlot[i]
+                                                                    .membershipPrice!) *
+                                                                    int.parse(DefaultSlot[i]
+                                                                        .quantity!))
+                                                                    .toString()) :
+                                                            Features.iscurrencyformatalign?
+                                                            ((double.parse(DefaultSlot[i].price!)*
+                                                                int.parse(DefaultSlot[i]
+                                                                    .quantity!))
+                                                                .toString()+
+                                                                " " + IConstants.currencyFormat):
+                                                            (IConstants.currencyFormat +
+                                                                " " +
+                                                                (double.parse(DefaultSlot[i].price!)*
+                                                                    int.parse(DefaultSlot[i]
+                                                                        .quantity!))
+                                                                    .toString()),
+                                                            overflow: TextOverflow.ellipsis,
+                                                            maxLines: 1,
+                                                            style: TextStyle(
+                                                                fontSize: 13,
+                                                                fontWeight: FontWeight.w600,
+                                                                color: Colors.black),
+                                                          ),
+                                                        ),*/
+                                                      ],
+                                                    ),
+                                                  ])),
+
+
+
+                                        ],
+                                      ),
+                                    ),
+                                  )
+                                ],
+                                ):SizedBox.shrink(),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    Positioned(
+                      right: -5,
+                      top: -5,
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.translucent,
+                        onTap: () {
+                          Navigator.of(context).pop();
+                        },
+                        child: CircleAvatar(
+                          radius: 14.0,
+                          backgroundColor: Colors.grey,
+                          child: Icon(Icons.close, color: Colors.white),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              });
+        });
   }
+
   gradientappbarmobile() {
     return  AppBar(
       brightness: Brightness.dark,
@@ -6274,38 +8312,40 @@ VxState.watch(context, on: [SetCartItem]);
       elevation:  (IConstants.isEnterprise)?0:1,
       automaticallyImplyLeading: false,
       leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: ColorCodes.menuColor),
-          onPressed: () {
+          icon: Icon(Icons.arrow_back, color:ColorCodes.iconColor),
+          onPressed: () async{
             removeToCart();
             // Navigator.of(context).pop();
-            Navigator.of(context).pushReplacementNamed(CartScreen.routeName,arguments: {
-              "after_login": ""
-            });
+            /*Navigator.of(context).pushReplacementNamed(CartScreen.routeName,arguments: {
+              "afterlogin": ""
+            });*/
+            if(widget.prev["prev"].toString() == "cart_screen") {
+              PrefUtils.prefs!.setString("confirmback", "yes");
+              Navigation(context, name: Routename.Cart, navigatore: NavigatoreTyp.Push,qparms: {"afterlogin":""});
+            }
+            else{
+             // Navigation(context, navigatore: NavigatoreTyp.Pop);
+              Navigation(context, name: Routename.Cart, navigatore: NavigatoreTyp.Push,qparms: {"afterlogin":""});
+            }
+           // Navigation(context, name: Routename.Cart, navigatore: NavigatoreTyp.Push,qparms: {"afterlogin": ""});
+
             // Navigator.of(context).popUntil(ModalRoute.withName(HomeScreen.routeName,));
             return Future.value(false);
           }
       ),
       titleSpacing: 0,
       title: Text(
-        "Confirm Address",
-        style: TextStyle(color: ColorCodes.menuColor,fontWeight: FontWeight.w800),
+        S .of(context).checkout,//'Checkout',
+          style: TextStyle(color: ColorCodes.iconColor, fontWeight: FontWeight.bold, fontSize: 18)
       ),
       flexibleSpace: Container(
         decoration: BoxDecoration(
-            boxShadow: [
-              BoxShadow(
-                color: ColorCodes.grey.withOpacity(0.2),
-                spreadRadius: 5,
-                blurRadius: 5,
-                offset: Offset(0, 5),
-              )
-            ],
             gradient: LinearGradient(
                 begin: Alignment.topRight,
                 end: Alignment.bottomLeft,
                 colors: [
-                  ColorCodes.accentColor,
-                  ColorCodes.primaryColor
+                  ColorCodes.appbarColor,
+                  ColorCodes.appbarColor2
                 ]
             )
         ),
@@ -6313,19 +8353,14 @@ VxState.watch(context, on: [SetCartItem]);
     );
   }
   removeToCart() async {
-    String itemId, varId, varName,
+    String? itemId, varId, varName,
         varMinItem, varMaxItem, varLoyalty, varStock, varMrp, itemName, qty, price, membershipPrice, itemImage, veg_type, type,eligibleforexpress,delivery,duration,durationType,note;
     // widget.isdbonprocess();
     //  if (itemCount + 1 <= int.parse(widget.varminitem)) {
     productBox = (VxState.store as GroceStore).CartItemList;
     try {
-
-      // }
       for (int i = 0; i < productBox.length; i++) {
-        debugPrint("mode....." + productBox[i].mode.toString());
-        debugPrint("mode1....." +productBox[i].varId.toString());
         if (productBox[i].mode =="4") {
-          debugPrint("yes,,,,");
           itemId = productBox[i]
               .itemId
               .toString();
@@ -6333,7 +8368,7 @@ VxState.watch(context, on: [SetCartItem]);
               .varId
               .toString();
           varName = productBox[i]
-              .varName;
+              .varName!;
           varMinItem = productBox[i]
               .varMinItem
               .toString();
@@ -6350,7 +8385,7 @@ VxState.watch(context, on: [SetCartItem]);
               .varMrp
               .toString();
           itemName = productBox[i]
-              .itemName;
+              .itemName!;
           price = productBox[i]
               .price
               .toString();
@@ -6358,162 +8393,56 @@ VxState.watch(context, on: [SetCartItem]);
               .membershipPrice
               .toString();
           itemImage = productBox[i]
-              .itemImage;
+              .itemImage!;
           veg_type = productBox[i]
-              .vegType;
+              .vegType!;
           type = productBox[i]
-              .type;
+              .type!;
           eligibleforexpress = productBox[i]
-              .eligibleForExpress;
+              .eligibleForExpress!;
           delivery = productBox[i]
-              .delivery;
+              .delivery!;
           duration = productBox[i]
-              .duration;
+              .duration!;
           durationType = productBox[i]
-              .durationType;
+              .durationType!;
           note = productBox[i]
-              .note;
+              .note!;
           break;
         }
       }
-      debugPrint("test.."+varId.toString());
       cartcontroller.update((done){
-        // setState(() {
-        //   _isAddToCart = !done;
-        // });
-      },price: double.parse(price).toString(),var_id:varId,quantity: "0");
-      /* final s = await Provider.of<CartItems>(context, listen: false).
-      updateCart(varId, itemCount.toString(), price).then((_) async {
-        if (itemCount + 1 == int.parse(varMinItem)) {
-          print("if.......");
-          for (int i = 0; i < productBox.length; i++) {
-            if (productBox[i]
-                .mode == 1) {
-              PrefUtils.prefs.setString("membership", "0");
-            }
-            if (productBox[i]
-                .varId == int.parse(varId)) {
-              print("if.......delete");
-              productBox.clear();
-              break;
-            }
-          }
-
-          final cartItemsData = Provider.of<CartItems>(context, listen: false);
-          for (int i = 0; i < cartItemsData.items.length; i++) {
-            // if(cartItemsData.items[i].varId == int.parse(varId)) {
-            cartItemsData.items[i].itemQty = itemCount;
-            //  }
-          }
-          _bloc.setCartItem(cartItemsData);
-          Provider.of<CartItems>(context, listen: false).fetchCartItems().then((
-              _) {
-            setState(() {
-              // _isAddToCart = false;
-            });
-          });
-        } else {
-          print("else.......");
-          cartBloc.cartItems();
-          final sellingitemData = Provider.of<SellingItemsList>(
-              context, listen: false);
-          for (int i = 0; i < sellingitemData.featuredVariation.length; i++) {
-            // if(sellingitemData.featuredVariation[i].varid == varId) {
-            sellingitemData.featuredVariation[i].varQty = itemCount;
-            //  }
-          }
-          _bloc.setFeaturedItem(sellingitemData);
-          for (int i = 0; i < sellingitemData.itemspricevarOffer.length; i++) {
-            //  if (sellingitemData.itemspricevarOffer[i].varid == varId) {
-            sellingitemData.itemspricevarOffer[i].varQty = itemCount;
-            break;
-            // }
-          }
-          _bloc.setFeaturedItem(sellingitemData);
-          for (int i = 0; i < sellingitemData.discountedVariation.length; i++) {
-            // if(sellingitemData.discountedVariation[i].varid == varId) {
-            sellingitemData.discountedVariation[i].varQty = itemCount;
-            break;
-            //  }
-          }
-          _bloc.setFeaturedItem(sellingitemData);
-
-          final cartItemsData = Provider.of<CartItems>(context, listen: false);
-          for (int i = 0; i < cartItemsData.items.length; i++) {
-            // if(cartItemsData.items[i].varId == int.parse(varId)) {
-            cartItemsData.items[i].itemQty = itemCount;
-            // }
-          }
-          _bloc.setCartItem(cartItemsData);
-
-          setState(() {
-            // _isAddToCart = false;
-          });
-          Product products = Product(
-            itemId: int.parse(itemId),
-            varId: int.parse(varId),
-            varName: varName,
-            varMinItem: int.parse(varMinItem),
-            varMaxItem: int.parse(varMaxItem),
-            varStock: int.parse(varStock),
-            varMrp: double.parse(varMrp),
-            itemName: itemName,
-            itemQty: itemCount,
-            itemPrice: double.parse(price),
-            membershipPrice: membershipPrice,
-            itemActualprice: double.parse(varMrp),
-            itemImage: itemImage,
-            membershipId: 0,
-            mode: 4,
-            veg_type: veg_type,
-            type: type,
-          );
-
-          var items = Hive.box<Product>(productBoxName);
-
-          for (int i = 0; i < items.length; i++) {
-            if (Hive
-                .box<Product>(productBoxName)
-                .values
-                .elementAt(i)
-                .varId == int.parse(varId)) {
-              Hive.box<Product>(productBoxName).putAt(i, products);
-            }
-          }
-        }
-      }
-      );*/
-      //cartBloc.cartItems();
+      },price: double.parse(price!).toString(),var_id:varId!,quantity: "0",weight: "0",cart_id: "",toppings: "",
+        topping_id: "",);
     }catch(e){
 
     }
   }
-  _updateCart(int qty,CartStatus cart,String varid,String price) {
+  _updateCart(int qty,CartStatus cart,String varid,String price,String increment, String cart_id) {
     switch (cart) {
       case CartStatus.increment:
         cartcontroller.update((done){
-          // setState(() {
-          //   _isAddToCart = !done;
-          // });
         },price: price.toString(),
             quantity: (qty + 1).toString(),
-            var_id: varid);
+            weight: (qty + 1).toString(),
+            var_id: varid,
+          increament: increment,
+          cart_id: cart_id,
+          toppings: "",
+          topping_id: "",
+        );
         // TODO: Handle this case.
         break;
       case CartStatus.remove:
         cartcontroller.update((done){
-          // setState(() {
-          //   _isAddToCart = !done;
-          // });
-        },price: price.toString(), quantity: "0", var_id: varid);
-        if(productBox.length <= 0){
-          Navigator.pushNamedAndRemoveUntil(context, HomeScreen.routeName, (route) => false);
-        }else{
-          Navigator.of(context).pushNamed(
-              ConfirmorderScreen.routeName,
-              arguments: {"prev": "cart_screen",
-              });
-        }
+          if(productBox.length <= 0){
+            Navigation(context, navigatore: NavigatoreTyp.homenav);
+          }else{
+            Navigation(context, name:Routename.ConfirmOrder,navigatore: NavigatoreTyp.Push,
+                parms:{"prev": "cart_screen"});
+          }
+        },price: price.toString(), quantity: "0",weight: "0", var_id: varid,increament: increment, cart_id: cart_id,toppings: "",
+          topping_id: "",);
 
         // TODO: Handle this case.
         break;
@@ -6524,7 +8453,9 @@ VxState.watch(context, on: [SetCartItem]);
           // });
         },price: price.toString(),
             quantity: (qty - 1).toString(),
-            var_id: varid);
+            weight: (qty-1).toString(),
+            var_id: varid,increament: increment, cart_id: cart_id,toppings: "",
+          topping_id: "",);
         // TODO: Handle this case.
         break;
     }
@@ -6541,7 +8472,7 @@ VxState.watch(context, on: [SetCartItem]);
       if (itemCount + 1 == varMinItem) {
         for (int i = 0; i < productBox.values.length; i++) {
           if (productBox[i].mode == 1) {
-            PrefUtils.prefs.setString("membership", "0");
+            PrefUtils.prefs!.setString("membership", "0");
           }
           if (productBox[i].varId == varIdb) {
             productBox.deleteAt(i);
@@ -6673,8 +8604,8 @@ VxState.watch(context, on: [SetCartItem]);
  */
 
 
-  Widget handler(bool isSelected) {
-    return (isSelected == true)  ?
+  Widget handler(bool isSelected, status) {
+    return (isSelected == true && status != "1")  ?
     Container(
       width: 20.0,
       height: 20.0,
@@ -6688,22 +8619,22 @@ VxState.watch(context, on: [SetCartItem]);
       child: Container(
         margin: EdgeInsets.all(1.5),
         decoration: BoxDecoration(
-          color: ColorCodes.whiteColor,
+          color:(status == "1")?ColorCodes.grey :ColorCodes.whiteColor,
           shape: BoxShape.circle,
         ),
         child: Icon(Icons.check,
-            color: ColorCodes.greenColor,
+            color: (status == "1")?ColorCodes.grey:ColorCodes.greenColor,
             size: 15.0),
       ),
     )
         :
     Icon(
         Icons.radio_button_off_outlined,
-        color: ColorCodes.greenColor);
+        color: (status == "1")?ColorCodes.grey:ColorCodes.greenColor);
 
 
   }
-  Widget _myRadioButtonTime({int value, Function onChanged}) {
+  /*Widget _myRadioButtonTime({int value, Function onChanged}) {
     //prefs.setString('fixtime', timeslotsData[_groupValue].time);
 
     return Radio(
@@ -6712,7 +8643,7 @@ VxState.watch(context, on: [SetCartItem]);
       groupValue: _groupValueTime,
       onChanged: onChanged,
     );
-  }
+  }*/
 
    dialogforMinimumOrder() {
     showDialog(
@@ -6721,9 +8652,18 @@ VxState.watch(context, on: [SetCartItem]);
       builder: (BuildContext context) {
         return WillPopScope(
           onWillPop: (){
-            Navigator.of(context).pushReplacementNamed(CartScreen.routeName,arguments: {
-              "after_login": ""
-            });
+         /*   Navigator.of(context).pushReplacementNamed(CartScreen.routeName,arguments: {
+              "afterlogin": ""
+            });*/
+           // Navigation(context, name: Routename.Cart, navigatore: NavigatoreTyp.Push,qparms: {"afterlogin":null});
+            if(widget.prev["prev"].toString() == "cart_screen") {
+              PrefUtils.prefs!.setString("confirmback", "yes");
+              Navigation(context, name: Routename.Cart, navigatore: NavigatoreTyp.Push,qparms: {"afterlogin":""});
+            }
+            else{
+              // Navigation(context, navigatore: NavigatoreTyp.Pop);
+              Navigation(context, name: Routename.Cart, navigatore: NavigatoreTyp.Push,qparms: {"afterlogin":""});
+            }
             return Future.value(false);
           },
           child: AlertDialog(
@@ -6742,14 +8682,14 @@ VxState.watch(context, on: [SetCartItem]);
             actions: <Widget>[
               Vx.isWeb? SizedBox.shrink():FlatButton(
                 child: Text(
-                  S.of(context).continue_shopping,//'Ok'
+                  S .of(context).continue_shopping,//'Ok'
                   style: TextStyle(
                     color: ColorCodes.primaryColor,
                     fontSize: 14
                   ),
                 ),
                 onPressed: () async {
-                  Navigator.pushNamedAndRemoveUntil(context, HomeScreen.routeName, (route) => false);
+                  Navigation(context, navigatore: NavigatoreTyp.homenav);
                 },
               ),
             ],

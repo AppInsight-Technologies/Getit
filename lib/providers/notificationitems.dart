@@ -25,12 +25,12 @@ class NotificationItemsList with ChangeNotifier {
   List<NotificationFields> _notUpdate = [];
   List<BrandsFields> _brandItems = [];
   List<SellingItemsFields> _itemnotproductimage =[];
-  Color featuredCategoryBColor;
+  late Color featuredCategoryBColor;
 
   Future<void> fetchProductItems(String productId) async {
     // imp feature in adding async is the it automatically wrap into Future.
 
-    String user = (PrefUtils.prefs.containsKey("apikey")) ? PrefUtils.prefs.getString("tokenid") : PrefUtils.prefs.getString('apikey');
+    String user = (!PrefUtils.prefs!.containsKey("apikey")) ? PrefUtils.prefs!.getString("tokenid") !: PrefUtils.prefs!.getString('apikey')!;
     var url = Api.getItemsByCart + productId + "/" + user;
 
     _items = [];
@@ -41,7 +41,7 @@ class NotificationItemsList with ChangeNotifier {
           .post(
           url,
           body: { // await keyword is used to wait to this operation is complete.
-            "branch": PrefUtils.prefs.getString('branch'),
+            "branch": PrefUtils.prefs!.getString('branch'),
             "language_id": IConstants.languageId,
           }
       );
@@ -239,13 +239,13 @@ class NotificationItemsList with ChangeNotifier {
   }
   Future<void> fetchCategoryItems(String categoryId) async {
     // imp feature in adding async is the it automatically wrap into Future.
-    var url = Api.getFeaturedCategories/* + categoryId + "/" + PrefUtils.prefs.getString('branch')*/;
+    var url = Api.getFeaturedCategories/* + categoryId + "/" + PrefUtils.prefs!.getString('branch')*/;
     _catItems = [];
     try {
       final response = await http.post(url,
           body: {
             "id": categoryId,
-            "branch": PrefUtils.prefs.getString('branch'),
+            "branch": PrefUtils.prefs!.getString('branch'),
             "language_id": IConstants.languageId,
           });
       final responseJson = json.decode(utf8.decode(response.bodyBytes));
@@ -280,7 +280,7 @@ class NotificationItemsList with ChangeNotifier {
             imageUrl: IConstants.API_IMAGE +
                 "sub-category/icons/" +
                 data[i]['icon_image'].toString(),
-             featuredCategoryBColor: list[_random.nextInt(list.length)],
+             featuredCategoryBColor: /*list[_random.nextInt(list.length)]*/Colors.white,
           ));
                            }
       }
@@ -303,7 +303,7 @@ class NotificationItemsList with ChangeNotifier {
       _brandItems.clear();
       final response = await http.post(url, body: {
         // await keyword is used to wait to this operation is complete.
-        "branch": PrefUtils.prefs.getString('branch'),
+        "branch": PrefUtils.prefs!.getString('branch'),
         "language_id": IConstants.languageId,
       });
       final responseJson = json.decode(utf8.decode(response.bodyBytes));
@@ -352,7 +352,8 @@ class NotificationItemsList with ChangeNotifier {
 
   Future<void> fetchNotificationLogs(String userId) async {
     // imp feature in adding async is the it automatically wrap into Future.
-    var url = Api.getNotification + '$userId/' + PrefUtils.prefs.getString("branch");
+    var url = (Features.ismultivendor && IConstants.isEnterprise) ?
+    Api.getNotificationmultivendor + '$userId/' + IConstants.refIdForMultiVendor:Api.getNotification + '$userId/' + PrefUtils.prefs!.getString("branch")!;
     debugPrint("fetchNotificationLogs . . .  .. ." + url);
     _notItems = [];
     try {
@@ -403,13 +404,13 @@ class NotificationItemsList with ChangeNotifier {
           url,
           body: {
             // await keyword is used to wait to this operation is complete.
-            "branch": PrefUtils.prefs.getString('branch'),
+            "branch": PrefUtils.prefs!.getString('branch'),
           }
       );
       final responseJson = json.decode(utf8.decode(response.bodyBytes));
       print("update notification...response...."+responseJson.toString());
       if (responseJson['status'].toString() == "200") {
-        await Provider.of<BrandItemsList>(navigatorKey.currentContext,listen: false).userDetails();
+        await Provider.of<BrandItemsList>(navigatorKey.currentContext!,listen: false).userDetails();
       }
     } catch (error) {
       throw error;

@@ -15,14 +15,14 @@ class FeaturedCategoryList with ChangeNotifier {
 
   Future<void> fetchCategoryItems(String categoryId) async {
     // imp feature in adding async is the it automatically wrap into Future.
-    var url = Api.getFeaturedCategories/* + categoryId + "/" + PrefUtils.prefs.getString('branch')*/;
+    var url = Api.getFeaturedCategories/* + categoryId + "/" + PrefUtils.prefs!.getString('branch')*/;
     _catItems = [];
     try {
       _catItems.clear();
       final response = await http.post(url,
           body: {
             "id": categoryId,
-            "branch": PrefUtils.prefs.getString('branch'),
+            "branch": PrefUtils.prefs!.getString('branch'),
             "language_id": IConstants.languageId,
           });
       final responseJson = json.decode(utf8.decode(response.bodyBytes));
@@ -72,13 +72,13 @@ class FeaturedCategoryList with ChangeNotifier {
 
   Future<void> fetchCategoryOne(String categoryId) async {
     // imp feature in adding async is the it automatically wrap into Future.
-    var url = Api.getFeaturedCategories/* + categoryId + "/" + PrefUtils.prefs.getString('branch')*/;
+    var url = Api.getFeaturedCategories/* + categoryId + "/" + PrefUtils.prefs!.getString('branch')*/;
     _catOneItems = [];
     try {
       final response = await http.post(url,
           body: {
             "id": categoryId,
-            "branch": PrefUtils.prefs.getString('branch'),
+            "branch": PrefUtils.prefs!.getString('branch'),
             "language_id": IConstants.languageId,
           });
       final responseJson = json.decode(utf8.decode(response.bodyBytes));
@@ -129,13 +129,13 @@ class FeaturedCategoryList with ChangeNotifier {
 
   Future<void> fetchCategoryTwo(String categoryId) async {
     // imp feature in adding async is the it automatically wrap into Future.
-    var url = Api.getFeaturedCategories/* + categoryId + "/" + PrefUtils.prefs.getString('branch')*/;
+    var url = Api.getFeaturedCategories/* + categoryId + "/" + PrefUtils.prefs!.getString('branch')*/;
     _catTwoItems = [];
     try {
       final response = await http.post(url,
           body: {
             "id": categoryId,
-            "branch": PrefUtils.prefs.getString('branch'),
+            "branch": PrefUtils.prefs!.getString('branch'),
             "language_id": IConstants.languageId,
           });
       final responseJson = json.decode(utf8.decode(response.bodyBytes));

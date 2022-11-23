@@ -1,8 +1,9 @@
+
   import 'dart:convert';
   import  'paytmabstactsdk.dart' if (dart.library.html) 'dart:js' as js ;
 
 class WebPaytmSdk{
-  static Map<dynamic, dynamic> param;
+  static Map<dynamic, dynamic>? param;
 
 
   static Future<Map<dynamic, dynamic>> startTransaction(txnToken,orderId,amount,bool isStaging,mid,onResponse) async {

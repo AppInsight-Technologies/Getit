@@ -4,7 +4,7 @@ import '../../utils/ResponsiveLayout.dart';
 import 'package:shimmer/shimmer.dart';
 
 class OrderConfirmationShimmer extends StatelessWidget {
-  const OrderConfirmationShimmer({Key key}) : super(key: key);
+  const OrderConfirmationShimmer({Key? key}) : super(key: key);
 
 
 
@@ -36,8 +36,8 @@ class OrderConfirmationShimmer extends StatelessWidget {
                     Radius.circular(
                         5.0)),
                 child: Shimmer.fromColors(child: Container(height: 200,child: Icon(Icons.image,size: 200,),),
-                  baseColor: ColorCodes.baseColor,
-                  highlightColor: ColorCodes.lightGreyWebColor,
+                  baseColor: ColorCodes.shimmerColor,
+                  highlightColor: ColorCodes.shimmerColor,
 
                 ))),
         Padding(
@@ -46,7 +46,7 @@ class OrderConfirmationShimmer extends StatelessWidget {
             width: ResponsiveLayout.isLargeScreen(context)?MediaQuery.of(context).size.width/2:MediaQuery.of(context).size.width,
             height: 40,
             decoration: BoxDecoration(
-              color: Colors.black,
+              color: ColorCodes.shimmerColor,
               borderRadius: BorderRadius.circular(16),
             ),
           ),
@@ -57,7 +57,7 @@ class OrderConfirmationShimmer extends StatelessWidget {
             width: ResponsiveLayout.isLargeScreen(context)?MediaQuery.of(context).size.width/2:MediaQuery.of(context).size.width,
             height: 40,
             decoration: BoxDecoration(
-              color: Colors.black,
+              color: ColorCodes.shimmerColor,
               borderRadius: BorderRadius.circular(16),
             ),
           ),
@@ -68,15 +68,15 @@ class OrderConfirmationShimmer extends StatelessWidget {
             width: ResponsiveLayout.isLargeScreen(context)?MediaQuery.of(context).size.width/2:MediaQuery.of(context).size.width,
             height: 40,
             decoration: BoxDecoration(
-              color: Colors.black,
+              color: ColorCodes.shimmerColor,
               borderRadius: BorderRadius.circular(16),
             ),
           ),
         ),
       ],
     ),
-      baseColor: ColorCodes.baseColor,
-      highlightColor: ColorCodes.lightGreyWebColor,);
+      baseColor: ColorCodes.shimmerColor,
+      highlightColor: ColorCodes.shimmerColor,);
 
   }
 }

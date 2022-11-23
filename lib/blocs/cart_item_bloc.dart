@@ -11,6 +11,8 @@ class CartItemBloc{
   final _cartItemController = BehaviorSubject<List<CartItemsFields>>();
   final _iscarthavedateController = BehaviorSubject<bool>();
 
+  bool isempty = false;
+
   Stream< List<CartItemsFields>> get cartblostream => _cartStreamController.stream;
   StreamSink< List<CartItemsFields>> get cartitemsink => _cartStreamController.sink;
   StreamSink<bool> get iscartshow => _iscarthavedateController.sink;
@@ -35,11 +37,12 @@ class CartItemBloc{
     _cartStreamController.close();
     // cartitemrepo.dispose();
   }*/
-  bool iscartNotEmpty() {
+  Future<bool> iscartNotEmpty() {
     iscartshow.add(false);
     _iscarthavedateController.stream.listen((event) {
-      return event;
+      isempty = event;
     });
+    return Future.value(isempty);
   }
 }
 final cartBloc =CartItemBloc();

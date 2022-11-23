@@ -2,44 +2,43 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 
 class ShoppinglistItemsFields with ChangeNotifier {
-  final String listid;
-  final String listname;
-  bool listcheckbox;
-  final String totalitemcount;
-  final String itemid;
-  final String itemname;
-  final String imageurl;
-  final String brand;
-  final String varid;
-  final String menuid;
-  final String varname;
-  final String varmrp;
-  final String varprice;
-  final String varmemberprice;
-  final String varmemberid;
-  final String varstock;
-  final String varminitem;
-  final String varmaxitem;
-  final int varLoyalty;
-  final int mode;
-  int varQty;
-  Color varcolor;
-  final bool discountDisplay;
-  final bool membershipDisplay;
-  final String veg_type;
-  final String type;
-  final String eligible_for_express;
-  final String delivery;
-  final String duration;
-  final String durationType;
-  final String note;
-  final String subscribe;
-  final String paymentmode;
-  final String cronTime;
-  final String name;
-  final String unit;
-  final int color;
-  final double weight;
+  final String? listid;
+  final String? listname;
+  bool? listcheckbox;
+  final String? totalitemcount;
+  final String? itemid;
+  final String? itemname;
+  final String? imageurl;
+  final String? brand;
+  final String? varid;
+  final String? menuid;
+  final String? varname;
+  final String? varmrp;
+  final String? varprice;
+  final String? varmemberprice;
+  final String? varmemberid;
+  final String? varstock;
+  final String? varminitem;
+  final String? varmaxitem;
+  final int? varLoyalty;
+  final int? mode;
+  int? varQty;
+  Color? varcolor;
+  final bool? discountDisplay;
+  final bool? membershipDisplay;
+  final String? veg_type;
+  final String? type;
+  final String? eligible_for_express;
+  final String? delivery;
+  final String? duration;
+  final String? durationType;
+  final String? note;
+  final String? subscribe;
+  final String? paymentmode;
+  final String? cronTime;
+  final String? name;
+  final String? unit;
+  final double? weight;
 
   ShoppinglistItemsFields({
     this.listid,
@@ -78,7 +77,6 @@ class ShoppinglistItemsFields with ChangeNotifier {
     this.cronTime,
     this.name,
     this.unit,
-    this.color,
     this.weight,
   });
 }

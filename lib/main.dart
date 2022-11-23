@@ -1,92 +1,21 @@
 import 'dart:io';
-
+import 'dart:ui';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/services.dart';
-import './assets/ColorCodes.dart';
-import './screens/CodReturnScreen.dart';
-import './screens/ReturnConfirmation.dart';
-import './screens/addinfo_screen.dart';
-import './screens/profile_screen.dart';
-import './screens/promocode_screen.dart';
-import './screens/wishlist_screen.dart';
-import './screens/notavailable_product_screen.dart';
-import './screens/pause_subscriptionScreen.dart';
-import './screens/rate_order_screen.dart';
-import './screens/refund_screen.dart';
-import './screens/Payment_SubscriptionScreen.dart';
-import './screens/View_Subscription_Details.dart';
-import './screens/introduction_screen.dart';
+import '../../assets/ColorCodes.dart';
+import '../../screens/PageNotFound.dart';
 import './utils/prefUtils.dart';
 import 'package:velocity_x/velocity_x.dart';
-import './screens/MySubscriptionScreen.dart';
-import './screens/SubscriptionWalletScreen.dart';
-import './screens/subscribe_screen.dart';
-import './screens/subscription_confirm_screen.dart';
-
-import './services/firebaseAnaliticsService.dart';
-import './screens/refer_screen.dart';
-import 'package:hive/hive.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
-
-import './data/hiveDB.dart';
-
-import './screens/edit_screen.dart';
-import './screens/splash_screen.dart';
-import './screens/policy_screen.dart';
-import './screens/login_screen.dart';
-import './screens/otpconfirm_screen.dart';
-import './screens/home_screen.dart';
-import './screens/subcategory_screen.dart';
-import './screens/items_screen.dart';
-import './screens/signup_selection_screen.dart';
-import './screens/signup_screen.dart';
-import './screens/login_credential_screen.dart';
-import './screens/category_screen.dart';
-import './screens/brands_screen.dart';
-import './screens/cart_screen.dart';
-import './screens/searchitem_screen.dart';
-import './screens/sellingitem_screen.dart';
-import './screens/confirmorder_screen.dart';
-import './screens/payment_screen.dart';
-import './screens/orderconfirmation_screen.dart';
-import './screens/address_screen.dart';
-import './screens/location_screen.dart';
-import './screens/myorder_screen.dart';
-import './screens/orderhistory_screen.dart';
-import './screens/map_screen.dart';
-import './screens/subscription_screen.dart';
-import './screens/wallet_screen.dart';
-import './screens/shoppinglist_screen.dart';
-import './screens/membership_screen.dart';
-import './screens/about_screen.dart';
-import './screens/addressbook_screen.dart';
-import './screens/shoppinglistitems_screen.dart';
-import './screens/return_screen.dart';
-import './screens/help_screen.dart';
-import './screens/privacy_screen.dart';
-import './screens/singleproduct_screen.dart';
-import './screens/notification_screen.dart';
-import './screens/paytm_screen.dart';
-import './screens/not_product_screen.dart';
-import './screens/not_subcategory_screen.dart';
-import './screens/customer_support_screen.dart';
-// import './screens/introduction_screen.dart';
-import './screens/pickup_screen.dart';
-import './screens/pages_screen.dart';
-import './screens/singleproductimage_screen.dart';
+import 'package:go_router/go_router.dart';
 import './data/calculations.dart';
-import './screens/MultipleImagePicker_screen.dart';
-import './screens/unavailablity_screen.dart';
-import './screens/not_brand_screen.dart';
-import './screens/banner_product_screen.dart';
-import './screens/editOtp_screen.dart';
-import './screens/offer_screen.dart';
-
 import 'controller/mutations/languagemutations.dart';
 import 'generated/l10n.dart';
+import 'handler/firebase_notification_handler.dart';
 import 'models/VxModels/VxStore.dart';
 import 'models/unavailabilityfield.dart';
 import './providers/carouselitems.dart';
@@ -105,70 +34,107 @@ import 'models/sellingitemsfields.dart';
 import './models/unavailableproducts_field.dart';
 import './providers/featuredCategory.dart';
 import './providers/cartItems.dart';
-
 import './constants/IConstants.dart';
+import 'rought_genrator.dart';
+import 'utils/httpOveride.dart';
 
 const String productBoxName = "product";
 final navigatorKey = GlobalKey<NavigatorState>();
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  try {
-    await PrefUtils.init();
-    if (Platform.isIOS || Platform.isAndroid) {
-      final document = await getApplicationDocumentsDirectory();
-      Hive.init(document.path);
-      Hive.registerAdapter(ProductAdapter());
-      await Hive.openBox<Product>(productBoxName);
+  await Firebase.initializeApp(
+      // options: const FirebaseOptions(
+      //     apiKey: "AIzaSyAJx-iJOWGqWXORfChQW6LG_21eEv21efQ",
+      //     authDomain: "grocbay-c0de4.firebaseapp.com",
+      //     databaseURL: "https://grocbay-c0de4.firebaseio.com",
+      //     projectId: "grocbay-c0de4",
+      //     storageBucket: "grocbay-c0de4.appspot.com",
+      //     messagingSenderId: "277236241016",
+      //     appId: "1:277236241016:web:f05bdca0baba44fb63538d",
+      //     measurementId: "G-0QT9WW56E6")
+  );
+  const Color black = Color(0xff2b6838);
+  // Vx.setPathUrlStrategy();
+  await PrefUtils.init();
+  if(!PrefUtils.prefs!.containsKey("branch"))
+    PrefUtils.prefs!.setString("branch", /*"41"*/"89");
+  PrefUtils.prefs!.setInt("htmlId", 1);
 
-    }
-
-  } catch (e) {
-    Hive.registerAdapter(ProductAdapter());
-    await Hive.openBox<Product>(productBoxName);
-  }
-
+  FirebaseNotifications().setUpFirebase;
   SystemChrome.setPreferredOrientations(
-      [DeviceOrientation.portraitDown, DeviceOrientation.portraitUp]).then((_) {
+      [DeviceOrientation.portraitDown, DeviceOrientation.portraitUp]).then((_) async{
+    if (Vx.isAndroid) {
+      // var androidInfo =  DeviceInfoPlugin().androidInfo;
+      // var release = androidInfo.version.release;
+      // var sdkInt = androidInfo.version.sdkInt;
+      // var manufacturer = androidInfo.manufacturer;
+      // var model = androidInfo.model;
+      // print('Android $release (SDK $sdkInt), $manufacturer $model');
+      // // Android 9 (SDK 28), Xiaomi Redmi Note 7
+      HttpOverrides.global = MyHttpOverrides();
+    }
+    print("main running");
+    runApp(VxState(store: GroceStore(), child: MyApp()));
 
-    runApp(
-        VxState(store: GroceStore(),
-            child: MyApp()));
+/*    await SentryFlutter.init(
+          (options) {
+        options.dsn = 'https://06fd44c3c22844a8b85c6e808c3ff590@o1150007.ingest.sentry.io/6222517';
+        // Set tracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
+        // We recommend adjusting this value in production.
+        // options.tracesSampleRate = 1.0;
+      },
+
+    );*/
+
   });
 }
+class LoadingInfo extends ChangeNotifier{
+  bool? _isloading ;
+  get isloading =>_isloading??=true;
+  set isloading(value) {
+    _isloading =value;
+    notifyListeners();
+  }
+}
+final loadinginfo = LoadingInfo();
+class MyApp extends StatelessWidget with Navigations{
+  Uri muri = Uri.parse("/");
+  String activelang = "en";
 
-
-class MyApp extends StatelessWidget {
-  static const Color black = Color(0xff2b6838);
-
-  String activelang = "ar";
-  bool _isWeb = false;
-
+  // bool _isWeb = false;
   @override
   Widget build(BuildContext context) {
-    /*//SystemChrome.setEnabledSystemUIOverlays(SystemUiOverlay.values);
-    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
-      //systemNavigationBarColor:
-      //  Theme.of(context).primaryColor, // navigation bar color
-      statusBarColor: Theme.of(context).primaryColor, // status bar color
-    ));*/
-    try {
-      if (Platform.isIOS) {
-        _isWeb = false;
-      } else {
-        _isWeb = false;
-      }
-    } catch (e) {
-      _isWeb = true;
-      print(e);
-    }
-
-
     IConstants.isEnterprise?SystemChrome.setEnabledSystemUIOverlays(SystemUiOverlay.values):
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.light.copyWith(
-      statusBarColor: ColorCodes.whiteColor,
+      statusBarColor: Colors.white,
     ));
-
+      final _router = GoRouter(
+        errorPageBuilder: (context,state)=>MaterialPage(child: /*Scaffold(body: Center(
+         child: Image.asset(
+           Images.logoImg1,
+           // color: Colors.white,
+           height: 30,
+           // width: 200,
+         ),
+        ),)*/
+          PageNotFound()
+        ),
+        redirect: (state){
+          // print("redirect subloc: ${state.subloc}");
+        // if(Features.isOnBoarding&&state.path==nUri(Routename.Home).path) {
+        //   if ( PrefUtils.prefs!.containsKey('introduction')&& PrefUtils.prefs!.getBool('introduction')==false) {
+        //   return nUri(Routename.Introduction).path;
+        //   }
+        // }
+          return null;
+        },
+        // refreshListenable: loadinginfo,
+        // urlPathStrategy: UrlPathStrategy.path,
+        initialLocation:Vx.isWeb? "/store/"+nUri(Routename.Home).path:"/store/${nUri(Routename.Splash).path}",
+        debugLogDiagnostics:Vx.isDebugMode,
+        routes: PageControler().routs,
+      );
     return MultiProvider(
         providers: [
           ChangeNotifierProvider.value(
@@ -228,144 +194,100 @@ class MyApp extends StatelessWidget {
         ],
         child: VxBuilder<GroceStore>(
             mutations: {SetLanguage},
-            builder: (BuildContext context, store, VxStatus status) {
-              activelang = store.language.language.code;
-              return MaterialApp(
-                  builder: (context, child) {
-                    print("alang:${activelang}");
-                    return MediaQuery(
-                      child:  Directionality(
-                          textDirection:!_isWeb ? activelang =="ar" ? TextDirection.rtl : TextDirection.ltr : TextDirection.ltr ,child: child),
-                      data: MediaQuery.of(context).copyWith(textScaleFactor: 1.0),
+            builder: (BuildContext context, store, VxStatus? status) {
+              return  MaterialApp.router(
+                scrollBehavior: MyCustomScrollBehavior(),
+                builder: (context, child) {
+                  print("alang:${store.language.language.code}");
+                  return MediaQuery(
+                    child:  Directionality(
+                        textDirection:!Vx.isWeb ? store.language.language.code =="ar" ? TextDirection.rtl : TextDirection.ltr : TextDirection.ltr ,child: child!),
+                    data: MediaQuery.of(context).copyWith(textScaleFactor: 1.0),
+                  );
+                },
 
-                    );
-                  },
-                  locale: Locale(activelang),
-                  localizationsDelegates: [
-                    S.delegate,
-                    GlobalMaterialLocalizations.delegate,
-                    GlobalWidgetsLocalizations.delegate,
-                  ],
-                  supportedLocales: S.delegate.supportedLocales,
-                  navigatorObservers: [
-                    fas.getAnalyticsObserver(),
-                  ],
-                  debugShowCheckedModeBanner: false,
-                  title: IConstants.APP_NAME,
-                  theme: ThemeData(
-                    primarySwatch: MaterialColor(0xffF9C41C, {
-                      50: Color(0xffF9C41C),
-                      100: Color(0xffF9C41C),
-                      200: Color(0xffF9C41C),
-                      300: Color(0xffF9C41C),
-                      400: Color(0xffF9C41C),
-                      500: Color(0xffF9C41C),
-                      600: Color(0xffF9C41C),
-                      700: Color(0xffF9C41C),
-                      800: Color(0xffF9C41C),
-                      900: Color(0xffF9C41C),
-                    }),
-                    accentColor: MaterialColor(0xffF9C41C, {
-                      50: Color(0xffF9C41C),
-                      100: Color(0xffF9C41C),
-                      200: Color(0xffF9C41C),
-                      300: Color(0xffF9C41C),
-                      400: Color(0xffF9C41C),
-                      500: Color(0xffF9C41C),
-                      600: Color(0xffF9C41C),
-                      700: Color(0xffF9C41C),
-                      800: Color(0xffF9C41C),
-                      900: Color(0xffF9C41C),
-                    }),
+                locale: Locale(store.language.language.code??"en"),
+                localizationsDelegates: [
+                  S.delegate,
+                  GlobalMaterialLocalizations.delegate,
+                  GlobalWidgetsLocalizations.delegate,
+                ],
+                supportedLocales: S.delegate.supportedLocales,
+                debugShowCheckedModeBanner: false,
+                title: IConstants.APP_NAME,
+                theme: ThemeData(
 
-                    buttonColor: Colors.white,
-                    textSelectionTheme:
-                    TextSelectionThemeData(selectionColor: Color(0xffe8e8e8)),
-                    textSelectionColor: Colors.grey,
-                    textSelectionHandleColor: Colors.grey,
-                    backgroundColor: Color(0xffe8e8e8),
-                    fontFamily: 'Lato',
-                  ),
-                  home: SplashScreenPage(),
-                  navigatorKey: navigatorKey, // Setting a global key for navigator
-                  routes: {
-                    SignupSelectionScreen.routeName: (ctx) => SignupSelectionScreen(),
-                    PolicyScreen.routeName: (ctx) => PolicyScreen(),
-                    SignupScreen.routeName: (ctx) => SignupScreen(),
-                    LocationScreen.routeName: (ctx) => LocationScreen(),
-                    MapScreen.routeName: (ctx) => MapScreen(),
-                    LoginScreen.routeName: (ctx) => LoginScreen(),
-                    LoginCredentialScreen.routeName: (ctx) => LoginCredentialScreen(),
-                    OtpconfirmScreen.routeName: (ctx) => OtpconfirmScreen(),
-                    HomeScreen.routeName: (ctx) => HomeScreen(),
-                    CartScreen.routeName: (ctx) => CartScreen(),
-                    SearchitemScreen.routeName: (ctx) => SearchitemScreen(),
-                    ConfirmorderScreen.routeName: (ctx) => ConfirmorderScreen(),
-                    CategoryScreen.routeName: (ctx) => CategoryScreen(),
-                    BrandsScreen.routeName: (ctx) => BrandsScreen(),
-                    SellingitemScreen.routeName: (ctx) => SellingitemScreen(),
-                    SubcategoryScreen.routeName: (ctx) => SubcategoryScreen(),
-                    ItemsScreen.routeName: (ctx) => ItemsScreen(),
-                    PaymentScreen.routeName: (ctx) => PaymentScreen(),
-                    OrderconfirmationScreen.routeName: (ctx) => OrderconfirmationScreen(),
-                    AddressScreen.routeName: (ctx) => AddressScreen(),
-                    MyorderScreen.routeName: (ctx) => MyorderScreen(),
-                    OrderhistoryScreen.routeName: (ctx) => OrderhistoryScreen(),
-                    WalletScreen.routeName: (ctx) => WalletScreen(),
-                    SubscriptionScreen.routeName: (ctx) => SubscriptionScreen(),
-                    ShoppinglistScreen.routeName: (ctx) => ShoppinglistScreen(),
-                    MembershipScreen.routeName: (ctx) => MembershipScreen(),
-                    AboutScreen.routeName: (ctx) => AboutScreen(),
-                    AddressbookScreen.routeName: (ctx) => AddressbookScreen(),
-                    ReturnScreen.routeName: (ctx) => ReturnScreen(),
-                    ShoppinglistitemsScreen.routeName: (ctx) => ShoppinglistitemsScreen(),
-                    PrivacyScreen.routeName: (ctx) => PrivacyScreen(),
-                    HelpScreen.routeName: (ctx) => HelpScreen(),
-                    SingleproductScreen.routeName: (ctx) => SingleproductScreen(),
-                    NotificationScreen.routeName: (ctx) => NotificationScreen(),
-                    //TODO: Depreciating PaytmScreen
-                    PaytmScreen.routeName: (ctx) => PaytmScreen(),
-                    NotProductScreen.routeName: (ctx) => NotProductScreen(),
-                    NotSubcategoryScreen.routeName: (ctx) => NotSubcategoryScreen(),
-                    CustomerSupportScreen.routeName: (ctx) => CustomerSupportScreen(),
-                    NotBrandScreen.routeName: (ctx) => NotBrandScreen(),
-                    introductionscreen.routeName: (ctx) => introductionscreen(),
-                    // ExampleScreen.routeName: (ctx) => ExampleScreen(),
-                    PickupScreen.routeName: (ctx) => PickupScreen(),
-                    //MapAddressScreen.routeName: (ctx) => MapAddressScreen(),
-                    SingleProductImageScreen.routeName: (ctx) => SingleProductImageScreen(),
-                    MultipleImagePicker.routeName: (ctx) => MultipleImagePicker(),
-                    EditScreen.routeName: (ctx) => EditScreen(),
-                    unavailability.routeName: (ctx) => unavailability(),
-                    BannerProductScreen.routeName: (ctx) => BannerProductScreen(),
-                    EditOtpScreen.routeName: (ctx) => EditOtpScreen(),
-                    PagesScreen.routeName: (ctx) => PagesScreen(),
-                    ReferEarn.routeName: (ctx) => ReferEarn(),
-                    SubscribeScreen.routeName: (ctx) => SubscribeScreen(),
-                    SubscriptionConfirmScreen.routeName: (ctx) => SubscriptionConfirmScreen(),
-                    MySubscriptionScreen.routeName: (ctx) => MySubscriptionScreen(),
-                    SubscriptionWalletScreen.routeName: (ctx) => SubscriptionWalletScreen(),
-                    PaymenSubscriptionScreen.routeName: (ctx) => PaymenSubscriptionScreen(),
-                    ViewSubscriptionDetails.routeName: (ctx) => ViewSubscriptionDetails(),
-                    PauseSubscriptionScreen.routeName: (ctx) => PauseSubscriptionScreen(),
-                    Refund_screen.routeName: (ctx) => Refund_screen(),
-                    AddInfo.routeName: (ctx) => AddInfo(),
+                  primarySwatch: MaterialColor(0xff5ca838, {
+                    50: Color(0xff5ca838),
+                    100: Color(0xff5ca838),
+                    200: Color(0xff5ca838),
+                    300: Color(0xff5ca838),
+                    400: Color(0xff5ca838),
+                    500: Color(0xff5ca838),
+                    600: Color(0xff5ca838),
+                    700: Color(0xff5ca838),
+                    800: Color(0xff5ca838),
+                    900: Color(0xff5ca838),
+                  }),
+                  accentColor: MaterialColor(0xff5ca838, {
+                    50: Color(0xff5ca838),
+                    100: Color(0xff5ca838),
+                    200: Color(0xff5ca838),
+                    300: Color(0xff5ca838),
+                    400: Color(0xff5ca838),
+                    500: Color(0xff5ca838),
+                    600: Color(0xff5ca838),
+                    700: Color(0xff5ca838),
+                    800: Color(0xff5ca838),
+                    900: Color(0xff5ca838),
+                  }),
 
-                    NotavailabilityProduct.routeName: (ctx) => NotavailabilityProduct(),
-
-                    OfferScreen.routeName: (ctx) => OfferScreen(),
-                    RateOrderScreen.routeName: (ctx) => RateOrderScreen(),
-                    ProfileScreen.routeName: (ctx) => ProfileScreen(),
-                    // ignore: equal_keys_in_map
-                    WishListScreen.routeName: (ctx) => WishListScreen(),
-                    PromocodeScreen.routeName: (ctx) => PromocodeScreen(),
-                    ReturnconfirmationScreen.routeName: (ctx) => ReturnconfirmationScreen(),
-                    CodReturnScreen.routeName: (ctx) => CodReturnScreen()
-                  });
+                  buttonColor: Colors.white,
+                  textSelectionTheme:
+                  TextSelectionThemeData(selectionColor: ColorCodes.baseColorlight),
+                  textSelectionColor: Colors.grey,
+                  textSelectionHandleColor: Colors.grey,
+                  backgroundColor: ColorCodes.baseColorlight,
+                  fontFamily: 'Lato',
+                  //For web, if required disable it for mobile
+                  pageTransitionsTheme: NoTransitionsOnWeb(),
+                ),
+                routeInformationParser: _router.routeInformationParser,
+                routerDelegate: _router.routerDelegate,
+              );
             }
-
-
-
         ));
+  }
+}
+
+class MyCustomScrollBehavior extends MaterialScrollBehavior {
+  // Override behavior methods and getters like dragDevices
+  @override
+  Set<PointerDeviceKind> get dragDevices => {
+    PointerDeviceKind.touch,
+    PointerDeviceKind.mouse,
+  };
+}
+
+//For Web
+class NoTransitionsOnWeb extends PageTransitionsTheme {
+  @override
+  Widget buildTransitions<T>(
+      route,
+      context,
+      animation,
+      secondaryAnimation,
+      child,
+      ) {
+    if (kIsWeb) {
+      return child;
+    }
+    return super.buildTransitions(
+      route,
+      context,
+      animation,
+      secondaryAnimation,
+      child,
+    );
   }
 }

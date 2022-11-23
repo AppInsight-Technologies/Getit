@@ -2,28 +2,28 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 
 class unavailabilitiesfield with ChangeNotifier {
-  final String id;
-  final String title;
-  final String imageUrl;
-  final String brand;
-  final String itemqty;
-  final String varid;
-  final String menuid;
-  final String varname;
-  final String varmrp;
-  final String varprice;
-  final String varmemberprice;
-  final String varmemberid;
-  final String varstock;
-  final String varminitem;
-  final String varmaxitem;
-  final int varLoyalty;
-  Color varcolor;
-  final int mode;
-  final bool discountDisplay;
-  final bool membershipDisplay;
-  final String description;
-  final String manufacturedesc;
+  final String? id;
+  final String? title;
+  final String? imageUrl;
+  final String? brand;
+  final String? itemqty;
+  final String? varid;
+  final String? menuid;
+  final String? varname;
+  final String? varmrp;
+  final String? varprice;
+  final String? varmemberprice;
+  final String? varmemberid;
+  final String? varstock;
+  final String? varminitem;
+  final String? varmaxitem;
+  final int? varLoyalty;
+  Color? varcolor;
+  final int? mode;
+  final bool? discountDisplay;
+  final bool? membershipDisplay;
+  final String? description;
+  final String? manufacturedesc;
 
 
   unavailabilitiesfield({

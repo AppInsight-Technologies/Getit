@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../../constants/features.dart';
 import '../../models/VxModels/VxStore.dart';
 import 'package:velocity_x/velocity_x.dart';
 import '../blocs/adress_bloc.dart';
@@ -12,7 +13,7 @@ import '../constants/api.dart';
 
 class AddressItemsList with ChangeNotifier {
   List<AddressFields> _items = [];
-  String stringValue;
+  String? stringValue;
   GroceStore store = VxState.store;
 
   Future<void> NewAddress(String latitude, String longitude, String branch) async {
@@ -20,12 +21,12 @@ class AddressItemsList with ChangeNotifier {
     var name;
     try {
       //SharedPreferences prefs = await SharedPreferences.getInstance();
-      // if (PrefUtils.prefs.getString('FirstName') != null) {
-      //   if (PrefUtils.prefs.getString('LastName') != null) {
+      // if (PrefUtils.prefs!.getString('FirstName') != null) {
+      //   if (PrefUtils.prefs!.getString('LastName') != null) {
       //     name =
-      //         PrefUtils.prefs.getString('FirstName') + " " + PrefUtils.prefs.getString('LastName');
+      //         PrefUtils.prefs!.getString('FirstName') + " " + PrefUtils.prefs!.getString('LastName');
       //   } else {
-      //     name = PrefUtils.prefs.getString('FirstName');
+      //     name = PrefUtils.prefs!.getString('FirstName');
       //   }
       // } else {
       //   name = "";
@@ -33,10 +34,10 @@ class AddressItemsList with ChangeNotifier {
       name = store.userData.username;
       final response = await http.post(Api.addAddress, body: {
         // await keyword is used to wait to this operation is complete.
-        "apiKey": PrefUtils.prefs.getString('apiKey'),
-        "addressType": PrefUtils.prefs.getString('newaddresstype'),
+        "apiKey": PrefUtils.prefs!.getString('apiKey'),
+        "addressType": PrefUtils.prefs!.getString('newaddresstype'),
         "fullName": name,
-        "address": PrefUtils.prefs.getString('newaddress'),
+        "address": PrefUtils.prefs!.getString('newaddress'),
         "longitude": longitude,
         "latitude": latitude,
         "branch": branch,
@@ -52,12 +53,12 @@ class AddressItemsList with ChangeNotifier {
     // imp feature in adding async is the it automatically wrap into Future.
     var name;
     try {
-      // if (PrefUtils.prefs.getString('FirstName') != null) {
-      //   if (PrefUtils.prefs.getString('LastName') != null) {
+      // if (PrefUtils.prefs!.getString('FirstName') != null) {
+      //   if (PrefUtils.prefs!.getString('LastName') != null) {
       //     name =
-      //         PrefUtils.prefs.getString('FirstName') + " " + PrefUtils.prefs.getString('LastName');
+      //         PrefUtils.prefs!.getString('FirstName') + " " + PrefUtils.prefs!.getString('LastName');
       //   } else {
-      //     name = PrefUtils.prefs.getString('FirstName');
+      //     name = PrefUtils.prefs!.getString('FirstName');
       //   }
       // } else {
       //   name = "";
@@ -65,11 +66,11 @@ class AddressItemsList with ChangeNotifier {
       name = store.userData.username;
       final response = await http.post(Api.updateAddress, body: {
         // await keyword is used to wait to this operation is complete.
-        "apiKey": PrefUtils.prefs.getString('apiKey'),
+        "apiKey": PrefUtils.prefs!.getString('apiKey'),
         "addressId": addressid,
-        "addressType": PrefUtils.prefs.getString('newaddresstype'),
+        "addressType": PrefUtils.prefs!.getString('newaddresstype'),
         "fullName": name,
-        "address": PrefUtils.prefs.getString('newaddress'),
+        "address": PrefUtils.prefs!.getString('newaddress'),
         "longitude": longitude,
         "latitude": latitude,
         "branch": branch,
@@ -80,18 +81,30 @@ class AddressItemsList with ChangeNotifier {
   }
 
   Future<void> fetchAddress() async {
+
     // imp feature in adding async is the it automatically wrap into Future.
     try {
       _items.clear();
       final response = await http.post(Api.getAddress, body: {
         // await keyword is used to wait to this operation is complete.
-        "customer": PrefUtils.prefs.getString('apikey'),
+        "customer": PrefUtils.prefs!.getString('apikey'),
+        "branch": PrefUtils.prefs!.getString('branch'),
+        "ref" : IConstants.refIdForMultiVendor,
       });
+print("get addresssss return"+Api.getAddress.toString()+"////"+{
+    // await keyword is used to wait to this operation is complete.
+    "customer": PrefUtils.prefs!.getString('apikey'),
+    "branch": PrefUtils.prefs!.getString('branch'),
+    "ref" : IConstants.refIdForMultiVendor,
 
+}.toString());
       final responseJson = json.decode(utf8.decode(response.bodyBytes));
+      print("wecfre" + responseJson.toString());
+
       final dataJson = json.encode(responseJson); //fetching categories data
 
-      final dataJsondecode = json.decode(dataJson);
+      final dataJsondecode = json.decode(dataJson)["data"];
+      print("data jsons descode..."+dataJsondecode.toString());
 
       List data = []; //list for categories
 
@@ -136,7 +149,7 @@ class AddressItemsList with ChangeNotifier {
       final response = await http.post(Api.setDefaultAddress, body: {
         // await keyword is used to wait to this operation is complete.
         "id": addressid,
-        "branch": PrefUtils.prefs.getString('branch'),
+        "branch": PrefUtils.prefs!.getString('branch'),
       });
     } catch (error) {
       throw error;
@@ -148,9 +161,9 @@ class AddressItemsList with ChangeNotifier {
     try {
       final response = await http.post(Api.removeAddress, body: {
         // await keyword is used to wait to this operation is complete.
-        "apiKey": PrefUtils.prefs.getString('apiKey'),
+        "apiKey": PrefUtils.prefs!.getString('apiKey'),
         "addressId": addressid,
-        "branch": PrefUtils.prefs.getString('branch'),
+        "branch": PrefUtils.prefs!.getString('branch'),
       });
     } catch (error) {
       throw error;

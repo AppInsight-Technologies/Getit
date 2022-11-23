@@ -2,23 +2,22 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 class CategoriesFields with ChangeNotifier {
-  final String catid;
-  final String subcatid;
-  final String title;
-  final String description;
-  final double price;
-  final String imageUrl;
-  final String heading;
-  int startItemIndex;
-  Color boxbackcolor;
-  Color boxsidecolor;
-  Color textcolor;
-  FontWeight fontweight;
+  final String? catid;
+  final String? subcatid;
+  final String? title;
+  final String? description;
+  final double? price;
+  final String? imageUrl;
+  final String? heading;
+  int? startItemIndex;
+  Color? boxbackcolor;
+  Color? boxsidecolor;
+  Color? textcolor;
+  FontWeight? fontweight;
   final type;
   final parentId;
-  final String catBanner;
-  Color featuredCategoryBColor;
-  final String subcatdata;
+  Color? featuredCategoryBColor;
+  final String? subcatdata;
 
 
   CategoriesFields({
@@ -38,7 +37,6 @@ class CategoriesFields with ChangeNotifier {
     this.featuredCategoryBColor,
     this.heading,
     this.subcatdata,
-    this.catBanner,
   });
 }
 

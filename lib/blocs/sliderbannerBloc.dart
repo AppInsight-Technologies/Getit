@@ -1,4 +1,3 @@
-
 import 'dart:async';
 import '../providers/branditems.dart';
 import '../models/SellingItemsModle.dart';
@@ -37,9 +36,11 @@ class BannerSliderBloc {
 
   Stream<List<BrandsFields>> get allBanner => _SliderbannerFetcher.stream;
 
-  String get varId => null;
+  String? get varId => null;
 
-  String get prevBranch => null;
+  String? get prevBranch => null;
+
+  String? get item => null;
 
   fetchBanner() async {
     List<BrandsFields> itemModel = await _repository.fetchBanner();
@@ -65,9 +66,8 @@ class BannerSliderBloc {
   }
   Stream<SellingItemModel> get searcheditem => _searcheditemController.stream;
   SearcheditemBloc() async {
-    SellingItemModel itemModel = await _repository.searchedItemsRepo();
-    print("total listed searched item :${itemModel.data.length}");
-    _searcheditemController.sink.add(itemModel);
+    SellingItemModel? itemModel = await _repository.searchedItemsRepo();
+    _searcheditemController.sink.add(itemModel!);
   }
 
   Stream<List<CategoriesModel>> get categoryTwo => _categoryTwoController.stream;
@@ -148,7 +148,7 @@ class BannerSliderBloc {
   StreamSink<List<SellingItemsFields>> get swapitemSink => _swapItemController.sink;
   Stream<List<SellingItemsFields>> get swapItemStream => _swapItemController.stream;
   swapitemBloc() async{
-    sellingitem.fetchSwapProduct(prevBranch, varId);
+    sellingitem.fetchSwapProduct(prevBranch!, varId!,item!);
   }
 /*  StreamSink<List<BrandsFields>> get paymentSink => payment.sink;
   Stream<List<BrandsFields>> get paymentStream => payment.stream;

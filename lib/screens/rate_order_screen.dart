@@ -5,11 +5,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import '../../constants/features.dart';
 import '../assets/ColorCodes.dart';
 import '../assets/images.dart';
 import '../constants/IConstants.dart';
 import '../constants/api.dart';
 import '../generated/l10n.dart';
+import '../rought_genrator.dart';
 import '../screens/myorder_screen.dart';
 import '../utils/ResponsiveLayout.dart';
 import '../utils/prefUtils.dart';
@@ -19,18 +21,20 @@ import 'package:http/http.dart' as http;
 
 
 class RateOrderScreen extends StatefulWidget {
-  const RateOrderScreen({Key key}) : super(key: key);
+ // const RateOrderScreen({ Key? key}) : super(key: key);
   static const routeName = '/rateorder-screen';
+  Map<String,String> orderid;
+  RateOrderScreen(this.orderid);
 
   @override
   _RateOrderScreenState createState() => _RateOrderScreenState();
 }
 
-class _RateOrderScreenState extends State<RateOrderScreen> {
+class _RateOrderScreenState extends State<RateOrderScreen> with Navigations{
   var _isWeb = false;
   bool iphonex = false;
   double ratings = 3.0;
-  String comment = S.current.good;//"Good";
+  String comment = S .current.good;//"Good";
   var orderid;
   @override
   void initState() {
@@ -56,12 +60,9 @@ class _RateOrderScreenState extends State<RateOrderScreen> {
       }
 
 
-      final routeArgs = ModalRoute
-          .of(context)
-          .settings
-          .arguments as Map<String, String>;
+      final routeArgs = ModalRoute.of(context)!.settings.arguments as Map<String, String>;
 
-      orderid = routeArgs['orderid'];
+      orderid = widget.orderid['orderid'];
     });
 
     // TODO: implement initState
@@ -90,7 +91,7 @@ class _RateOrderScreenState extends State<RateOrderScreen> {
         body: Column(
           children: <Widget>[
             if(_isWeb && !ResponsiveLayout.isSmallScreen(context))
-              Header(false, false),
+              Header(false),
             _body(),
           ],
         ),
@@ -125,29 +126,34 @@ _dialogforProcessing(){
     try {
       final response = await http.post(Api.addRatings, body: {
         // await keyword is used to wait to this operation is complete.
-        "user": PrefUtils.prefs.getString('apiKey'),
-        "order":orderid,
+        "user": PrefUtils.prefs!.getString('apikey'),
+        "order":widget.orderid,
         "star": rating.toString(),
         "comment": comment.toString(),
-        "branch": PrefUtils.prefs.getString('branch'),
+        "branch": PrefUtils.prefs!.getString('branch'),
       });
       final responseJson = json.decode(response.body);
       Navigator.pop(context);
       Navigator.pop(context);
       if (responseJson['status'].toString() == "200") {
-        Navigator.of(context).pushReplacementNamed(
+        /*Navigator.of(context).pushReplacementNamed(
           MyorderScreen.routeName,
             arguments: {
               "orderhistory": ""
             }
+        );*/
+        Navigation(context, name:Routename.MyOrders,navigatore: NavigatoreTyp.Push,
+        //     parms: {
+        //   "orderhistory": ""
+        // }
         );
       } else {
-        return Fluttertoast.showToast(msg: S.current.something_went_wrong, fontSize: MediaQuery.of(context).textScaleFactor *13,);
+        Fluttertoast.showToast(msg: S .current.something_went_wrong, fontSize: MediaQuery.of(context).textScaleFactor *13,);
       }
     } catch (error) {
       Navigator.pop(context);
 
-      Fluttertoast.showToast(msg: S.current.something_went_wrong, fontSize: MediaQuery.of(context).textScaleFactor *13,);
+      Fluttertoast.showToast(msg: S .current.something_went_wrong, fontSize: MediaQuery.of(context).textScaleFactor *13,);
       throw error;
     }
   }
@@ -166,30 +172,24 @@ _dialogforProcessing(){
                 height: 10.0,
               ),
               Text(
-                S.of(context).rate_your_order,
-                style: TextStyle(fontSize: 18.0,color: ColorCodes.greyColor),
+                S .of(context).rate_your_order,
+                style: TextStyle(fontSize: 18.0,color: ColorCodes.blackColor),
               ),
               SizedBox(
                 height: 5.0,
               ),
-              Padding(
+              /*Padding(
                 padding: _isWeb?EdgeInsets.symmetric(horizontal:700):EdgeInsets.symmetric(horizontal:120.0),
                 child: Divider(color: ColorCodes.darkgreen,thickness: 2,),
-              ),
+              ),*/
               SizedBox(
                 height: 10.0,
               ),
               Text(
-                S.of(context).refund_orderid+ " : " + orderid.toString(),
-                style: TextStyle(fontSize: 20.0,color: ColorCodes.blackColor),
+                S .of(context).refund_orderid+ " : " + orderid.toString(),
+                style: TextStyle(fontSize: 20.0,color: ColorCodes.blackColor,fontWeight: FontWeight.bold),
               ),
-              SizedBox(
-                height: 10.0,
-              ),
-              Text(
-                comment,
-                style: TextStyle(fontSize: 20.0,color: ColorCodes.greyColor),
-              ),
+
               SizedBox(
                 height: 10.0,
               ),
@@ -204,43 +204,49 @@ _dialogforProcessing(){
                 itemPadding: EdgeInsets.symmetric(horizontal: 4.0),
                 itemBuilder: (context, _) => Icon(
                   Icons.star_rate,
-                  color: ColorCodes.ratestarcolor,
+                  color: ColorCodes.primaryColor,
                 ),
 
                 onRatingUpdate: (rating) {
                   ratings = rating;
                   if(ratings == 5){
                     setState(() {
-                      comment = S.of(context).excellent;//"Excellent";
+                      comment = S .of(context).excellent;//"Excellent";
                     });
 
                   }
                   else if(ratings == 4){
                     setState(() {
-                      comment = S.of(context).good;//"Good";
+                      comment = S .of(context).good;//"Good";
                     });
 
                   }
                   else if(ratings == 3){
                     setState(() {
-                      comment = S.of(context).average;//"Average";
+                      comment = S .of(context).average;//"Average";
                     });
 
                   }
                   else if(ratings == 2){
                     setState(() {
-                      comment = S.of(context).bad;//"Bad";
+                      comment = S .of(context).bad;//"Bad";
                     });
                   }
                   else if(ratings == 1){
                     setState(() {
-                      comment = S.of(context).verybad;//"Very Bad";
+                      comment = S .of(context).verybad;//"Very Bad";
                     });
                   }
                 },
               ),
 
-
+              SizedBox(
+                height: 10.0,
+              ),
+              Text(
+                comment,
+                style: TextStyle(fontSize: 18.0,color: ColorCodes.blackColor),
+              ),
               SizedBox(
                 height: 30.0,
               ),
@@ -266,7 +272,7 @@ _dialogforProcessing(){
                     ),
                     child: Center(
                         child: Text(
-                          S.of(context).rate_order.toUpperCase(),
+                          S .of(context).rate_order.toUpperCase(),
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.bold,
@@ -282,7 +288,7 @@ _dialogforProcessing(){
                 height: 30.0,
               ),
               if (_isWeb)
-                Footer(address: PrefUtils.prefs.getString("restaurant_address")),
+                Footer(address: PrefUtils.prefs!.getString("restaurant_address")!),
 
             ],
           ),
@@ -296,7 +302,7 @@ _dialogforProcessing(){
       automaticallyImplyLeading: false,
       elevation: (IConstants.isEnterprise)?0:1,
       leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: ColorCodes.menuColor),
+          icon: Icon(Icons.arrow_back, color: ColorCodes.iconColor),
           onPressed: () {
             Navigator.of(context).pop();
             /*SchedulerBinding.instance.addPostFrameCallback((_) {
@@ -310,8 +316,8 @@ _dialogforProcessing(){
           }),
       titleSpacing: 0,
       title: Text(
-        S.of(context).rate_order,
-        style: TextStyle(color: ColorCodes.menuColor),
+        S .of(context).rate_order,
+        style: TextStyle(color: ColorCodes.iconColor, fontWeight: FontWeight.bold, fontSize: 18),
       ),
       flexibleSpace: Container(
         decoration: BoxDecoration(
@@ -319,8 +325,8 @@ _dialogforProcessing(){
                 begin: Alignment.topRight,
                 end: Alignment.bottomLeft,
                 colors: [
-                  ColorCodes.accentColor,
-                  ColorCodes.primaryColor
+                  ColorCodes.appbarColor,
+                  ColorCodes.appbarColor2
                 ])),
       ),
     );

@@ -1,6 +1,9 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import '../../controller/mutations/login.dart';
+import '../../models/VxModels/VxStore.dart';
+import '../../repository/api.dart'as ap;
+import 'package:velocity_x/velocity_x.dart';
+import '../controller/mutations/login.dart';
 import '../data/hiveDB.dart';
 import '../main.dart';
 import 'package:hive/hive.dart';
@@ -44,46 +47,47 @@ class BrandItemsList with ChangeNotifier {
   List<BrandsFieldModel> _branditems = [];
   List<SellingItemsFields> _itemimages =[];
   List<SellingItemsFields> _itemshoppingimages=[];
-  ReferFields _referEarn;
-  Box<Product> productBox;
-  BrandsFieldModel resultfinal;
+  ReferFields? _referEarn;
+  Box<Product>? productBox;
+  BrandsFieldModel? resultfinal;
 
 
   Future<void> LoginUser() async {
     try {
       final response = await http.post(Api.preRegister, body: {
         // await keyword is used to wait to this operation is complete.
-        "mobileNumber": PrefUtils.prefs.getString('Mobilenum'),
-        "tokenId": PrefUtils.prefs.getString('tokenid'),
-        "signature" : PrefUtils.prefs.containsKey("signature") ? PrefUtils.prefs.getString('signature') : "",
+        "mobileNumber": PrefUtils.prefs!.getString('Mobilenum'),
+        "tokenId": PrefUtils.prefs!.getString('tokenid'),
+        "signature" : PrefUtils.prefs!.containsKey("signature") ? PrefUtils.prefs!.getString('signature') : "",
+        //"branch" : PrefUtils.prefs!.getString("branch")
+        "branch": IConstants.isEnterprise && Features.ismultivendor?IConstants.refIdForMultiVendor:PrefUtils.prefs!.getString("branch"),
       });
       final responseJson = json.decode(utf8.decode(response.bodyBytes));
-      debugPrint("LoginUser . .  ." + responseJson.toString());
       final data = responseJson['data'] as Map<String, dynamic>;
 
       if (responseJson['status'].toString() == "true") {
         fas.LogLogin();
         if(responseJson['type'].toString() == "new") {
-          PrefUtils.prefs.setString('Otp', data['otp'].toString());
-          PrefUtils.prefs.setString('type', responseJson['type'].toString());
+          PrefUtils.prefs!.setString('Otp', data['otp'].toString());
+          PrefUtils.prefs!.setString('type', responseJson['type'].toString());
         } else {
-          PrefUtils.prefs.setString('Otp', data['otp'].toString());
-          PrefUtils.prefs.setString('apiKey', data['apiKey'].toString());
-          // PrefUtils.prefs.setString('userID', data['userID'].toString());
-          PrefUtils.prefs.setString('type', responseJson['type'].toString());
-          PrefUtils.prefs.setString('membership', data['membership'].toString());
-          PrefUtils.prefs.setString("mobile", data['mobile'].toString());
-          PrefUtils.prefs.setString("latitude", data['latitude'].toString());
-          PrefUtils.prefs.setString("longitude", data['longitude'].toString());
-          PrefUtils.prefs.setString('apple', data['apple'].toString());
+          PrefUtils.prefs!.setString('Otp', data['otp'].toString());
+          PrefUtils.prefs!.setString('apiKey', data['apiKey'].toString());
+          // PrefUtils.prefs!.setString('userID', data['userID'].toString());
+          PrefUtils.prefs!.setString('type', responseJson['type'].toString());
+          PrefUtils.prefs!.setString('membership', data['membership'].toString());
+          PrefUtils.prefs!.setString("mobile", data['mobile'].toString());
+          PrefUtils.prefs!.setString("latitude", data['latitude'].toString());
+          PrefUtils.prefs!.setString("longitude", data['longitude'].toString());
+          PrefUtils.prefs!.setString('apple', data['apple'].toString());
 
-          if (PrefUtils.prefs.getString('prevscreen') != null) {
-            if (PrefUtils.prefs.getString('prevscreen') == 'signingoogle') {} else
-            if (PrefUtils.prefs.getString('prevscreen') == 'signinfacebook') {} else {
-              PrefUtils.prefs.setString('FirstName', data['name'].toString());
-              PrefUtils.prefs.setString('LastName', "");
-              PrefUtils.prefs.setString('Email', data['email'].toString());
-              PrefUtils.prefs.setString("photoUrl", "");
+          if (PrefUtils.prefs!.getString('prevscreen') != null) {
+            if (PrefUtils.prefs!.getString('prevscreen') == 'signingoogle') {} else
+            if (PrefUtils.prefs!.getString('prevscreen') == 'signinfacebook') {} else {
+              PrefUtils.prefs!.setString('FirstName', data['name'].toString());
+              PrefUtils.prefs!.setString('LastName', "");
+              PrefUtils.prefs!.setString('Email', data['email'].toString());
+              PrefUtils.prefs!.setString("photoUrl", "");
             }
           }
           userDetails();
@@ -94,27 +98,26 @@ class BrandItemsList with ChangeNotifier {
     }
   }
 
-  Future<void> GetRestaurant() async {
-    // imp feature in adding async is the it automatically wrap into Future.
-    // try {
-      final response = await http.post(Api.getRestaurant,
-          body: {
-            // await keyword is used to wait to this operation is complete.
-            "branch": PrefUtils.prefs.getString('branch'),
-            "language_id": IConstants.languageId,
-          });
-      // debugPrint("branch////");
-      debugPrint(PrefUtils.prefs.getString('branch') + "....." + IConstants.languageId);
-      final responseJson = json.decode(utf8.decode(response.bodyBytes));
-      debugPrint("responseJson" + responseJson.toString());
+  GetRestaurantNew(String branch ,Function onload) async {
+     ap.Api api = ap.Api();
+     try {
+       api.body ={
+         "branch": Features.isWebTrail ? "random" : PrefUtils.prefs!.getString("branch")!,
+         "language_id": IConstants.languageId,
+         "refid": Features.isWebTrail ? "random" : IConstants.refIdForMultiVendor,
+       };
+       final resp = Features.isWebTrail? await api.Posturl("get-resturant-web",isv2: false):await api.Posturl("get-resturant",isv2: false);
+       final responseJson = json.decode(resp);
       if (responseJson.toString() == "[]") {
+
       } else {
         List data = [];
-
+        PrefUtils.prefs!.setBool("restor", true);
         responseJson.asMap().forEach((index, value) =>
             data.add(responseJson[index] as Map<String, dynamic>));
 
         for (int i = 0; i < data.length; i++) {
+          Features.logo = data[i]['icon_image']!=null?"${IConstants.API_IMAGE}/restaurant/icons/"+data[i]['icon_image'].toString():"";
           Features.isMembership = (data[i]['membershipSetting'].toString() =="0") ? true : false;
           Features.isLanguageModule = (data[i]['languageModule'].toString() =="0") ? true : false;
           Features.isLoyalty = (data[i]['loyaltySetting'].toString() =="0") ? true : false;
@@ -123,7 +126,7 @@ class BrandItemsList with ChangeNotifier {
           Features.isReturnOrExchange = (data[i]['returnSetting'].toString() =="0") ? true : false;
           Features.isShoppingList = (data[i]['shoppingListModule'].toString() =="0") ? true : false;
           Features.isPromocode = (data[i]['promocodeModule'].toString() =="0") ? true : false;
-          Features.isPushNotification = (data[i]['pushNotificationModule'].toString() =="0") ? true : false;
+          Features.isPushNotification = (data[i]['pushNotificationModule'].toString() =="0")  ? true : false;
           Features.isPickupfromStore = (data[i]['pickUpfromStoreModule'].toString() =="0") ? true : false;
           Features.isExpressDelivery = (data[i]['expressDeliveryModule'].toString() =="0") ? true : false;
           Features.isWallet = (data[i]['walletModule'].toString() =="0") ? true : false;
@@ -134,7 +137,6 @@ class BrandItemsList with ChangeNotifier {
           Features.isRepeatOrder = (data[i]['repeatOrderModule'].toString() =="0") ? true : false;
           Features.isOffers = (data[i]['offerModule'].toString() =="0") ? true : false;
           Features.isOnBoarding = (data[i]['onboardingScreenModule'].toString() =="0") ? true : false;
-
           Features.isWebsiteSlider = (data[i]['isWebsiteSlider'].toString() =="0") ? true : false;
           Features.isCarousel = (data[i]['isMainSlider'].toString() =="0") ? true : false;
           Features.isCategoryOne = (data[i]['isFeaturedCategoryOne'].toString() =="0") ? true : false;
@@ -155,46 +157,42 @@ class BrandItemsList with ChangeNotifier {
           Features.isOffersForHomepage = (data[i]['homepageOffers'].toString() =="0") ? true : false;
           Features.isRateOrderModule = (data[i]['rateOrdersModule'].toString() =="0") ? true : false;
           Features.isSplit = (data[i]['splitOrder'].toString() =="0") ? true : false;
+          Features.ismultivendor = (data[i]['multiVendorModule'].toString() =="0") ? true : false;
           Features.callMeInsteadOTP = (data[i]['callMeInsteadOTP'].toString() =="0") ? true : false;
           Features.mainBanneraboveSlider = (data[i]['mainBanneraboveSlider'].toString() =="0") ? true : false;
-
-          IConstants.isEnterprise = (data[i]['businessPlan'].toString() == "0" || data[i]['businessPlan'].toString() == "3") ? true : false;
+          IConstants.isEnterprise =Features.ismultivendor?true: (data[i]['businessPlan'].toString() == "0" || data[i]['businessPlan'].toString() == "3") ? true : false;
           IConstants.countryCode = data[i]['country_code'].toString();
           IConstants.currencyFormat = data[i]['currency_format'].toString();
-          IConstants.minimumOrderAmount = data[i]['minimum_order_amount'].toString();
+          IConstants.minimumOrderAmount = data[i]['minimum_order_amount'].toString() == "null" ? "0" : data[i]['minimum_order_amount'].toString();
           IConstants.maximumOrderAmount = data[i]['maximum_order_amount'].toString();
           IConstants.restaurantName = data[i]['restaurant_name'].toString();
-          IConstants.giftWrapamount = (data[i]['gift_wrap_amount'] == "null" ? "0" : data[i]['gift_wrap_amount'].toString());
-
-          PrefUtils.prefs.setString("privacy", data[i]['privacy'].toString() == "null" ? "" : data[i]['privacy'].toString());
-
+          PrefUtils.prefs!.setString("privacy", data[i]['privacy'].toString() == "null" ? "" : data[i]['privacy'].toString());
           IConstants.returnsPolicy = data[i]['returns'].toString() == "null" ? "" : data[i]['returns'].toString();
           IConstants.refundPolicy = data[i]['refund'].toString() == "null" ? "" : data[i]['refund'].toString();
           IConstants.walletPolicy = data[i]['wallet'].toString() == "null" ? "" : data[i]['wallet'].toString();
-
-          PrefUtils.prefs.setString("description", data[i]['description'].toString());
-          PrefUtils.prefs.setString("restaurant_address", data[i]['restaurant_address'].toString());
-
+          PrefUtils.prefs!.setString("description", data[i]['description'].toString());
+          PrefUtils.prefs!.setString("restaurant_address", data[i]['restaurant_address'].toString());
           IConstants.primaryMobile = data[i]['primary_mobile'].toString();
           IConstants.secondaryMobile = data[i]['secondary_mobile'].toString();
           IConstants.primaryEmail = data[i]['primary_email'].toString();
           IConstants.secondaryEmail = data[i]['secondary_email'].toString();
           IConstants.restaurantTerms = data[i]['restaurant_terms'].toString();
-          PrefUtils.prefs.setString("restaurant_location", data[i]['restaurant_location'].toString());
-          PrefUtils.prefs.setString("restaurant_lat", data[i]['restaurant_lat'].toString());
-          PrefUtils.prefs.setString("restaurant_long", data[i]['restaurant_long'].toString());
-          PrefUtils.prefs.setString("refer", data[i]['refer'].toString() == "null" ? "" : data[i]['refer'].toString());
-
+          PrefUtils.prefs!.setString("restaurant_location", data[i]['restaurant_location'].toString());
+          PrefUtils.prefs!.setString("restaurant_lat", data[i]['restaurant_lat'].toString());
+          PrefUtils.prefs!.setString("restaurant_long", data[i]['restaurant_long'].toString());
+          PrefUtils.prefs!.setString("refer", data[i]['refer'].toString() == "null" ? "" : data[i]['refer'].toString());
           IConstants.categoryOneLabel = data[i]['category_label'].toString() == "null" ? "null" : data[i]['category_label'].toString();
           IConstants.categoryTwoLabel = data[i]['category_two_label'].toString() == "null" ? "null" : data[i]['category_two_label'].toString();
           IConstants.categoryThreeLabel = data[i]['category_three_label'].toString() == "null" ? "null" : data[i]['category_three_label'].toString();
-
           IConstants.categoryOne = (data[i]['category'].toString() == "null" || data[i]['category'].toString() == "") ? "null" : data[i]['category'].toString();
           IConstants.categoryTwo = (data[i]['category_two'].toString() == "null" || data[i]['category_two'].toString() == "") ? "null" : data[i]['category_two'].toString();
           IConstants.categoryThree = (data[i]['category_three'].toString() == "null" || data[i]['category_three'].toString() == "") ? "null" : data[i]['category_three'].toString();
           IConstants.numberFormat = (data[i]['number_format'].toString() == "null" || data[i]['number_format'].toString() == "") ? "1" : data[i]['number_format'].toString();
-
+          IConstants.decimaldigit = (data[i]['number_format'].toString() == "null" || data[i]['number_format'].toString() == "") ? 0
+              : data[i]['number_format'].toString() == "1" ? 0
+              : data[i]['number_format'].toString() == "0" ? 2 : 3; //Round = 1, Round for decimal = 0, Round for 3 decimal 2
           IConstants.androidId = data[i]['play_store'].toString();
+        //  IConstants.appName = data[i]['appName'].toString();
           IConstants.appleId = data[i]['apple_store'].toString();
           IConstants.websiteId = data[i]['crispChatId'].toString();
           IConstants.googleApiKey = data[i]['firebaseMapkey'].toString();
@@ -203,8 +201,23 @@ class BrandItemsList with ChangeNotifier {
           IConstants.youtubeUrl = data[i]['youtube_url'].toString();
           IConstants.twitterUrl = data[i]['twitter_url'].toString();
           IConstants.holyday = data[i]['holiday'].toString();
+          IConstants.faquestions = data[i]['faq'].toString() == "null" ? "" : data[i]['faq'].toString();
+          Features.isAnalytics = (data[i]['analyticsModule'].toString() =="0") ? true : false;
+          if(!Features.ismultivendor)IConstants.APP_NAME = data[i]['appName'].toString();
           IConstants.holydayNote = data[i]['holidayNote'].toString();
+          PrefUtils.prefs!.setString("branch", data[i]['id'].toString());
+         // IConstants.refIdForMultiVendor = data[i]['refid'].toString();
+          if(Vx.isWeb) PrefUtils.prefs!.setString("openTime", data[i]["openTime"].toString());
+          if(Vx.isWeb) PrefUtils.prefs!.setString("closeTime", data[i]["closeTime"].toString());
           SetLanguageList(data[i] as Map<String, dynamic>);
+          if(data[i]['MembershipData'] != '[]'){
+            data[i]['MembershipData'].forEach((v) {
+              PrefUtils.prefs!.setString("membershipplansname", v['name']);
+              PrefUtils.prefs!.setString("membershipplansprice", v['price'].toString());
+              PrefUtils.prefs!.setString("membershipplansdiscount", v['discounted_price'].toString());
+              PrefUtils.prefs!.setString("membershipplansduration", v['duration'].toString());
+            });
+          }
           if(data[i]['WebsiteSetting'] != '[]') {
             data[i]['WebsiteSetting'].forEach((v) {
               IConstants.paymentGateway = v['payment_gateway'];
@@ -214,11 +227,13 @@ class BrandItemsList with ChangeNotifier {
               IConstants.isPaymentTesting = v['mode'].toString() == "0" ? true : false;
             });
           }
+
+  onload();
         }
       }
-    // } catch (error) {
-    //   throw error;
-    // }
+    } catch (error) {
+      throw error;
+    }
   }
 
   Future<int> notifyMe(String itemid, String varid, String type) async {
@@ -226,30 +241,23 @@ class BrandItemsList with ChangeNotifier {
     var varId;
     final now = new DateTime.now();
     currentDate = DateFormat('dd/MM/y').format(now);
-    print("notifyme....1" + " " + itemid+" "+varid);
     if(type == "1"){
       varId = itemid;
-      print("var...1"+itemid.toString());
     }
 
     else{
       varId = varid;
-      print("var...2"+varId.toString());
     }
-    print("notifyme....2");
     try {
       final response = await http.post(Api.productNotify, body: {
-        "user": PrefUtils.prefs.getString('apikey'),
+        "user": PrefUtils.prefs!.getString('apikey'),
         "itemId": itemid,
         "varId": varId,
         "date": currentDate,
-        "branch": PrefUtils.prefs.getString('branch'),
+        "branch": PrefUtils.prefs!.getString('branch'),
         // await keyword is used to wait to this operation is complete.
       });
-      print("notifyme....response"+response.toString());
-
       final responseJson = json.decode(utf8.decode(response.bodyBytes));
-      print("response for notify.........."+responseJson.toString());
       if (responseJson['status'].toString() == '200') {
         return int.parse(responseJson['status'].toString());
       } else {
@@ -267,26 +275,23 @@ class BrandItemsList with ChangeNotifier {
     try{
       final response = await http.post(Api.getProfile, body: {
         // await keyword is used to wait to this operation is complete.
-        "apiKey": PrefUtils.prefs.getString('apiKey'),
+        "apiKey": PrefUtils.prefs!.getString('apiKey'),
+        "branch" : PrefUtils.prefs!.getString("branch")
       });
       final responseJson = json.decode(response.body);
-      debugPrint("response...."+responseJson.toString());
-      print("productBox.length...."+productBox.length.toString());
       final dataJson = json.encode(responseJson['data']); //fetching categories data
       final dataJsondecode = json.decode(dataJson);
       List data = [];
-      for(int i =0; i< productBox.length ; i++){
-        debugPrint("product box...."+productBox.values.elementAt(i).mode.toString());
-        if(productBox.values.elementAt(i).mode.toString() == "1"){
+      for(int i =0; i< productBox!.length ; i++){
+        if(productBox!.values.elementAt(i).mode.toString() == "1"){
           membership = "1";
         }
         break;
       }
       dataJsondecode.asMap().forEach((index, value) => data.add(dataJsondecode[index] as Map<String, dynamic>));
       for (int i = 0; i < data.length; i++) {
-        debugPrint("mem...."+data[i]['membership'].toString()+"  "+membership);
-        (membership == "1") ? PrefUtils.prefs.setString('membership', "1") :PrefUtils.prefs.setString('membership', data[i]['membership'].toString());
-        PrefUtils.prefs.setString('myreffer', data[i]['myref'].toString());
+        (membership == "1") ? PrefUtils.prefs!.setString('membership', "1") :PrefUtils.prefs!.setString('membership', data[i]['membership'].toString());
+        PrefUtils.prefs!.setString('myreffer', data[i]['myref'].toString());
       }
       final prepaidJson = json.encode(responseJson['prepaid']); //fetching categories data
       final prepaidJsondecode = json.decode(prepaidJson);
@@ -294,17 +299,17 @@ class BrandItemsList with ChangeNotifier {
       prepaidJsondecode.asMap().forEach((index, value) => prepaidData.add(prepaidJsondecode[index] as Map<String, dynamic>));
       for (int i = 0; i < prepaidData.length; i++) {
         if (double.parse(prepaidData[i]['prepaid'].toString()) < 0) {
-          PrefUtils.prefs.setString("wallet_balance", "0");
+          PrefUtils.prefs!.setString("wallet_balance", "0");
         } else {
-          PrefUtils.prefs.setString(
+          PrefUtils.prefs!.setString(
               "wallet_balance", prepaidData[i]['prepaid'].toString());
         }
 
         if (double.parse(prepaidData[i]['loyalty'].toString()) < 0 ||
             prepaidData[i]['loyalty'].toString() == "null") {
-          PrefUtils.prefs.setString("loyalty_balance", "0");
+          PrefUtils.prefs!.setString("loyalty_balance", "0");
         } else {
-          PrefUtils.prefs.setString("loyalty_balance", prepaidData[i]['loyalty'].toString());
+          PrefUtils.prefs!.setString("loyalty_balance", prepaidData[i]['loyalty'].toString());
         }
         if (data[i]['billingAddress'].toString() != "[]"){
           final billingAddressJson = json.encode(data[i]['billingAddress']); //fetching categories data
@@ -313,17 +318,15 @@ class BrandItemsList with ChangeNotifier {
           billingAddressJsondecode.asMap().forEach((index, value) => billingAddressData.add(billingAddressJsondecode[index] as Map<String, dynamic>));
           for (int i = 0; i < billingAddressData.length; i++) {
             if (billingAddressData[i]['isdefault'].toString() == "1") {
-              PrefUtils.prefs.setString("addressId", billingAddressData[i]['id'].toString());
+              PrefUtils.prefs!.setString("addressId", billingAddressData[i]['id'].toString());
               break;
             } else {
-              PrefUtils.prefs.setString("addressId", billingAddressData[i]['id'].toString());
+              PrefUtils.prefs!.setString("addressId", billingAddressData[i]['id'].toString());
             }
           }
         }
       }
-      headerBloc.setNotificationCountStream(int.parse(responseJson['notification_count'].toString()));
-      //debugPrint("membership....60  "+PrefUtils.prefs.getString("membership"));
-      //PrefUtils.prefs.setString("addressId", addressitemsData.items[0].userid);
+      headerBloc.setNotificationCountStream!(int.parse(responseJson['notification_count'].toString()));
     } catch (error){
       throw error;
     }
@@ -335,7 +338,7 @@ class BrandItemsList with ChangeNotifier {
       _items.clear();
     _branditems.clear();
       final response = await http.post(Api.getBrands, body: {
-        "branch": PrefUtils.prefs.getString('branch'),
+        "branch": PrefUtils.prefs!.getString('branch'),
         "language_id": IConstants.languageId,
         // await keyword is used to wait to this operation is complete.
       });
@@ -345,7 +348,7 @@ class BrandItemsList with ChangeNotifier {
         responseJson.asMap().forEach((index, value) {
           resdata = responseJson[index] as Map<String, dynamic>;
           resultfinal = BrandsFieldModel.fromJson(resdata);
-          _branditems.add(resultfinal);
+          _branditems.add(resultfinal!);
 
         });
       }
@@ -356,10 +359,9 @@ class BrandItemsList with ChangeNotifier {
   }
 
   Future<void> fetchBrandItems(String brandsid, int startitem, String checkinitialy) async {
-    // imp feature in adding async is the it automatically wrap into Future.
     var url = Api.getMenuitemByBrandByCart;
-    String user = (PrefUtils.prefs.containsKey("apikey")) ? PrefUtils.prefs.getString("tokenid") : PrefUtils.prefs.getString('apikey');
-    PrefUtils.prefs.setBool("endOfProduct", false);
+    String user = (!PrefUtils.prefs!.containsKey("apikey")) ? PrefUtils.prefs!.getString("tokenid")! : PrefUtils.prefs!.getString('apikey')!;
+    PrefUtils.prefs!.setBool("endOfProduct", false);
     try {
       if (checkinitialy == "initialy") {
         _brandsitems.clear();
@@ -370,15 +372,14 @@ class BrandItemsList with ChangeNotifier {
         "id": brandsid,
         "start": startitem.toString(),
         "end": "0",
-        "branch": PrefUtils.prefs.getString('branch'),
+        "branch": PrefUtils.prefs!.getString('branch'),
         "user": user,
         "language_id": IConstants.languageId,
         // await keyword is used to wait to this operation is complete.
       });
       final responseJson = json.decode(utf8.decode(response.bodyBytes));
-
       if (responseJson.toString() == "[]" || responseJson.toString() == "") {
-        PrefUtils.prefs.setBool("endOfProduct", true);
+        PrefUtils.prefs!.setBool("endOfProduct", true);
       } else {
         List data = [];
 
@@ -499,7 +500,6 @@ class BrandItemsList with ChangeNotifier {
                 discountDisplay: _discointDisplay,
                 membershipDisplay: _membershipDisplay,
                 unit: (pricevardata[j]['unit'].toString() == "null")? "" : (pricevardata[j]['unit'] ?? "").toString(),
-                  color:pricevardata[0]['color'].toString(),
                   weight: double.parse(pricevardata[j]['weight'].toString())
               ));
               final multiimagesJson = json.encode(
@@ -547,13 +547,16 @@ class BrandItemsList with ChangeNotifier {
   }
 
   Future<void> fetchPaymentMode() async {
-    // imp feature in adding async is the it automatically wrap into Future.
     try {
       _paymentitems.clear();
+      String branch = PrefUtils.prefs!.getString('branch')??"999";
+      if((VxState.store as GroceStore).CartItemList.length > 0 && Features.ismultivendor){
+        branch = (VxState.store as GroceStore).CartItemList[0].branch!.toString();
+      }
       final response = await http.post(
           Api.paymentModeBranch,
           body: {
-            "id": PrefUtils.prefs.getString('branch'),
+            "id": branch,
             // await keyword is used to wait to this operation is complete.
           }
       );
@@ -565,39 +568,84 @@ class BrandItemsList with ChangeNotifier {
         responseJson.asMap().forEach((index, value) => data.add(responseJson[index]));
         String payName = "";
         String payMode = "0";
-        for (int i = 0; i < data.length; i++) {
-          if (data[i].toString() == "cod") {
-            payName = "Pay on Delivery";
-            payMode = "6";
-          } else if (data[i].toString() == "sod") {
-            payName = "Card on Delivery";
-            payMode = "0";
-          } else if (data[i].toString() == "online") {
-            payName = "Online Payment";
-            payMode = "1";
-          }  else if (data[i].toString() == "sodedxo") {
-            payName = "Sodexo";
-            payMode = "7";
-          }else if (data[i].toString() == "wallet") {
-            if(Features.isWallet) {
-              payName = "Wallet Balance";
-              payMode = "2";
+        String membershipvx = (VxState.store as GroceStore).userData.membership!;
+        bool _checkmembership = false;
+        final cartItemList =(VxState.store as GroceStore).CartItemList;
+          for (int i = 0; i < cartItemList.length; i++) {
+            if (cartItemList[i].mode == "1") {
+              _checkmembership = true;
             }
-          } else if (data[i].toString() == "loyalty") {
-            if(Features.isLoyalty) {
-              payName = "Loyalty";
-              payMode = "4";
-              //_isLoyalty = true;
+        }
+        for (int i = 0; i < data.length; i++) {
+          if(Features.isMembership && (_checkmembership) ) {
+           if (data[i].toString() == "online") {
+              payName = "Online Payment";
+              payMode = "1";
+            }
+           else if (data[i].toString() == "wallet") {
+             if (Features.isWallet) {
+               payName = "Wallet Balance";
+               payMode = "2";
+             }
+             else {
+               payName = "";
+               payMode = "";
+             }
+           }
+           else {
+             payName = "";
+             payMode = "";
+           }
+
+            if (payMode == "3" || payMode == "5") {} else {
+              _paymentitems.add(WalletItemsFields(
+                paymentType: "online",
+                paymentName: payName,
+                paymentMode: payMode,
+              ));
             }
           }
+          else{
+            if (data[i].toString() == "cod") {
+              payName = "Pay on Delivery";
+              payMode = "6";
+            } else if (data[i].toString() == "sod") {
+              payName = "Card on Delivery";
+              payMode = "0";
+            } else if (data[i].toString() == "online") {
+              payName = "Online Payment";
+              payMode = "1";
+            } else if (data[i].toString() == "sodedxo") {
+              payName = "Sodexo";
+              payMode = "7";
+            } else if (data[i].toString() == "wallet") {
+              if (Features.isWallet) {
+                payName = "Wallet Balance";
+                payMode = "2";
+              }
+              else {
+                payName = "";
+                payMode = "";
+              }
+            } else if (data[i].toString() == "loyalty") {
+              if (Features.isLoyalty) {
+                payName = "Loyalty";
+                payMode = "4";
+                //_isLoyalty = true;
+              }
+              else {
+                payName = "";
+                payMode = "";
+              }
+            }
 
-          if (payMode == "3" || payMode == "5") {
-          } else {
-            _paymentitems.add(WalletItemsFields(
-              paymentType: data[i].toString(),
-              paymentName: payName,
-              paymentMode: payMode,
-            ));
+            if (payMode == "3" || payMode == "5") {} else {
+              _paymentitems.add(WalletItemsFields(
+                paymentType: data[i].toString(),
+                paymentName: payName,
+                paymentMode: payMode,
+              ));
+            }
           }
         }
       }
@@ -613,8 +661,8 @@ class BrandItemsList with ChangeNotifier {
     try {
       _walletitems.clear();
       final response = await http.post(Api.walletLogs, body: {
-        "userId": PrefUtils.prefs.getString('apikey'),
-        "type": (type == "wallet") ? "0" : "3",
+        "userId": PrefUtils.prefs!.getString('apikey'),
+        "type": ( type== "wallet") ?  "0" : ( type== "subscribedwallet") ? "5" : "3",
         // await keyword is used to wait to this operation is complete.
       });
       final responseJson = json.decode(utf8.decode(response.bodyBytes));
@@ -629,20 +677,29 @@ class BrandItemsList with ChangeNotifier {
 
           var amount;
           var title;
-          var img;
           if (double.parse(pricevarJsondecode['credit'].toString()) <= 0) {
             (type == "wallet")
-                ? (IConstants.numberFormat == "1") ? amount = "-  " + IConstants.currencyFormat + " " + double.parse(pricevarJsondecode['debit'].toString()).toStringAsFixed(0):amount = "-  " + IConstants.currencyFormat + " " + double.parse(pricevarJsondecode['debit'].toString()).toStringAsFixed(IConstants.decimaldigit)
-                : (IConstants.numberFormat == "1") ? amount = "-  " + double.parse(pricevarJsondecode['debit'].toString()).toStringAsFixed(0):amount = "-  " + double.parse(pricevarJsondecode['debit'].toString()).toStringAsFixed(IConstants.decimaldigit);
+                ? (IConstants.numberFormat == "1") ?
+            Features.iscurrencyformatalign?
+            amount = "-  " +  double.parse(pricevarJsondecode['debit'].toString()).toStringAsFixed(0) +  " " + IConstants.currencyFormat :
+            amount = "-  " + IConstants.currencyFormat + " " + double.parse(pricevarJsondecode['debit'].toString()).toStringAsFixed(0):
+            Features.iscurrencyformatalign?amount = "-  " +  double.parse(pricevarJsondecode['debit'].toString()).toStringAsFixed(IConstants.decimaldigit) +  " " +IConstants.currencyFormat
+                :amount = "-  " + IConstants.currencyFormat + " " + double.parse(pricevarJsondecode['debit'].toString()).toStringAsFixed(IConstants.decimaldigit)
+
+                : (IConstants.numberFormat == "1") ?
+            amount = "-  " + double.parse(pricevarJsondecode['debit'].toString()).toStringAsFixed(0):
+            amount = "-  " + double.parse(pricevarJsondecode['debit'].toString()).toStringAsFixed(IConstants.decimaldigit);
 
             title = "Debit";
-            img = Images.debitImg;
           } else {
             (type == "wallet")
-                ? (IConstants.numberFormat == "1") ? amount = "+  " + IConstants.currencyFormat + " " + double.parse(pricevarJsondecode['credit'].toString()).toStringAsFixed(0):amount = "+  " + IConstants.currencyFormat + " " + double.parse(pricevarJsondecode['credit'].toString()).toStringAsFixed(IConstants.decimaldigit)
+                ? (IConstants.numberFormat == "1") ?
+            Features.iscurrencyformatalign?  amount = "+  "  + double.parse(pricevarJsondecode['credit'].toString()).toStringAsFixed(0) + " " +IConstants.currencyFormat:
+            amount = "+  " + IConstants.currencyFormat + " " + double.parse(pricevarJsondecode['credit'].toString()).toStringAsFixed(0):
+            Features.iscurrencyformatalign?  amount = "+  "  + double.parse(pricevarJsondecode['credit'].toString()).toStringAsFixed(0) + " " +IConstants.currencyFormat:
+            amount = "+  " + IConstants.currencyFormat + " " + double.parse(pricevarJsondecode['credit'].toString()).toStringAsFixed(IConstants.decimaldigit)
                 : (IConstants.numberFormat == "1") ? amount = "+  " + double.parse(pricevarJsondecode['credit'].toString()).toStringAsFixed(0) : amount = "+  " + double.parse(pricevarJsondecode['credit'].toString()).toStringAsFixed(IConstants.decimaldigit);
             title = "Credit";
-            img = Images.creditImg;
           }
 
           _walletitems.add(WalletItemsFields(
@@ -654,7 +711,6 @@ class BrandItemsList with ChangeNotifier {
                 ? ""
                 : pricevarJsondecode['note'].toString(),
             closingbalance: pricevarJsondecode['balance'].toString(),
-            img: img,
           ));
         }
       }
@@ -667,8 +723,7 @@ class BrandItemsList with ChangeNotifier {
   Future<void> fetchShoppinglist() async {
     // imp feature in adding async is the it automatically wrap into Future.
 
-    debugPrint("api key..."+(PrefUtils.prefs.getString('apikey')??"1")+"  "+PrefUtils.prefs.getString('branch'));
-    var url = Api.getShoppingList +(PrefUtils.prefs.getString('apikey')??"1") + "/" + PrefUtils.prefs.getString('branch');
+    var url = Api.getShoppingList +(PrefUtils.prefs!.getString('apikey')??"1") + "/" + PrefUtils.prefs!.getString('branch')!;
     try {
       _shoplistitems.clear();
       final response = await http.get(url,);
@@ -685,7 +740,7 @@ class BrandItemsList with ChangeNotifier {
             listid: data[i]['id'].toString(),
             listname: data[i]['name'].toString(),
             listcheckbox: false,
-            totalitemcount: "1",
+            totalitemcount: data[i]['count'].toString(),
           ));
         }
       }
@@ -697,13 +752,13 @@ class BrandItemsList with ChangeNotifier {
 
   Future<void> fetchShoppinglistItem(String listId) async {
     // imp feature in adding async is the it automatically wrap into Future.
-    var url = Api.getShoppingListItem + listId +"/" + PrefUtils.prefs.getString('apikey');
+    var url = Api.getShoppingListItem + listId +"/" + PrefUtils.prefs!.getString('apikey')!;
     try {
       _listitemsdetails.clear();
       _listitemspricevar.clear();
       _itemshoppingimages.clear();
       final response = await http.post(url, body: {
-        "apiKey": PrefUtils.prefs.getString('apikey'),
+        "apiKey": PrefUtils.prefs!.getString('apikey'),
         // await keyword is used to wait to this operation is complete.
       });
       final responseJson = json.decode(utf8.decode(response.bodyBytes));
@@ -829,7 +884,6 @@ class BrandItemsList with ChangeNotifier {
                 membershipDisplay: _membershipDisplay,
                 varcolor: varcolor,
                 unit: (priceVardata[j]['unit'].toString() == "null")? "" : (priceVardata[j]['unit'] ?? "").toString(),
-                  color: (int.parse(priceVardata[j]['color'].toString())) == "null" ? "" : int.parse(priceVardata[j]['color'].toString()) ,
                   weight: double.parse(priceVardata[j]['weight'].toString())
               ),
             );
@@ -882,9 +936,9 @@ class BrandItemsList with ChangeNotifier {
     try {
       _shoplistitems.clear();
       final response = await http.post(Api.createShoppingList, body: {
-        "apiKey": PrefUtils.prefs.getString('apikey'),
-        "list_name": PrefUtils.prefs.getString('list_name'),
-        "branch": PrefUtils.prefs.getString('branch'),
+        "apiKey": PrefUtils.prefs!.getString('apikey'),
+        "list_name": PrefUtils.prefs!.getString('list_name'),
+        "branch": PrefUtils.prefs!.getString('branch'),
         // await keyword is used to wait to this operation is complete.
       });
       final responseJson = json.decode(utf8.decode(response.bodyBytes));
@@ -909,15 +963,16 @@ class BrandItemsList with ChangeNotifier {
     }
   }
 
-  Future<void> AdditemtoShoppinglist(String itemid, String varid, String listid) async {
+  Future<void> AdditemtoShoppinglist(String itemid, String varid, String listid,String type) async {
     // imp feature in adding async is the it automatically wrap into Future.
     try {
       final response = await http.post(Api.addItemToList, body: {
-        "apiKey": PrefUtils.prefs.getString('apikey'),
+        "apiKey": PrefUtils.prefs!.getString('apikey'),
         "item_id": itemid,
         "list_id": listid,
         "qty": "0",
         "var_id": varid,
+        "type" : type
         // await keyword is used to wait to this operation is complete.
       });
     } catch (error) {
@@ -927,12 +982,28 @@ class BrandItemsList with ChangeNotifier {
 
   Future<void> deliveryCharges(String addressid) async {
     // imp feature in adding async is the it automatically wrap into Future.
-    var url = Api.getDeliveryCharges + addressid;
-    print("url for getdeliverycharge"+url.toString());
-    try {
+    var url = Api.getDeliveryCharges;
+   try {
       _itemsDelCharge.clear();
-      final response = await http.get(url);
+      final response = /*Features.ismultivendor?*/ await http.post(
+        url,
+          body: {
+            "id": addressid.toString(),
+            "branch": Features.ismultivendor?IConstants.refIdForMultiVendor.toString():PrefUtils.prefs!.getString("branch"),
+            "branchtype": IConstants.branchtype.toString(),
+            "ref": IConstants.isEnterprise && Features.ismultivendor?IConstants.refIdForMultiVendor.toString():"",
+            // await keyword is used to wait to this operation is complete.
+          }
+      );
+      print("delivery charfe api ......"+url+{
+        "id": addressid.toString(),
+        "branch": Features.ismultivendor?IConstants.refIdForMultiVendor.toString():PrefUtils.prefs!.getString("branch"),
+        "branchtype": IConstants.branchtype.toString(),
+        "ref": IConstants.refIdForMultiVendor.toString(),
+      }.toString());
+          /*: await http.get(url + addressid)*/;
       final responseJson = json.decode(utf8.decode(response.bodyBytes));
+      print("response json delivey chargeb..."+responseJson.toString());
       if (responseJson.toString() != "[]") {
         List data = [];
 
@@ -971,6 +1042,19 @@ class BrandItemsList with ChangeNotifier {
             (data[i]['duration'].toString() == "null"||data[i]['duration'].toString() == "")
                 ? "0"
                 : data[i]['duration'].toString(),
+            subscriptionDeliveryCharge: (data[i]['subscriptionDeliveryCharge'].toString() == "null"||data[i]['subscriptionDeliveryCharge'].toString() == "")
+                ? "0"
+                : data[i]['subscriptionDeliveryCharge'].toString(),
+            minimum_order_amount_subscription: (data[i]['minimum_order_amount_subscription'].toString() == "null"||data[i]['minimum_order_amount_subscription'].toString() == "")
+                ? "0"
+                : data[i]['minimum_order_amount_subscription'].toString(),
+            delsubscription:  (data[i]['delsubscription'].toString() == "null"||data[i]['delsubscription'].toString() == "")
+                ? "0"
+                : data[i]['delsubscription'].toString(),
+            delprimesubscription: (data[i]['delprimesubscription'].toString() == "null"||data[i]['delprimesubscription'].toString() == "")
+                ? "0"
+                : data[i]['delprimesubscription'].toString(),
+
           ));
         }
       } else {}
@@ -988,7 +1072,7 @@ class BrandItemsList with ChangeNotifier {
       _itemsLoyalty.clear();
       final response = await http.post(Api.getLoyalty, body: {
         // await keyword is used to wait to this operation is complete.
-        "branch": PrefUtils.prefs.getString('branch'),
+        "branch": PrefUtils.prefs!.getString('branch')??"999",
       });
 
       final responseJson = json.decode(utf8.decode(response.bodyBytes));
@@ -1020,14 +1104,20 @@ class BrandItemsList with ChangeNotifier {
 
   Future<void> checkLoyalty(String total) async {
     // imp feature in adding async is the it automatically wrap into Future.
-    var url = Api.checkLoyalty + '$total/' + PrefUtils.prefs.getString('branch');
+    String branch;
+    if(PrefUtils.prefs!.getString('branch')==null){
+      branch="999";
+    }else{
+      branch = PrefUtils.prefs!.getString('branch')!;
+    }
+    var url = Api.checkLoyalty + '$total/' +branch /*PrefUtils.prefs!.getString('branch')!*/;
     try {
       final response = await http.get(
         url,
       );
 
       final responseJson = json.decode(utf8.decode(response.bodyBytes));
-      PrefUtils.prefs.setDouble("loyaltyPointsUser",
+      PrefUtils.prefs!.setDouble("loyaltyPointsUser",
           (responseJson["points"].toString() == "null")
               ? 0.0
               : double.parse(responseJson["points"].toString()));
@@ -1088,7 +1178,7 @@ class BrandItemsList with ChangeNotifier {
     // imp feature in adding async is the it automatically wrap into Future.
     try {
       final response = await http.post(Api.removeShoppingList, body: {
-        "apiKey": PrefUtils.prefs.getString('apikey'),
+        "apiKey": PrefUtils.prefs!.getString('apikey'),
         "shopping_list_id": listid,
         // await keyword is used to wait to this operation is complete.
       });
@@ -1103,20 +1193,16 @@ class BrandItemsList with ChangeNotifier {
 
   Future<void> fetchPickupfromStore() async {
     // imp feature in adding async is the it automatically wrap into Future.
-
     try {
       _pickupLocitems.clear();
       final response = await http.post(Api.pickupLocation, body: {
-        "latitude": PrefUtils.prefs.getString('latitude'),
-        "longitude": PrefUtils.prefs.getString('longitude'),
-        "branch": PrefUtils.prefs.getString('branch'),
+        "latitude": PrefUtils.prefs!.getString('latitude'),
+        "longitude": PrefUtils.prefs!.getString('longitude'),
+        "branch": PrefUtils.prefs!.getString('branch'),
       });
       final responseJson = json.decode(utf8.decode(response.bodyBytes));
       if (responseJson.toString() != "[]") {
         List data = [];
-
-
-
         responseJson.asMap().forEach((index, value) => data.add(responseJson[index]));
         for (int i = 0; i < data.length; i++) {
           Color selectedColor;
@@ -1164,9 +1250,9 @@ class BrandItemsList with ChangeNotifier {
       _OffersItems.clear();
       final response = await http.post(Api.getOffers,
           body: {
-            "user": PrefUtils.prefs.getString('apikey'),
-            "branch": PrefUtils.prefs.getString('branch'),
-            "amount": PrefUtils.prefs.getString("membership") == "1" ? CartCalculations.totalMember.toString() : CartCalculations.total.toString(),
+            "user": PrefUtils.prefs!.getString('apikey'),
+            "branch": PrefUtils.prefs!.getString('branch'),
+            "amount": PrefUtils.prefs!.getString("membership") == "1" ? CartCalculations.totalMember.toString() : CartCalculations.total.toString(),
           });
       final responseJson = json.decode(utf8.decode(response.bodyBytes));
       _OffersItems.clear();
@@ -1213,7 +1299,7 @@ class BrandItemsList with ChangeNotifier {
                   _OffersItems.add(SellingItemsFields(
                     offerId: offers[i]["id"].toString(),
                     offerTitle: offers[i]["title"].toString(),
-                    brand: data[i]["brand"].toString(),
+                    brand: data[j]["brand"].toString(),
                     border: border,
                     title: data[j]['item_name'],
                     veg_type: data[j]['veg_type'],
@@ -1240,7 +1326,6 @@ class BrandItemsList with ChangeNotifier {
                         : int.parse(pricevardata[0]['loyalty'].toString()),
                     varQty: int.parse(pricevardata[0]['quantity'].toString()),
                     unit: pricevardata[0]['unit'].toString(),
-                    color: pricevardata[0]['color'].toString(),
                     discountDisplay: _discointDisplay,
                     membershipDisplay: _membershipDisplay,
                   ));
@@ -1257,7 +1342,8 @@ class BrandItemsList with ChangeNotifier {
   }
 
   Future<void> ReferEarn()async {
-    var url = Api.getRefereal + PrefUtils.prefs.getString('branch') +'/' + PrefUtils.prefs.getString('apikey');
+    var url = Features.ismultivendor && IConstants.isEnterprise?Api.getReferalMultivendor + IConstants.refIdForMultiVendor + '/' + PrefUtils.prefs!.getString('apikey')!:
+        Api.getRefereal + (VxState.store as GroceStore).userData.branch.toString() +'/' + PrefUtils.prefs!.getString('apikey')!;
      try {
       // _referEarn.clear();
       final response = await http
@@ -1291,7 +1377,7 @@ class BrandItemsList with ChangeNotifier {
     return [..._OffersItems];
   }
   ReferFields get referEarn {
-    return _referEarn;
+    return _referEarn!;
   }
   List<SellingItemsFields> findBybrandimage(String pricevarid){
     return [..._itemimages.where((pricevar) => pricevar.varid == pricevarid)];

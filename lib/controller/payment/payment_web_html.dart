@@ -5,10 +5,10 @@ class PlatformViewRegistry{
 }
 final platformViewRegistry = PlatformViewRegistry();
 class IFrameElement  {
-  String width;
-  String height;
-  String src;
-  bool allowPaymentRequest;
+  String? width;
+  String? height;
+  String? src;
+  bool? allowPaymentRequest;
   var style;
   IFrameElement();
   // To suppress missing implicit constructor warnings.

@@ -1,13 +1,16 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import '../models/swap_product.dart';
+import 'package:velocity_x/velocity_x.dart';
+import '../../models/newmodle/product_data.dart';
 import '../constants/features.dart';
 import '../blocs/sliderbannerBloc.dart';
 import '../models/SellingItemsModle.dart';
 import 'package:http/http.dart' as http;
 
 import '../constants/IConstants.dart';
+import '../models/VxModels/VxStore.dart';
+import '../models/newmodle/swap.dart';
 import '../models/sellingitemsfields.dart';
 import '../utils/prefUtils.dart';
 import '../constants/api.dart';
@@ -53,12 +56,10 @@ class SellingItemsList with ChangeNotifier {
   var swapname ="";
   var forgetname = "";
 
-  SellingItemModel _sellingitems = SellingItemModel();
-
 // TODO HomeScreen
-  Future<SellingItemModel> fetchSellingItem() async { // imp feature in adding async is the it automatically wrap into Future.
+  Future<SellingItemModel?> fetchSellingItem() async { // imp feature in adding async is the it automatically wrap into Future.
     var url = Api.getFeaturedByCart;
-    String user = (PrefUtils.prefs.containsKey("apikey")) ? PrefUtils.prefs.getString("tokenid") : PrefUtils.prefs.getString('apikey');
+    String user = (PrefUtils.prefs!.containsKey("apikey")) ? PrefUtils.prefs!.getString("tokenid")! : PrefUtils.prefs!.getString('apikey')!;
     // try {
       // _sellingitems.clear();
       final response = await http
@@ -66,7 +67,7 @@ class SellingItemsList with ChangeNotifier {
           url,
           body: {
             "rows": "2",
-            "branch": PrefUtils.prefs.getString('branch'),
+            "branch": PrefUtils.prefs!.getString('branch'),
             "user": user,
             "language_id": IConstants.languageId,
             // await keyword is used to wait to this operation is complete.
@@ -81,6 +82,9 @@ class SellingItemsList with ChangeNotifier {
         // resdata["featuredCategoryBColor"] = list[_random.nextInt(list.length)];
         return  Future.value(SellingItemModel.fromJson(resdata));
       }
+      else{
+        return null;
+      }
 
 /*    } catch (error) {
       throw error;
@@ -89,31 +93,23 @@ class SellingItemsList with ChangeNotifier {
 
   Future<void> fetchSellingItems() async { // imp feature in adding async is the it automatically wrap into Future.
     var url = Api.getFeaturedByCart;
-    String user = (!PrefUtils.prefs.containsKey("apikey")) ? PrefUtils.prefs.getString("tokenid") : PrefUtils.prefs.getString('apikey');
+    String user = (!PrefUtils.prefs!.containsKey("apikey")) ? PrefUtils.prefs!.getString("tokenid")! : PrefUtils.prefs!.getString('apikey')!;
     try {
       _items.clear();
       _itemspricevar.clear();
       _itemfeatureimage.clear();
-      debugPrint("weight...."+{
-        "rows": "0",
-        "branch": PrefUtils.prefs.getString('branch'),
-        "user": user,
-        "language_id": IConstants.languageId,
-        // await keyword is used to wait to this operation is complete.
-      }.toString());
       final response = await http
           .post(
           url,
           body: {
             "rows": "0",
-            "branch": PrefUtils.prefs.getString('branch'),
+            "branch": PrefUtils.prefs!.getString('branch'),
             "user": user,
             "language_id": IConstants.languageId,
             // await keyword is used to wait to this operation is complete.
           }
       );
       final responseJson = json.decode(utf8.decode(response.bodyBytes));
-      debugPrint("sellingitem..."+responseJson.toString());
       _items.clear();
       _itemspricevar.clear();
       _itemfeatureimage.clear();
@@ -232,8 +228,7 @@ class SellingItemsList with ChangeNotifier {
              discountDisplay: _discointDisplay,
              membershipDisplay: _membershipDisplay,
              unit: (pricevardata[j]['unit'].toString() == "null")? "" : (pricevardata[j]['unit'] ?? "").toString(),
-             color: pricevardata[0]['color'].toString(),
-    weight: double.parse(pricevardata[j]['weight'].toString()),
+             weight: double.parse(pricevardata[j]['weight'].toString()),
            ),);
            bloc.feutureditemvariabelsink.add(_itemspricevar);
            _featuredItemsController.sink.add(_items);
@@ -282,282 +277,94 @@ class SellingItemsList with ChangeNotifier {
     }
   }
 
-  Future<void> fetchSwapProductold(String prevBranch, String varId) async { // imp feature in adding async is the it automatically wrap into Future.
+
+  Future<swap> fetchSwapProduct(String prevBranch, String varId, String item) async { // imp feature in adding async is the it automatically wrap into Future.
     var url = Api.getSwapProduct;
+    final productBox = (VxState.store as GroceStore).CartItemList;
+    // List<swap> listswapprod= [];
+    // try {
+    _itemsSwap.clear();
+    _itemspricevarSwap.clear();
+    _itemSwapimage.clear();
+    debugPrint("get swap product..."+{
+      "id": varId,
+      "branch": prevBranch,
+      "ref": IConstants.refIdForMultiVendor.toString(),
+      "branchtype": IConstants.branchtype.toString(),
+      "survey_product_id": item,
 
-    try {
-      _itemsSwap.clear();
-      _itemspricevarSwap.clear();
-      _itemSwapimage.clear();
-      final response = await http
-          .post(
-          url,
-          body: {
-            "id":varId  /*"12311,12313,10089,12630,12880,10055,10354,8068,11769"*/,
-            "branch":prevBranch /*"999"*/
-          }
-      );
-      final responseJson = json.decode(utf8.decode(response.bodyBytes));
-      debugPrint("swap response....."+responseJson.toString());
+    }.toString());
+    final response = await http
+        .post(
+        url,
+        body: {
+          "id": varId,
+          "branch": prevBranch,
+          "ref": IConstants.refIdForMultiVendor.toString(),
+          "branchtype": IConstants.branchtype.toString(),
+          "survey_product_id":item,
+        }
+    );
+    final responseJson = json.decode(utf8.decode(response.bodyBytes));
+    debugPrint("swap response new....." + responseJson.toString());
 
-    if (responseJson.toString() == "[]") {
-    }
-    else {
-      //SwapProduct.fromJson(responseJson);
-      List data = [];
-      List secondList = [];
-
-      responseJson.asMap().forEach((index, value) =>
-          data.add(responseJson[index]));
-
-      /* data.asMap().forEach((index, value) {
-        secondList.add(data[index]);
-      });*/
-      debugPrint("data length....." + data.length.toString());
-
-      for (int i = 0; i < data.length; i++) {
-        secondList.addAll(data[i]);
-        debugPrint("secondList length....." + secondList.length.toString());
-        debugPrint("second list data" + secondList.toString());
-      }
-      if (secondList != []) {
-        for (int m = 0; m < secondList.length; m++) {
-          //  final responsefinal = json.decode(utf8.decode(secondList));
-          debugPrint(
-              "data of i...." + secondList[m]['delivery_duration'].toString());
-          final deliveryduration = json.encode(
-              secondList[m]['delivery_duration']);
-          final deliverydurationJsondecode = json.decode(deliveryduration);
-          List deliverydurationdata = [];
-          String _duration = "";
-          String _durationType = "";
-          String _note = "";
-
-          if (deliverydurationJsondecode.toString() == "slot" ||
-              deliverydurationJsondecode.toString() == " ") {
-            _duration = "";
-            _durationType = "";
-            _note = "";
-          } else {
-            deliverydurationJsondecode.asMap().forEach((index, value) =>
-                deliverydurationdata.add(
-                    deliverydurationJsondecode[index] as Map<String, dynamic>)
-            );
-            _duration = Features.isSplit
-                ? deliverydurationdata[0]["duration"].toString()
-                : "";
-            _durationType = Features.isSplit
-                ? deliverydurationdata[0]["durationType"].toString()
-                : "";
-
-            _note = (deliverydurationdata[0]["note"] ?? "").toString();
-          }
-          debugPrint(
-              "duration...." + _duration + " " + _durationType + " " + _note);
-          /////Subscription
-
-          final subscriptionslot = json.encode(
-              secondList[m]['subscription_slot']);
-          final subscriptionslotJsondecode = json.decode(subscriptionslot);
-          List subscriptionslotdata = [];
-          String _cronTime = "";
-          String _status = "";
-
-          if (subscriptionslotJsondecode.toString() == "[]") {
-            _cronTime = "";
-            _status = "";
-          } else {
-            subscriptionslotJsondecode.asMap().forEach((index, value) =>
-                subscriptionslotdata.add(
-                    subscriptionslotJsondecode[index] as Map<String, dynamic>)
-            );
-            _cronTime = subscriptionslotdata[0]["cronTime"].toString();
-            _status = subscriptionslotdata[0]["deliveryTime"].toString();
-          }
-          debugPrint("cronTime...." + _cronTime + " " + _status);
-          _itemsSwap.add(SellingItemsFields(
-            id: secondList[m]['id'].toString(),
-            title: secondList[m]['item_name'].toString(),
-            imageUrl: IConstants.API_IMAGE + "items/images/" +
-                secondList[m]['item_featured_image'].toString(),
-            brand: secondList[m]['brand'].toString(),
-            veg_type: secondList[m]["veg_type"].toString(),
-            type: secondList[m]["type"].toString(),
-            eligible_for_express: Features.isExpressDelivery ? Features.isSplit
-                ? secondList[m]['eligible_for_express'].toString()
-                : "0" : "1",
-            delivery: (secondList[m]['delivery'] ?? "").toString(),
-            duration: _duration,
-            durationType: _durationType,
-            note: _note,
-            subscribe: secondList[m]['eligible_for_subscription'].toString(),
-            paymentmode: secondList[m]['payment_mode'].toString(),
-            cronTime: _cronTime,
-            name: _status,
+    return Future.value(swap.fromJson(responseJson));
 
 
-          ));
-          bloc.swapitemSink.add(_itemsSwap);
-          final pricevarJson = json.encode(
-              secondList[m]['price_variation']); //fetching sub categories data
-          final pricevarJsondecode = json.decode(pricevarJson);
-          List pricevardata = []; //list for subcategories
-
-
-          pricevarJsondecode.asMap().forEach((index, value) =>
-              pricevardata.add(
-                  pricevarJsondecode[index] as Map<String, dynamic>)
-          );
-          debugPrint("pricevariation..." + pricevardata.toString());
-          for (int j = 0; j < pricevardata.length; j++) {
-
-            bool _discointDisplay = false;
-            bool _membershipDisplay = false;
-            debugPrint("pricevariation...membershipdis....." + _membershipDisplay.toString() );
-            if (double.parse(pricevardata[j]['price'].toString()) <= 0 ||
-                pricevardata[j]['price'].toString() == "" ||
-                double.parse(pricevardata[j]['price'].toString()) ==
-                    double.parse(pricevardata[j]['mrp'].toString())) {
-              _discointDisplay = false;
-            } else {
-              _discointDisplay = true;
-            }
-
-            if (pricevardata[j]['membership_price'].toString() == '-' ||
-                pricevardata[j]['membership_price'].toString() == "0" ||
-                double.parse(pricevardata[j]['membership_price'].toString()) ==
-                    double.parse(pricevardata[j]['mrp'].toString())
-                ||
-                double.parse(pricevardata[j]['membership_price'].toString()) ==
-                    double.parse(pricevardata[j]['price'].toString())) {
-
-              _membershipDisplay = false;
-              debugPrint("pricevariation...membershipdis.....1" + _membershipDisplay.toString() );
-            } else {
-
-              _membershipDisplay = true;
-              debugPrint("pricevariation...membershipdis.....2" + _membershipDisplay.toString() );
-            }
-            debugPrint("id....." + pricevardata[j]['id'].toString() +"  "+secondList[m]['id'].toString());
-            _itemspricevarSwap.add(SellingItemsFields(
-              varid: pricevardata[j]['id'].toString(),
-              menuid: secondList[m]['id'].toString(),
-              varname: pricevardata[j]['variation_name'].toString(),
-              varmrp: (IConstants.numberFormat == "1") ? pricevardata[j]['mrp']
-                  .toStringAsFixed(0) : pricevardata[j]['mrp'].toStringAsFixed(
-                  IConstants.decimaldigit),
-              varprice: (IConstants.numberFormat == "1")
-                  ? pricevardata[j]['price'].toStringAsFixed(0)
-                  : pricevardata[j]['price'].toStringAsFixed(
-                  IConstants.decimaldigit),
-              varmemberprice: (IConstants.numberFormat == "1")
-                  ? pricevardata[j]['membership_price'].toStringAsFixed(0)
-                  : pricevardata[j]['membership_price'].toStringAsFixed(
-                  IConstants.decimaldigit),
-              varstock: pricevardata[j]['stock'].toString(),
-              varminitem: pricevardata[j]['min_item'].toString(),
-              varmaxitem: pricevardata[j]['max_item'].toString(),
-              varLoyalty: pricevardata[j]['loyalty'].toString() == "" ||
-                  pricevardata[j]['loyalty'].toString() == "null" ? 0 : int
-                  .parse(
-                  pricevardata[j]['loyalty'].toString()),
-              varQty: int.parse((pricevardata[j]['quantity'] ?? 0).toString()),
-              discountDisplay: _discointDisplay,
-              membershipDisplay: _membershipDisplay,
-              unit: (pricevardata[j]['unit'].toString() == "null")? "" : (pricevardata[j]['unit'] ?? "").toString(),
-              color: pricevardata[0]['color'].toString(),
-              weight: double.parse(pricevardata[j]['weight'].toString()),
-            ),);
-
-            final multiimagesJson = json.encode(
-                pricevardata[j]['images']); //fetching sub categories data
-            final multiimagesJsondecode = json.decode(multiimagesJson);
-            List multiimagesdata = [];
-
-            if (multiimagesJsondecode.toString() == "[]") {
-              _itemSwapimage.add(SellingItemsFields(
-                varid: pricevardata[j]['id'].toString(),
-                menuid: secondList[m]['id'].toString(),
-                imageUrl: IConstants.API_IMAGE + "items/images/" +
-                    secondList[m]['item_featured_image'].toString(),
-                varcolor: Color(0xff012961),
-              ));
-            } else {
-              multiimagesJsondecode.asMap().forEach((index, value) =>
-                  multiimagesdata.add(
-                      multiimagesJsondecode[index] as Map<String, dynamic>)
-              );
-
-              for (int k = 0; k < multiimagesdata.length; k++) {
-                var varcolor;
-                if (k == 0) {
-                  varcolor = Color(0xff012961);
-                } else {
-                  varcolor = Color(0xffBEBEBE);
-                }
-                _itemSwapimage.add(SellingItemsFields(
-                  varid: pricevardata[j]['id'].toString(),
-                  menuid: secondList[m]['id'].toString(),
-                  imageUrl: IConstants.API_IMAGE + "items/images/" +
-                      multiimagesdata[k]['image'].toString(),
-                  varcolor: varcolor,
-                ));
-              }
-            }
-          }
-       // }
-        debugPrint("secondList length.sec...." + secondList.length.toString());
-      }
-
-    }
-      notifyListeners();
-    }
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  Future<List<SwapProduct>> fetchSwapProduct(String prevBranch, String varId) async { // imp feature in adding async is the it automatically wrap into Future.
-    var url = Api.getSwapProduct;
-    List<SwapProduct> listswapprod= [];
-    try {
-       _itemsSwap.clear();
-       _itemspricevarSwap.clear();
-       _itemSwapimage.clear();
-       final response = await http
-           .post(
-           url,
-           body: {
-             "id": varId,
-             "branch": prevBranch
-           }
-       );
-       final responseJson = json.decode(utf8.decode(response.bodyBytes));
-       debugPrint("swap response....." + responseJson.toString());
-
-       if (responseJson.toString() == "[]") {}
-       else {
-         responseJson.forEach((v) {
-           debugPrint("print v....."+ v.toString());
-           v.forEach((v1) {
-             debugPrint("print v1....."+ v1.toString());
-             listswapprod.add(SwapProduct.fromJson(v1));
-           });
-           debugPrint("print t.....");
-         });
-         debugPrint("listswapprod..op.."+listswapprod.toString());
-         return listswapprod;
-       }
-     }catch(e){
+    /* }catch(e){
       debugPrint("listswapprod..else.."+ e.toString());
-      return  null;
-     }
+      return  [];
+     }*/
   }
+  // Future<swap> fetchSwapProduct(String prevBranch, String varId, String? item) async { // imp feature in adding async is the it automatically wrap into Future.
+  //   var url = Api.getSwapProduct;
+  //   List<ItemData> listswapprod= [];
+  //  try {
+  //      _itemsSwap.clear();
+  //      _itemspricevarSwap.clear();
+  //      _itemSwapimage.clear();
+  //      final response = await http
+  //          .post(
+  //          url,
+  //          body: {
+  //            "id": varId,
+  //            "branch": prevBranch,
+  //            "ref": IConstants.isEnterprise && Features.ismultivendor?IConstants.refIdForMultiVendor.toString():"",
+  //            "branchtype": IConstants.isEnterprise && Features.ismultivendor?IConstants.branchtype.toString():"",
+  //            "survey_product_id":item
+  //          }
+  //      );
+  //      final responseJson = json.decode(utf8.decode(response.bodyBytes));
+  //
+  //      if (responseJson.toString() == "[]") {
+  //        return [];
+  //      }
+  //      else {
+  //        responseJson.forEach((v) {
+  //          debugPrint("print v....."+ v.toString());
+  //          v.forEach((v1) {
+  //            debugPrint("print v1....."+ v1.toString());
+  //            listswapprod.add(ItemData.fromJson(v1));
+  //          });
+  //          debugPrint("print t.....");
+  //        });
+  //        debugPrint("listswapprod..op.."+listswapprod.toString());
+  //        return Future.value(listswapprod);
+  //      }
+  //    }catch(e){
+  //     return  [];
+  //    }
+  // }
 
   Future<void> fetchNewItems(String id) async { // imp feature in adding async is the it automatically wrap into Future.
-    String user = (!PrefUtils.prefs.containsKey("apikey")) ? PrefUtils.prefs.getString("tokenid") : PrefUtils.prefs.getString('apikey');
-    var url = Api.getRecentProductsByCart + id + "/" + user + "/" + PrefUtils.prefs.getString('branch');
-print("recnt: $url");
+    String user = (!PrefUtils.prefs!.containsKey("apikey")) ? PrefUtils.prefs!.getString("tokenid")! : PrefUtils.prefs!.getString('apikey')!;
+    var url = Api.getRecentProductsByCart + id + "/" + user + "/" + PrefUtils.prefs!.getString('branch')!;
+    print("Id for sellingitems"+id.toString());
+    print("Selling items dart api...."+url.toString()+"Params...."+{
+    //"branch": PrefUtils.prefs!.getString('branch'),
+    "language_id": IConstants.languageId,
+    // await keyword is used to wait to this operation is complete.
+    }.toString());
   //  try {
       _itemsnew.clear();
       _itemspricevarnew.clear();
@@ -566,12 +373,13 @@ print("recnt: $url");
           .post(
         url,
         body: {
-          //"branch": PrefUtils.prefs.getString('branch'),
+          //"branch": PrefUtils.prefs!.getString('branch'),
           "language_id": IConstants.languageId,
             // await keyword is used to wait to this operation is complete.
           }
       );
       final responseJson = json.decode(utf8.decode(response.bodyBytes));
+    ("Response json..."+responseJson.toString());
     _itemsnew.clear();
     _itemspricevarnew.clear();
     _itemsnewimage.clear();
@@ -692,7 +500,6 @@ print("recnt: $url");
             discountDisplay: _discointDisplay,
             membershipDisplay: _membershipDisplay,
             unit: (pricevardata[j]['unit'].toString() == "null")? "" : (pricevardata[j]['unit'] ?? "").toString(),
-            color: pricevardata[0]['color'].toString(),
             weight: double.parse(pricevardata[j]['weight'].toString()),
           ),);
           final multiimagesJson = json.encode(
@@ -734,14 +541,14 @@ print("recnt: $url");
       }
       notifyListeners();
 
-    /*} catch (error) {
+ /*   } catch (error) {
       throw error;
     }*/
   }
 
   Future<void> fetchOffers() async { // imp feature in adding async is the it automatically wrap into Future.
     var url = Api.getOfferByCart;
-    String user = (PrefUtils.prefs.containsKey("apikey")) ? PrefUtils.prefs.getString("tokenid") : PrefUtils.prefs.getString('apikey');
+    String user = (PrefUtils.prefs!.containsKey("apikey")) ? PrefUtils.prefs!.getString("tokenid")! : PrefUtils.prefs!.getString('apikey')!;
     try {
       _itemsoffer.clear();
       _itemspricevaroffer.clear();
@@ -751,7 +558,7 @@ print("recnt: $url");
           url,
           body: {
             "rows": "10",
-            "branch": PrefUtils.prefs.getString('branch'),
+            "branch": PrefUtils.prefs!.getString('branch'),
             "user": user,
             // await keyword is used to wait to this operation is complete.
           }
@@ -872,7 +679,6 @@ print("recnt: $url");
             discountDisplay: _discointDisplay,
             membershipDisplay: _membershipDisplay,
             unit: (pricevardata[j]['unit'].toString() == "null")? "" : (pricevardata[j]['unit'] ?? "").toString(),
-            color: pricevardata[0]['color'].toString(),
             weight: double.parse(pricevardata[j]['weight'].toString()),
           ),);
 
@@ -932,8 +738,7 @@ print("recnt: $url");
     }else{
       url = Api.getOfferByCart;
     }
-    debugPrint("IConstants.languageId..."+IConstants.languageId);
-    String user =  !PrefUtils.prefs.containsKey('apikey') ? PrefUtils.prefs.getString("tokenid") : PrefUtils.prefs.getString('apikey');
+    String user =  !PrefUtils.prefs!.containsKey('apikey') ? PrefUtils.prefs!.getString("tokenid")! : PrefUtils.prefs!.getString('apikey')!;
     try {
       _itemsall.clear();
       _itemspricevarall.clear();
@@ -943,7 +748,7 @@ print("recnt: $url");
           url,
           body: {
             "rows": "0",
-            "branch": PrefUtils.prefs.getString('branch'),
+            "branch": PrefUtils.prefs!.getString('branch'),
             "user": user,
             "language_id": IConstants.languageId,
             // await keyword is used to wait to this operation is complete.
@@ -1074,7 +879,6 @@ print("recnt: $url");
             discountDisplay: _discointDisplay,
             membershipDisplay: _membershipDisplay,
             unit: (pricevardata[j]['unit'].toString() == "null")? "" : (pricevardata[j]['unit'] ?? "").toString(),
-            color: pricevardata[0]['color'].toString(),
             weight: double.parse(pricevardata[j]['weight'].toString()),
           ),);
           final multiimagesJson = json.encode(
@@ -1124,20 +928,16 @@ print("recnt: $url");
 
   Future<void> fetchForget() async { // imp feature in adding async is the it automatically wrap into Future.
     var url = Api.getForgetByCart;
-    String user = PrefUtils.prefs.containsKey('apikey') ?PrefUtils.prefs.getString('apikey'): PrefUtils.prefs.getString("tokenid") ;
+    String user = PrefUtils.prefs!.containsKey('apikey') ?PrefUtils.prefs!.getString('apikey')!: PrefUtils.prefs!.getString("tokenid") !;
     try {
       _itemsForget.clear();
       _itemspricevarforget.clear();
-      debugPrint('data..'+{
-        "branch": PrefUtils.prefs.getString('branch'),
-        "user": user,
-      }.toString());
       final response = await http
           .post(
           url,
           body: {
             // "rows": "0",
-            "branch": PrefUtils.prefs.getString('branch'),
+            "branch": PrefUtils.prefs!.getString('branch'),
             "user": user,
             "language_id": IConstants.languageId,
             // await keyword is used to wait to this operation is complete.
@@ -1146,7 +946,6 @@ print("recnt: $url");
       final responseJson = json.decode(utf8.decode(response.bodyBytes));
       _itemsForget.clear();
       _itemspricevarforget.clear();
-      debugPrint('forget'+responseJson.toString());
 
       forgetname = responseJson["label"].toString();
       final dataJson = json.encode(responseJson['data']); //fetching categories data
@@ -1262,7 +1061,6 @@ print("recnt: $url");
             discountDisplay: _discointDisplay,
             membershipDisplay: _membershipDisplay,
             unit: (pricevardata[j]['unit'].toString() == "null")? "" : (pricevardata[j]['unit'] ?? "").toString(),
-            color: pricevardata[0]['color'].toString(),
             weight: double.parse(pricevardata[j]['weight'].toString()),
           ),);
           final multiimagesJson = json.encode(
@@ -1376,7 +1174,7 @@ bool _membershipDisplay = false;
   }
   Future<void> fetchDiscountItems() async { // imp feature in adding async is the it automatically wrap into Future.
     var url = Api.getDiscountedByCart;
-    String user = (PrefUtils.prefs.containsKey("apikey")) ? PrefUtils.prefs.getString("tokenid") : PrefUtils.prefs.getString('apikey');
+    String user = (PrefUtils.prefs!.containsKey("apikey")) ? PrefUtils.prefs!.getString("tokenid")! : PrefUtils.prefs!.getString('apikey')!;
     try {
       _itemsdiscount.clear();
       _itemspricevardiscount.clear();
@@ -1386,7 +1184,7 @@ bool _membershipDisplay = false;
           url,
           body: {
             "rows": "4",
-            "branch": PrefUtils.prefs.getString('branch'),
+            "branch": PrefUtils.prefs!.getString('branch'),
             "user": user,
             "language_id": IConstants.languageId,
             // await keyword is used to wait to this operation is complete.
@@ -1514,7 +1312,6 @@ bool _membershipDisplay = false;
             discountDisplay: _discointDisplay,
             membershipDisplay: _membershipDisplay,
             unit: (pricevardata[j]['unit'].toString() == "null")? "" : (pricevardata[j]['unit'] ?? "").toString(),
-            color: pricevardata[0]['color'].toString(),
             weight: double.parse(pricevardata[j]['weight'].toString()),
           ),);
           final multiimagesJson = json.encode(
@@ -1555,70 +1352,6 @@ bool _membershipDisplay = false;
         }
       }
       bloc.discountitemSink.add(_itemsdiscount);
-/*      final responseJson = json.decode(utf8.decode(response.bodyBytes));
-      if (responseJson.toString() == "[]"){
-      } else {
-        List data = [];
-
-        responseJson.asMap().forEach((index, value) =>
-            data.add(responseJson[index] as Map<String, dynamic>)
-        );
-
-        for (int i = 0; i < data.length; i++){
-          _items.add(SellingItemsFields(
-            id: data[i]['id'].toString(),
-            title: data[i]['item_name'].toString(),
-            imageUrl: IConstants.API_IMAGE + "items/images/" + data[i]['item_featured_image'].toString(),
-            brand: data[i]['brand'].toString(),
-          ));
-
-          final pricevarJson = json.encode(data[i]['price_variation']); //fetching sub categories data
-          final pricevarJsondecode = json.decode(pricevarJson);
-          List pricevardata = []; //list for subcategories
-
-          if (pricevarJsondecode == null){
-
-          } else {
-            pricevarJsondecode.asMap().forEach((index, value) =>
-                pricevardata.add(
-                    pricevarJsondecode[index] as Map<String, dynamic>)
-            );
-
-            for (int j = 0; j < pricevardata.length; j++) {
-bool _discointDisplay = false;
-bool _membershipDisplay = false;
-
-          if(double.parse(pricevardata[j]['price'].toString()) <= 0 || pricevardata[j]['price'].toString() == "" || double.parse(pricevardata[j]['price'].toString()) == double.parse(pricevardata[j]['mrp'].toString())){
-            _discointDisplay = false;
-          } else {
-            _discointDisplay = true;
-          }
-
-              if(pricevardata[j]['membership_price'].toString() == '-' || pricevardata[j]['membership_price'].toString() == "0" || double.parse(pricevardata[j]['membership_price'].toString()) == double.parse(pricevardata[j]['mrp'].toString())) {
-                _membershipDisplay = false;
-              } else {
-                _membershipDisplay = true;
-              }
-
-              _itemspricevar.add(SellingItemsFields(
-                varid: pricevardata[j]['id'].toString(),
-                menuid: pricevardata[j]['menu_item_id'].toString(),
-                varname: pricevardata[j]['variation_name'].toString(),
-                varmrp: pricevardata[j]['mrp'].toString(),
-                varprice: pricevardata[j]['price'].toString(),
-                varmemberprice:pricevardata[j]['membership_price'].toString(),
-                varstock: pricevardata[j]['stock'].toString(),
-                varminitem: pricevardata[j]['min_item'].toString(),
-                varmaxitem: pricevardata[j]['max_item'].toString(),
-                pricevardata[j]['loyalty'].toString() == "" ||
-                pricevardata[j]['loyalty'].toString() == "null" ? 0 : int.parse(pricevardata[j]['loyalty'].toString()),
-                discountDisplay: _discointDisplay,
-                membershipDisplay: _membershipDisplay,
-              ));
-            }
-          }
-        }
-      }*/
 
       notifyListeners();
 

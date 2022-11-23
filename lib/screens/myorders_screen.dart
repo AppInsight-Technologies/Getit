@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/scheduler.dart';
-import '../../constants/IConstants.dart';
+import '../assets/ColorCodes.dart';
 import '../generated/l10n.dart';
 import '../models/myordersfields.dart';
 import '../utils/prefUtils.dart';
@@ -19,6 +19,7 @@ import 'home_screen.dart';
 
 class MyOrdersScreen extends StatefulWidget {
   static const routeName = '/myorders-screen';
+
   @override
   _MyOrdersScreenState createState() => _MyOrdersScreenState();
 }
@@ -33,7 +34,7 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
   bool checkskip = false;
   List<List<MyordersFields>> myorders =[] ;
 
-  SharedPreferences prefs;
+  SharedPreferences? prefs;
 
   @override
   void initState() {
@@ -95,7 +96,7 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
         body:  Column(
           children: <Widget>[
             if(_isWeb && !ResponsiveLayout.isSmallScreen(context))
-              Header(false, false),
+             Header(false),
             _body(),
           ],
         ),
@@ -164,7 +165,7 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
             SizedBox(
               height: 10.0,
             ),
-            if(_isWeb) Footer(address: PrefUtils.prefs.getString("restaurant_address")),
+            if(_isWeb) Footer(address: PrefUtils.prefs!.getString("restaurant_address")!),
           ],
         ),
       ) :
@@ -172,11 +173,11 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: <Widget>[
           Image.asset(Images.bag),
-          Text(S.of(context).you_have_no_order,
+          Text(S .of(context).you_have_no_order,
             //"You have no past orders",
             style: TextStyle(fontSize: 16.0),),
           SizedBox(height: 10.0,),
-          Text(S.of(context).lets_get_you_started,
+          Text(S .of(context).lets_get_you_started,
           //"Let's get you started",
           style: TextStyle(color: Colors.grey),),
           SizedBox(height: 20.0,),
@@ -195,7 +196,7 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
                     right: BorderSide(width: 1.0, color: Theme.of(context).primaryColor,),
                   )),
               child: Center(
-                  child: Text( S.of(context).start_shopping,
+                  child: Text( S .of(context).start_shopping,
                    // 'Start Shopping',
                     textAlign: TextAlign.center, style: TextStyle(color: Colors.white),)),
             ),
@@ -206,7 +207,7 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
   }
 
   //
-  // void launchWhatsapp({@required number,@required message})async{
+  // void launchWhatsapp({required number,required message})async{
   //   String url ="whatsapp://send?phone=$number&text=$message";
   //   await canLaunch(url)?launch(url):print('can\'t open whatsapp');
   // }
@@ -247,7 +248,7 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
   //                 SizedBox(
   //                   height: 5.0,
   //                 ),
-  //                 Text(  S.of(context).home,
+  //                 Text(  S .of(context).home,
   //                     //  "Home",
   //                     style: TextStyle(
   //                         color: ColorCodes.lightgrey, fontSize: 10.0)),
@@ -270,7 +271,7 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
   //               SizedBox(
   //                 height: 5.0,
   //               ),
-  //               Text( S.of(context).categories,
+  //               Text( S .of(context).categories,
   //                   //"Categories",
   //                   style: TextStyle(
   //                       color: ColorCodes.greenColor,
@@ -283,7 +284,7 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
   //           if(Features.isWallet)
   //             GestureDetector(
   //               onTap: () {
-  //                 (PrefUtils.prefs.containsKey("apikey"))
+  //                 (PrefUtils.prefs!.containsKey("apikey"))
   //                     ? Navigator.of(context).pushNamed(
   //                   SignupSelectionScreen.routeName,
   //                 )
@@ -304,7 +305,7 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
   //                   SizedBox(
   //                     height: 5.0,
   //                   ),
-  //                   Text( S.of(context).wallet,
+  //                   Text( S .of(context).wallet,
   //                       //"Wallet",
   //                       style: TextStyle(
   //                           color: ColorCodes.lightgrey, fontSize: 10.0)),
@@ -316,7 +317,7 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
   //           if(Features.isMembership)
   //             GestureDetector(
   //               onTap: () {
-  //                 (PrefUtils.prefs.containsKey("apikey"))
+  //                 (PrefUtils.prefs!.containsKey("apikey"))
   //                     ? Navigator.of(context).pushNamed(
   //                   SignupSelectionScreen.routeName,
   //                 )
@@ -339,7 +340,7 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
   //                   SizedBox(
   //                     height: 5.0,
   //                   ),
-  //                   Text( S.of(context).membership,
+  //                   Text( S .of(context).membership,
   //                       // "Membership",
   //                       style: TextStyle(
   //                           color: ColorCodes.lightgrey, fontSize: 10.0)),
@@ -374,7 +375,7 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
   //                   SizedBox(
   //                     height: 5.0,
   //                   ),
-  //                   Text( S.of(context).my_orders,
+  //                   Text( S .of(context).my_orders,
   //                       // "My Orders",
   //                       style: TextStyle(
   //                           color:  ColorCodes.lightgrey, fontSize: 10.0)),
@@ -407,7 +408,7 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
   //                   SizedBox(
   //                     height: 5.0,
   //                   ),
-  //                   Text( S.of(context).shopping_list,
+  //                   Text( S .of(context).shopping_list,
   //                       //"Shopping list",
   //                       style: TextStyle(
   //                           color:  ColorCodes.lightgrey,fontSize: 10.0)),
@@ -466,7 +467,7 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
   //                   SizedBox(
   //                     height: 5.0,
   //                   ),
-  //                   Text((!Features.isLiveChat && !Features.isWhatsapp)? S.of(context).search: S.of(context).chat,
+  //                   Text((!Features.isLiveChat && !Features.isWhatsapp)? S .of(context).search: S .of(context).chat,
   //                       //   "Search":"Chat",
   //                       style: TextStyle(
   //                           color: ColorCodes.grey, fontSize: 10.0)),
@@ -476,7 +477,7 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
   //           Spacer(),
   //           if (_isWeb)
   //             Footer(
-  //               address: PrefUtils.prefs.getString("restaurant_address"),
+  //               address: PrefUtils.prefs!.getString("restaurant_address"),
   //             ),
   //         ],
   //       ),
@@ -487,8 +488,6 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
 
   gradientappbarmobile() {
     return AppBar(
-      toolbarHeight: 60.0,
-      elevation: (IConstants.isEnterprise)?0:1,
       automaticallyImplyLeading: false,
       leading: IconButton(
         icon: Icon(Icons.arrow_back, color: Colors.white),
@@ -508,7 +507,8 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
         },
       ),
       titleSpacing: 0,
-      title: Text( S.of(context).my_orders,
+      title: Text( S .of(context).my_orders,
+        style: TextStyle(color: ColorCodes.iconColor, fontWeight: FontWeight.bold, fontSize: 18),
         //"My Orders",
       ),
       flexibleSpace: Container(

@@ -1,13 +1,13 @@
 class Order {
-  List<OrderItems> items;
+  List<OrderItems>? items;
 
   Order({this.items});
 
   Order.fromJson(Map<String, dynamic> json) {
     if (json['items'] != null) {
-      items = new List<OrderItems>();
+      items = <OrderItems>[];
       json['items'].forEach((v) {
-        items.add(new OrderItems.fromJson(v));
+        items!.add(new OrderItems.fromJson(v));
       });
     }
   }
@@ -15,44 +15,44 @@ class Order {
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = new Map<String, dynamic>();
     if (this.items != null) {
-      data['items'] = this.items.map((v) => v.toJson()).toList();
+      data['items'] = this.items!.map((v) => v.toJson()).toList();
     }
     return data;
   }
 }
 
 class OrderItems {
-  String tips;
-  String id;
-  String orderD;
-  String itemId;
-  String itemName;
-  String priceVariavtion;
-  String price;
-  String quantity;
-  String actualAmount;
-  String extraAmount;
-  String discount;
-  String subTotal;
-  String isTray;
-  String loyalty;
-  String image;
-  String menuid;
-  String barcode;
-  String fixdate;
-  String itemPrice;
-  int itemQuantity;
-  int itemLeftCount;
-  String itemImage;
-  String orderStatus;
-  String fixtime;
-  String orderType;
-  String orderAmount;
-  String wallet;
-  String discountTotal;
-  String totalDiscount;
-  String deliveryCharge;
-  String otp;
+  String? tips;
+  String? id;
+  String? orderD;
+  String? itemId;
+  String? itemName;
+  String? priceVariavtion;
+  String? price;
+  String? quantity;
+  String? actualAmount;
+  String? extraAmount;
+  String? discount;
+  String? subTotal;
+  String? isTray;
+  String? loyalty;
+  String? image;
+  String? menuid;
+  String? barcode;
+  String? fixdate;
+  String? itemPrice;
+  int? itemQuantity;
+  int? itemLeftCount;
+  String? itemImage;
+  String? orderStatus;
+  String? fixtime;
+  String? orderType;
+  String? orderAmount;
+  String? wallet;
+  String? discountTotal;
+  String? totalDiscount;
+  String? deliveryCharge;
+  String? otp;
 
   OrderItems(
       {this.tips,

@@ -1,17 +1,11 @@
 
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import '../../assets/ColorCodes.dart';
-import '../../controller/mutations/cat_and_product_mutation.dart';
-import '../../models/VxModels/VxStore.dart';
-import '../../models/newmodle/category_modle.dart';
-import '../../models/newmodle/home_page_modle.dart';
+import '../assets/ColorCodes.dart';
+import '../controller/mutations/cat_and_product_mutation.dart';
+import '../models/newmodle/category_modle.dart';
 import 'package:velocity_x/velocity_x.dart';
 import '../constants/IConstants.dart';
-import 'package:provider/provider.dart';
-import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import '../utils/ResponsiveLayout.dart';
 import '../providers/categoryitems.dart';
 import './categories_item.dart';
@@ -32,17 +26,20 @@ class _CategoriesGridState extends State<CategoriesGrid> {
   bool _isCategoryShimmer = false;
   var subcategoryData;
 
-  CategoriesItemsList subNestedcategoryData;
+  CategoriesItemsList? subNestedcategoryData;
 
   List<CategoryData> subcatData=[];
 
   @override
   void initState() {
 
+    // widget.allCategoryDetail.subCategory=null;
     Future.delayed(Duration.zero, () async {
       ProductController productController = ProductController();
-      productController.geSubtCategory(widget.allCategoryDetail.id);
+      print("alll categprty id....alll categprty id...."+widget.allCategoryDetail.id.toString());
+      productController.geSubtCategory(widget.allCategoryDetail.id,onload: (status){
 
+      });
   /*    await Provider.of<CategoriesItemsList>(context, listen: false).fetchNestedCategory(widget.allCategoryDetail.id, "categoriesGrid").then((_) {
         subNestedcategoryData = Provider.of<CategoriesItemsList>(context, listen: false,);
 
@@ -62,30 +59,23 @@ class _CategoriesGridState extends State<CategoriesGrid> {
     )
         :
     Container(
-        margin: EdgeInsets.all(10),
+        margin: EdgeInsets.all(6),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(6),
-          boxShadow: [
-            BoxShadow(
-              color: ColorCodes.grey.withOpacity(0.2),
-              spreadRadius: 4,
-              blurRadius: 5,
-              offset: Offset(0, 2),
-            )
-          ],
+          borderRadius: BorderRadius.circular(3),
+          color: Colors.white,
         ),
         child: Shimmer.fromColors(
-          baseColor: ColorCodes.baseColor,
-          highlightColor: ColorCodes.lightGreyWebColor,
+          baseColor: ColorCodes.shimmerColor,
+          highlightColor: ColorCodes.shimmerColor,
 
-          child: ListView.builder(
+          child: GridView.builder(
             shrinkWrap: true,
             controller: new ScrollController(keepScrollOffset: false),
             padding: ResponsiveLayout.isSmallScreen(context)? const EdgeInsets.fromLTRB(10.0, 5.0, 10.0, 0.0):
             const EdgeInsets.fromLTRB(10.0, 10.0, 10.0, 5.0),
             itemCount: 3,
             itemBuilder: (ctx, i) => Card(
-              color: Color(0xFFD0F0DE),
+              color: ColorCodes.shimmerColor,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(4),
               ),
@@ -94,7 +84,12 @@ class _CategoriesGridState extends State<CategoriesGrid> {
 
               child: Container(),
             ),
-
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3,
+              childAspectRatio: 1,
+              crossAxisSpacing: 5,
+              mainAxisSpacing: 5,
+            ),
           ),
           // )),
         ));
@@ -105,8 +100,8 @@ class _CategoriesGridState extends State<CategoriesGrid> {
     //  final subNestedcategoryData = Provider.of<CategoriesItemsList>(context,listen: false);
 
     double deviceWidth = MediaQuery.of(context).size.width;
-    int widgetsInRow = 1;
-    double aspectRatio = (deviceWidth - (20 + ((widgetsInRow - 1) * 10))) / widgetsInRow / 165;
+    int widgetsInRow = 4;
+    double aspectRatio = (deviceWidth - (20 + ((widgetsInRow - 1) * 10))) / widgetsInRow / 135;
 
     // ProductController productController = ProductController();
     // productController.geSubtCategory(widget.allCategoryDetail.id);
@@ -144,10 +139,11 @@ print("id....click....");
     }
     return  VxBuilder(
         mutations: {ProductMutation},
-        builder: (ctx,store,VxStatus state)
+        builder: (ctx,store,VxStatus? state)
     {
+
       if(widget.allCategoryDetail.subCategory!=null&&widget.allCategoryDetail.subCategory.length>0)
-        subcatData = widget.allCategoryDetail.subCategory.where((element) => element.categoryName.toLowerCase().trim() != "all").toList();
+        subcatData = widget.allCategoryDetail.subCategory.where((element) => element.categoryName!.toLowerCase().trim() != "all").toList();
       print("subcat length..."+subcatData.length.toString());
       return subcatData.length > 0?
         (subcatData!=null||subcatData.length>0)
@@ -172,8 +168,9 @@ print("id....click....");
               const EdgeInsets.fromLTRB(10.0, 10.0, 10.0, 5.0),*/
                 itemCount: /*subNestedcategoryData.itemsubNested.length*/subcatData.length,
                 itemBuilder: (ctx, i) {
+                  debugPrint("items...."+subcatData.length.toString());
                   return Card(
-                    color: /*Color(0xFFD0F0DE)*/Colors.white,
+                    color: /*Color(0xFFD0F0DE)*/ColorCodes.whiteColor,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(4),
                     ),
@@ -182,13 +179,12 @@ print("id....click....");
 
                     child: CategoriesItem(
                         "SubcategoryScreen",
-                        widget.allCategoryDetail.categoryName,
-                        widget.allCategoryDetail.id,
-                        subcatData[i].id,
-                        subcatData[i].categoryName,
+                        widget.allCategoryDetail.categoryName!,
+                        widget.allCategoryDetail.id!,
+                        subcatData[i].id!,
+                        subcatData[i].categoryName!,
                         i,
-                        subcatData[i].iconImage,
-                    subcatData[i].catBanner),
+                        subcatData[i].iconImage!),
                   );
                 },
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -207,37 +203,43 @@ print("id....click....");
           SizedBox(
             width: 5.0,
           ),
-          GridView.builder(
-            gridDelegate:  new SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: widgetsInRow,
-                    crossAxisSpacing: 4,
-                    childAspectRatio: aspectRatio
-                    ),
-              shrinkWrap: true,
-              controller: new ScrollController(keepScrollOffset: false),
-              scrollDirection: Axis.vertical,
-              itemCount: subcatData.length,
-              itemBuilder: (ctx, i) {
-                debugPrint("subcat..." + subcatData.length.toString());
-                debugPrint("ecsfdsfv" + subcatData[i].iconImage.toString() + "  " + subcatData[i].catBanner.toString());
-                return CategoriesItem(
-                    "SubcategoryScreen",
-                    widget.allCategoryDetail.categoryName,
-                    widget.allCategoryDetail.id,
-                    subcatData[i].id,
-                    subcatData[i].categoryName,
+          SizedBox(
+            height: 140,
+            child: ListView.builder(
+                shrinkWrap: true,
+                controller: new ScrollController(keepScrollOffset: false),
+                scrollDirection: Axis.horizontal,
+                itemCount: subcatData.length,
+                itemBuilder: (ctx, i) {
+                  debugPrint("subcat..." + subcatData.length.toString());
+                  return Container(
+                    width: ResponsiveLayout.isSmallScreen(context)?100:150,
+                    child: Card(
+                      color: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      elevation: 0,
+                      margin: EdgeInsets.all(5),
+                      child: CategoriesItem(
+                          "SubcategoryScreen",
+                          widget.allCategoryDetail.categoryName!,
+                          widget.allCategoryDetail.id!,
+                          subcatData[i].id!,
+                          subcatData[i].categoryName!,
+                          i,
+                          subcatData[i].iconImage!
+                        /* "SubcategoryScreen",
+                    widget.catTitle,
+                    widget.catId,
+                    subNestedcategoryData.itemsubNested[i].catid,
+                    subNestedcategoryData.itemsubNested[i].title,
                     i,
-                    subcatData[i].iconImage,
-                    subcatData[i].catBanner
-                    //subcatData[i].catBanner
-                  /* "SubcategoryScreen",
-                widget.catTitle,
-                widget.catId,
-                subNestedcategoryData.itemsubNested[i].catid,
-                subNestedcategoryData.itemsubNested[i].title,
-                i,
-                subNestedcategoryData.itemsubNested[i].imageUrl*/);
-              }
+                    subNestedcategoryData.itemsubNested[i].imageUrl*/),
+                    ),
+                  );
+                }
+            ),
           ),
         ],
       )

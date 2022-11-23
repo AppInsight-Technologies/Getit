@@ -1,18 +1,24 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:apple_sign_in/apple_sign_in.dart';
 import 'package:collection/collection.dart';
 import 'package:country_pickers/utils/utils.dart';
+import 'package:dotted_line/dotted_line.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
-//import 'package:flutter_facebook_login_web/flutter_facebook_login_web.dart';
+import 'package:flutter_facebook_login_web/flutter_facebook_login_web.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import '../../components/ItemList/item_component.dart';
+import '../../components/login_web.dart';
+import '../../controller/mutations/cat_and_product_mutation.dart';
+import '../../repository/authenticate/AuthRepo.dart';
+import 'package:sign_in_apple/apple_id_user.dart';
+import 'package:sign_in_apple/sign_in_apple.dart';
 import '../../controller/mutations/address_mutation.dart';
 import '../../controller/mutations/cart_mutation.dart';
 import '../../controller/mutations/home_screen_mutation.dart';
@@ -21,13 +27,13 @@ import '../../models/VxModels/VxStore.dart';
 import '../../models/newmodle/cartModle.dart';
 import '../../models/newmodle/user.dart';
 import '../../repository/cart/cart_repo.dart';
-import '../../screens/addinfo_screen.dart';
-import '../../widgets/components/item_component.dart';
-import '../../widgets/components/login_web.dart';
 import '../../widgets/simmers/checkout_screen.dart';
 import '../../widgets/simmers/singel_item_of_list_shimmer.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velocity_x/velocity_x.dart';
+import '../models/newmodle/shoppingModel.dart';
+import '../repository/address_repo.dart';
+import '../rought_genrator.dart';
 import '../screens/sellingitem_screen.dart';
 import '../constants/api.dart';
 import '../generated/l10n.dart';
@@ -35,13 +41,13 @@ import '../models/cartItemsField.dart';
 import '../providers/sellingitems.dart';
 import '../screens/offer_screen.dart';
 import '../services/firebaseAnaliticsService.dart';
+import '../widgets/addresswidget/address_info.dart';
 import '../widgets/bottom_navigation.dart';
 import '../screens/searchitem_screen.dart';
 import '../assets/ColorCodes.dart';
 import '../assets/images.dart';
 import '../constants/features.dart';
 import '../widgets/simmers/item_list_shimmer.dart';
-import '../screens/bloc.dart';
 import 'package:sms_autofill/sms_autofill.dart';
 import 'package:hive/hive.dart';
 import 'package:provider/provider.dart';
@@ -56,11 +62,8 @@ import '../utils/ResponsiveLayout.dart';
 import '../screens/login_screen.dart';
 import '../screens/policy_screen.dart';
 
-
 import '../main.dart';
-import '../providers/addressitems.dart';
 import '../providers/branditems.dart';
-import '../screens/unavailablity_screen.dart';
 import '../screens/confirmorder_screen.dart';
 import '../screens/address_screen.dart';
 import '../screens/signup_selection_screen.dart';
@@ -90,38 +93,40 @@ GoogleSignIn _googleSignIn = GoogleSignIn(
 class CartScreen extends StatefulWidget {
   static const routeName = '/cart-screen';
 
+ String afterlogin="";
+  CartScreen(Map<String, String> params){
+   this.afterlogin = params["afterlogin"]??"" ;
+  }
+
   @override
   _CartScreenState createState() => _CartScreenState();
 }
 
-class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateMixin {
-  // Box<Product> productBox;
+class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateMixin,Navigations{
   double minorderamount = 0;
   double deliverycharge = 0;
   var addressitemsData;
-  var shoplistData;
-  int _groupCart =1;
-  bool valuefirst = false;
-  int gift;
+  //var shoplistData;
   final _form = GlobalKey<FormState>();
   bool _checkmembership = false;
   int _groupValue = 1;
+  int _groupCart =1;
   int _groupPick = 0;
   int _groupValueAdvance=1;
   bool _isLoading = true;
-  bool _ispicLoading =true;
   bool _initialloading = true;
   bool _cartitemloaded = false;
   bool _cartdugestloaded = false;
   bool _isshow =true;
-
+  List<String>? dateSplit;
+  List<String>? pickSplit;
   bool visible= false;
   bool visiblestand= true;
   bool visibleexpress= false;
-  var dividerSlot = ColorCodes.darkthemeColor;
+  var dividerSlot = ColorCodes.primaryColor;
   var dividerExpress = ColorCodes.whiteColor;
 
-  var ContainerSlot = ColorCodes.mediumgren;
+  var ContainerSlot = ColorCodes.varcolor;
   var ContainerExpress = ColorCodes.whiteColor;
 
   var selectedTimeSlot = ColorCodes.whiteColor;
@@ -130,7 +135,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
   //pickup
   bool _checkStoreLoc = false;
   bool _isPickupSlots = false;
-  DateTime pickedDate;
+  DateTime? pickedDate;
   var pickuplocItem;
   var pickupTime;
   String selectTime = "";
@@ -145,7 +150,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
   var _checkaddress = false;
   var addtype;
   var address;
-  IconData addressicon;
+  IconData? addressicon;
   var deliveryslotData;
   var delChargeData;
   var timeslotsData;
@@ -172,10 +177,10 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
   var otpvalue = "";
   // bool _slots =true;
   bool slots=false;
-  MediaQueryData queryData;
-  double wid;
-  double maxwid;
-  String countryName = "${CountryPickerUtils.getCountryByPhoneCode(IConstants.countryCode.split('+')[1]).name}";
+  MediaQueryData? queryData;
+  double? wid;
+  double? maxwid;
+  String? countryName ;//= "${CountryPickerUtils.getCountryByPhoneCode(IConstants.countryCode.split('+')[1]).name}";
   String photourl = "";
   String name = "";
   String phone = "";
@@ -184,9 +189,9 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
   String mobile = "";
   String tokenid = "";
   bool _isAvailable = false;
-  Timer _timer;
+  Timer? _timer;
   int _timeRemaining = 30;
-  StreamController<int> _events;
+  StreamController<int>? _events;
   TextEditingController controller = TextEditingController();
   bool _showOtp = false;
   final TextEditingController firstnamecontroller = new TextEditingController();
@@ -203,8 +208,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
   FocusNode f4 = FocusNode();
    String confirmSwap ="";
 
-  String otp1, otp2, otp3, otp4;
-  HomeDisplayBloc _bloc;
+  String? otp1, otp2, otp3, otp4;
   bool iphonex = false;
 
   int count=1;
@@ -213,33 +217,33 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
   bool timeComp=false;
   int maxTime=0;
   int maxDate=0;
-  int finalMax=0,MaxTimeFinal,difference=0;
+  int? finalMax=0,MaxTimeFinal,difference=0;
   var checkmembership = false;
   String durType= "";
-  String mode;
+  String? mode;
   List<CartItem> something=[];//slot based delivery option 2
   List<CartItem> ExpressDetails=[];//Express delivery option 2
-  Map<String, List<CartItem>> newMap2;
-  Map<String, List<CartItem>> newMap3;
+  Map<String, List<CartItem>>? newMap2;
+  Map<String, List<CartItem>>? newMap3;
 
 
   List<CartItem> DefaultSlot=[];//slot based delivery option 1
-  Map<String, List<CartItem>> newMap;//DateBased delivery option 1
-  Map<String, List<CartItem>> newMap1;//TimeBased delivery option 1
+  Map<String, List<CartItem>>? newMap;//DateBased delivery option 1
+  Map<String, List<CartItem>>? newMap1;//TimeBased delivery option 1
 
 
-  String datecom;
-  String timecom;
-  String Date;
+  String? datecom;
+  String? timecom;
+  String? Date;
 
 
-  double deliveryChargeCalculation;
+  double? deliveryChargeCalculation;
   int deliveryamount = 0;
   String delCharge = "0.0";
-  String deliverychargetextdefault;
-  String deliverychargetextSecond, deliverychargetextExpress, deliverychargetextSecDate,deliverychargetextSecTime;
+  String? deliverychargetextdefault;
+  String? deliverychargetextSecond, deliverychargetextExpress, deliverychargetextSecDate,deliverychargetextSecTime;
   final DateTime now = DateTime.now();
-  String deliveryslot, deliveryexpress;
+  String? deliveryslot, deliveryexpress;
 
   double deliveryfinalslotdate=0.0;
   double deliveryfinalslotTime=0.0;
@@ -251,30 +255,37 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
   double deliveryExpressamount = 0.0;
 
   int Check = 0;
-  BrandItemsList offersData;
-  int _selectedOffer = -1;
+  BrandItemsList? offersData;
   bool _isDiscounted = true;
   bool _slots = false;
   bool _isUnavailable = false;
-  UserData addressdata;
-
+  UserData? addressdata;
+  String channel = "";
+  String _appletoken = "";
   bool isEmpty=/*(VxState.store as GroceStore).CartItemList.length<=0*/true;
 
   CartItemsFields cif = CartItemsFields();
 
-  bool checkskip = !PrefUtils.prefs.containsKey("apikey");
+  bool checkskip = !PrefUtils.prefs!.containsKey("apikey");
 
   UserData userdata = (VxState.store as GroceStore).userData;
-  // CartRepo _cart = CartRepo();
-  Future<CartFetch> _futureitem ;
+  Future<CartFetch>? _futureitem ;
 
   List<CartItem> cartItemList = (VxState.store as GroceStore).CartItemList;
   GroceStore store = VxState.store;
+  Auth _auth = Auth();
+  String? deliverychargetext;
+  double cartTotal = 0.0;
+  String? membershipvx;// = (VxState.store as GroceStore).userData.membership!;
+  double amountPayable = 0.0;
+  bool _isunavailablepopup = false;
+  bool _isAddToCart = false;
+  List<ShoppingListData> shoplistData=[];
+
   @override
   void initState() {
-    _bloc = HomeDisplayBloc();
     _events = new StreamController<int>.broadcast();
-    _events.add(30);
+    _events!.add(30);
     pickedDate = DateTime.now();
     cartcontroller.fetch(onload: (onload){
       if(onload)
@@ -282,32 +293,67 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
           _cartitemloaded = true;
         });
     });
-    PrefUtils.prefs.setString("gift", "0");
     Future.delayed(Duration.zero, () async {
+      try {
+        if (Platform.isIOS) {
+        //  SignInApple.clickAppleSignIn();
+          // SignInApple.onCredentialRevoked.listen((_) {});
+          if (await SignInApple.canUseAppleSigin()) {
+            setState(() {
+              _isAvailable = true;
+            });
+          } else {
+            setState(() {
+              _isAvailable = false;
+            });
+          }
+          channel = "IOS";
+        }else{
+          channel = "Android";
+        }
+      } catch (e) {
+        channel = "Web";
+      }
+
+      if (PrefUtils.prefs!.getString('applesignin') == "yes") {
+        _appletoken = PrefUtils.prefs!.getString('apple').toString();
+      } else {
+        _appletoken = "";
+      }
+      print("branch cart..."+PrefUtils.prefs!.getString("branch").toString());
       CartRepo().getSudgetstedCart().then(( CartFetch value) {
-        print("cart list: ${value.toJson().toString()}");
         setState(() {
           _futureitem = Future.value(value);
           _cartdugestloaded = true;
         });
       });
+      debugPrint("hello..");
       VxState.watch(context, on: [SetCartItem]);
       if((VxState.store as GroceStore).CartItemList.length<=0){
+        debugPrint("hello.. if....");
+        //Features.ismultivendor && IConstants.isEnterprise?IConstants.storename= store.CartItemList.:"";
         setState(() {
           _isDiscounted = true;
           isEmpty=true;
         });
       }else{
+        debugPrint("hello.. else....");
+
         setState(() {
           _isDiscounted = false;
           isEmpty=false;
         });
       }
-      setState(() {
-        deliverlocation = PrefUtils.prefs.getString("deliverylocation");
-        PrefUtils.prefs.setString('fixtime', "");
-        PrefUtils.prefs.setString("fixdate", "");
-        if (PrefUtils.prefs.getString("membership") == "1") {
+      debugPrint("hello1..");
+      membershipvx = (VxState.store as GroceStore).userData.membership!;
+      countryName = "${CountryPickerUtils.getCountryByPhoneCode(IConstants.countryCode.split('+')[1]).name}";
+     setState(() {
+        //PrefUtils.prefs!.setString("deliverylocation", PrefUtils.prefs!.getString("restaurant_location")!);
+        debugPrint("deliveryloaion..."+PrefUtils.prefs!.getString("deliverylocation").toString());
+        deliverlocation = PrefUtils.prefs!.getString("deliverylocation")!;
+        PrefUtils.prefs!.setString('fixtime', "");
+        PrefUtils.prefs!.setString("fixdate", "");
+        if (VxState.store.userData.membership == "1") {
           _checkmembership = true;
         } else {
           _checkmembership = false;
@@ -316,17 +362,15 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
         _isshow =false;
 
       });
-      debugPrint("ghjklghjklkj....."+PrefUtils.prefs.getString("addressId").toString());
-      if(!Vx.isWeb && PrefUtils.prefs.containsKey("addressId"))
-        await Provider.of<BrandItemsList>(context, listen: false).deliveryCharges
-          (PrefUtils.prefs.getString("addressId")).then((_){
-        debugPrint("ghjklghjklkj.....1");
+      addressdata = (VxState.store as GroceStore).userData;
+     // print("address length... cart initial...2"+addressdata!.billingAddress!.length.toString());
+      if(!Vx.isWeb && PrefUtils.prefs!.containsKey("addressId"))await Provider.of<BrandItemsList>(context, listen: false).deliveryCharges(PrefUtils.prefs!.getString("addressId")!).then((_){
         setState(() {
 
           delChargeData = Provider.of<BrandItemsList>(context, listen: false);
-          // if (delChargeData.itemsDelCharges.length <= 0) {
-          //   _loadingDelCharge = false;
-          // } else {
+          if (delChargeData.itemsDelCharges.length <= 0) {
+            _loadingDelCharge = false;
+          } else {
             _minimumOrderAmountNoraml =
                 delChargeData.itemsDelCharges[0].minimumOrderAmountNoraml;
             _deliveryChargeNormal =
@@ -342,7 +386,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
             _deliveryDurationExpress =
                 delChargeData.itemsDelCharges[0].deliveryDurationExpress;
             _loadingDelCharge = false;
-          // }
+           }
         });
       });
       // await Provider.of<CartItems>(context, listen: false).fetchCartItems().then((_) {
@@ -352,32 +396,44 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
       //     _isCartItem = false;
       //   });
       // });
+      //print("address length... cart initial...1"+addressdata!.billingAddress!.length.toString());
+///Do not remove this.. unless impliment Api 16-12-2020
+//       Provider.of<BrandItemsList>(context,listen: false)
+//           .fetchShoppinglist()
+//           .then((_) {
+//         shoplistData =
+//             Provider.of<BrandItemsList>(context, listen: false);
+//       });
 
-
+      if(Features.isShoppingList){
+        shoplistData = (VxState.store as GroceStore).ShoppingList;
+      }
       //if(Vx.isWeb)checkLocation();
-        addressdata = (VxState.store as GroceStore).userData;
-      if (addressdata.billingAddress.length > 0) {
-        debugPrint('well...');
-          addtype = addressdata.billingAddress[0].addressType;
-          address = addressdata.billingAddress[0].address;
-          name = addressdata.billingAddress[0].fullName;
-          addressicon = addressdata.billingAddress[0].addressicon;
-          PrefUtils.prefs.setString(
+
+        print("address length... cart initial..."+addressdata!.billingAddress!.length.toString());
+      if (addressdata!.billingAddress!=null&&addressdata!.billingAddress!.length > 0) {
+          addtype = addressdata!.billingAddress![0].addressType;
+          address = addressdata!.billingAddress![0].address;
+          name = addressdata!.billingAddress![0].fullName!;
+          addressicon = addressdata!.billingAddress![0].addressicon;
+          PrefUtils.prefs!.setString(
               "addressId",
-              addressdata.billingAddress[0].id.toString());
+              addressdata!.billingAddress![0].id.toString());
          // calldeliverslots(addressdata.billingAddress[0].id.toString());
-          deliveryCharge(addressdata.billingAddress[0].id.toString());
+          deliveryCharge(addressdata!.billingAddress![0].id.toString());
           _checkaddress = true;
-          checkLocation();
+          checkLocation("init");
       } else {
         setState(() {
           _checkaddress = false;
         });
       }
 
-      debugPrint('pic,,,,,,,,,,,');
+      PrefUtils.prefs!.setString("latitude", (VxState.store as GroceStore).userData.billingAddress![0].lattitude!);
+      PrefUtils.prefs!.setString("longitude", (VxState.store as GroceStore).userData.billingAddress![0].logingitude!);
+      print("user billing address......"+(VxState.store as GroceStore).userData.billingAddress![0].lattitude!.toString()+"...."+(VxState.store as GroceStore).userData.billingAddress![0].logingitude!.toString());
       Provider.of<BrandItemsList>(context, listen: false).fetchPickupfromStore().then((_) {
-        debugPrint('pic,,,,,,,,,,,');
+
         pickuplocItem = Provider.of<BrandItemsList>(context, listen: false);
         if (pickuplocItem.itemspickuploc.length > 0) {
           setState(() {
@@ -396,6 +452,8 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                     pickupTime.itemsPickup[i].isSelect = false;
                   }
                 });
+                final tagName = pickupTime.itemsPickup[i].date.toString();
+                pickSplit = tagName.split(',');
               }
               if (pickupTime.itemsPickup.length > 0) {
                 _isPickupSlots = true;
@@ -403,12 +461,10 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                 selectDate = pickupTime.itemsPickup[0].date;
                 setState(() {
                   _isLoading = false;
-                  _ispicLoading = false;
                 });
               } else {
                 setState(() {
                   _isLoading = false;
-                  _ispicLoading = false;
                   _isPickupSlots = false;
                 });
               }
@@ -418,34 +474,35 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
           setState(() {
             _checkStoreLoc = false;
             _isLoading = false;
-            _ispicLoading =false;
           });
         }
       });
       if (!Vx.isWeb) _listenotp();
 
-      if(PrefUtils.prefs.getString("referCodeDynamic") == "" || PrefUtils.prefs.getString("referCodeDynamic") == null){
+
+      if(PrefUtils.prefs!.getString("referCodeDynamic") == "" || PrefUtils.prefs!.getString("referCodeDynamic") == null){
         _referController.text = "";
       }else{
-        _referController.text = PrefUtils.prefs.getString("referCodeDynamic");
+        _referController.text = PrefUtils.prefs!.getString("referCodeDynamic")!;
       }
 
-      await Provider.of<BrandItemsList>(context, listen: false).GetRestaurant().then((_) {
-        if (!PrefUtils.prefs.containsKey("deliverylocation")) {
+      BrandItemsList().GetRestaurantNew("acbjadgdj",()async {
+        // PrimeryLocation().fetchPrimarylocation();
+        if (!PrefUtils.prefs!.containsKey("deliverylocation")) {
           setState(() {
             countryName = CountryPickerUtils.getCountryByPhoneCode(IConstants.countryCode.split('+')[1]).name;
           });
         }
         if(IConstants.holyday =="1"){
           ShowpopupforHoliday();
-          //HolidayNote();
         }
       });
 
 
+
     });
     Future.delayed(Duration.zero, () async {
-      _address = PrefUtils.prefs.getString("restaurant_address");
+      _address = PrefUtils.prefs!.getString("restaurant_address")!;
        /* if(Vx.isWeb) Provider.of<AddressItemsList>(context,listen: false).fetchAddress().then((_) {
           setState(() {
             addressitemsData = Provider.of<AddressItemsList>(context, listen: false);
@@ -494,7 +551,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
             actions: <Widget>[
               Vx.isWeb? SizedBox.shrink():FlatButton(
                 child: Text(
-                  S.of(context).ok,//'Ok'
+                  S .of(context).ok,//'Ok'
                 ),
                 onPressed: () async {
                   SystemNavigator.pop();
@@ -502,11 +559,19 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
               ),
               FlatButton(
                 child: Text(
-                  S.of(context).change_location,//'Change'
+                  S .of(context).change_location,//'Change'
                 ),
                 onPressed: () async {
-                  PrefUtils.prefs.setString("formapscreen", "homescreen");
-                  Navigator.of(context).pushNamed(MapScreen.routeName);
+                  PrefUtils.prefs!.setString("formapscreen", "homescreen");
+                    if(Vx.isWeb && !ResponsiveLayout.isSmallScreen(context)){
+                    // _dialogforaddress(context);
+                    MapWeb(context);
+                    }
+                    else {
+                      Navigation(context, name: Routename.MapScreen,
+                          navigatore: NavigatoreTyp.Push);
+                    }
+                 // Navigator.of(context).pushNamed(MapScreen.routeName);
                 },
               ),
             ],
@@ -519,7 +584,8 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
     try {
       final response = await http.post(Api.getProfile, body: {
         // await keyword is used to wait to this operation is complete.
-        "apiKey": PrefUtils.prefs.getString('apiKey'),
+        "apiKey": PrefUtils.prefs!.getString('apiKey'),
+        "branch" : PrefUtils.prefs!.getString("branch")
       });
 
       final responseJson = json.decode(utf8.decode(response.bodyBytes));
@@ -533,18 +599,19 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
       index]
       as Map<String, dynamic>)); //store each category values in data list
       for (int i = 0; i < data.length; i++) {
-        PrefUtils.prefs.setString("deliverylocation", data[i]['area']);
+        PrefUtils.prefs!.setString("deliverylocation", data[i]['area']);
 
-        if (PrefUtils.prefs.containsKey("deliverylocation")) {
+        if (PrefUtils.prefs!.containsKey("deliverylocation")) {
           Navigator.of(context).pop();
-          if (PrefUtils.prefs.containsKey("fromcart")) {
-            if (PrefUtils.prefs.getString("fromcart") == "cart_screen") {
-              PrefUtils.prefs.remove("fromcart");
-              Navigator.of(context).pushNamedAndRemoveUntil(
+          if (PrefUtils.prefs!.containsKey("fromcart")) {
+            if (PrefUtils.prefs!.getString("fromcart") == "cart_screen") {
+              PrefUtils.prefs!.remove("fromcart");
+            /*  Navigator.of(context).pushNamedAndRemoveUntil(
                   CartScreen.routeName,
                   ModalRoute.withName(HomeScreen.routeName),arguments: {
-                "after_login": ""
-              });
+                "afterlogin": ""
+              });*/
+              Navigation(context, name: Routename.Cart, navigatore: NavigatoreTyp.Push,qparms: {"afterlogin":null});
             } else {
               Navigator.of(context).popUntil(ModalRoute.withName(
                 HomeScreen.routeName,
@@ -557,7 +624,15 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
           }
         } else {
           Navigator.of(context).pop();
-          Navigator.of(context).pushReplacementNamed(MapScreen.routeName);
+          if(Vx.isWeb && !ResponsiveLayout.isSmallScreen(context)){
+            // _dialogforaddress(context);
+            MapWeb(context);
+          }
+          else {
+            Navigation(context, name: Routename.MapScreen,
+                navigatore: NavigatoreTyp.Push);
+          }
+         // Navigator.of(context).pushReplacementNamed(MapScreen.routeName);
         }
       }
       //Navigator.of(context).pop();
@@ -567,189 +642,200 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
     }
   }
 
-  // void initiateFacebookLogin() async {
-  //   //web.......
-  //   // final facebookSignIn = FacebookLoginWeb();
-  //   // final FacebookLoginResult result = await facebookSignIn.logIn(['email']);
-  //   //app........
-  //   /*final facebookLogin = FacebookLogin();
-  //   facebookLogin.loginBehavior = FacebookLoginBehavior.nativeWithFallback;
-  //   final result = await facebookLogin.logIn(['email']);*/
-  //   switch (result.status) {
-  //     case FacebookLoginStatus.error:
-  //       Navigator.of(context).pop();
-  //       Fluttertoast.showToast(
-  //           msg: S.of(context).sign_in_failed,//"Sign in failed!",
-  //           fontSize: MediaQuery.of(context).textScaleFactor *13,
-  //           backgroundColor: ColorCodes.blackColor,
-  //           textColor: ColorCodes.whiteColor);
-  //       //onLoginStatusChanged(false);
-  //       break;
-  //     case FacebookLoginStatus.cancelledByUser:
-  //       Navigator.of(context).pop();
-  //       Fluttertoast.showToast(
-  //           msg: S.of(context).sign_in_cancelledbyuser,//"Sign in cancelled by user!",
-  //           fontSize: MediaQuery.of(context).textScaleFactor *13,
-  //           backgroundColor: ColorCodes.blackColor,
-  //           textColor: ColorCodes.whiteColor);
-  //       //onLoginStatusChanged(false);
-  //       break;
-  //     case FacebookLoginStatus.loggedIn:
-  //       final token = result.accessToken.token;
-  //       final graphResponse = await http.get(
-  //           'https://graph.facebook.com/v2.12/me?fields=name,first_name,last_name,picture,email&access_token=${token}');
-  //       final profile = json.decode(graphResponse.body);
-  //
-  //       PrefUtils.prefs.setString("FBAccessToken", token);
-  //
-  //       PrefUtils.prefs.setString('FirstName', profile['first_name'].toString());
-  //       PrefUtils.prefs.setString('LastName', profile['last_name'].toString());
-  //       PrefUtils.prefs.setString('Email', profile['email'].toString());
-  //
-  //       final pictureencode = json.encode(profile['picture']);
-  //       final picturedecode = json.decode(pictureencode);
-  //
-  //       final dataencode = json.encode(picturedecode['data']);
-  //       final datadecode = json.decode(dataencode);
-  //
-  //       PrefUtils.prefs.setString("photoUrl", datadecode['url'].toString());
-  //
-  //       PrefUtils.prefs.setString('prevscreen', "signinfacebook");
-  //       checkusertype("Facebooksigin");
-  //       //onLoginStatusChanged(true);
-  //       break;
-  //   }
-  // }
+  void initiateFacebookLogin() async {
+    //web.......
+    final facebookSignIn = FacebookLoginWeb();
+    final FacebookLoginResult result = await facebookSignIn.logIn(['email']);
+    //app........
+    /*final facebookLogin = FacebookLogin();
+    facebookLogin.loginBehavior = FacebookLoginBehavior.nativeWithFallback;
+    final result = await facebookLogin.logIn(['email']);*/
+    switch (result.status) {
+      case FacebookLoginStatus.error:
+        Navigator.of(context).pop();
+        Fluttertoast.showToast(
+            msg: S .of(context).sign_in_failed,//"Sign in failed!",
+            fontSize: MediaQuery.of(context).textScaleFactor *13,
+            backgroundColor: ColorCodes.blackColor,
+            textColor: ColorCodes.whiteColor);
+        //onLoginStatusChanged(false);
+        break;
+      case FacebookLoginStatus.cancelledByUser:
+        Navigator.of(context).pop();
+        Fluttertoast.showToast(
+            msg: S .of(context).sign_in_cancelledbyuser,//"Sign in cancelled by user!",
+            fontSize: MediaQuery.of(context).textScaleFactor *13,
+            backgroundColor: ColorCodes.blackColor,
+            textColor: ColorCodes.whiteColor);
+        //onLoginStatusChanged(false);
+        break;
+      case FacebookLoginStatus.loggedIn:
+        final token = result.accessToken.token;
+        final graphResponse = await http.get(
+            'https://graph.facebook.com/v2.12/me?fields=name,first_name,last_name,picture,email&access_token=${token}');
+        final profile = json.decode(graphResponse.body);
 
-  Future<void> facebooklogin() {
-    PrefUtils.prefs.setString('skip', "no");
-    PrefUtils.prefs.setString('applesignin', "no");
-    // initiateFacebookLogin();
+        PrefUtils.prefs!.setString("FBAccessToken", token);
+
+        PrefUtils.prefs!.setString('FirstName', profile['first_name'].toString());
+        PrefUtils.prefs!.setString('LastName', profile['last_name'].toString());
+        PrefUtils.prefs!.setString('Email', profile['email'].toString());
+
+        final pictureencode = json.encode(profile['picture']);
+        final picturedecode = json.decode(pictureencode);
+
+        final dataencode = json.encode(picturedecode['data']);
+        final datadecode = json.decode(dataencode);
+
+        PrefUtils.prefs!.setString("photoUrl", datadecode['url'].toString());
+
+        PrefUtils.prefs!.setString('prevscreen', "signinfacebook");
+        checkusertype("Facebooksigin");
+        //onLoginStatusChanged(true);
+        break;
+    }
+  }
+
+  Future<void> facebooklogin() async {
+    PrefUtils.prefs!.setString('skip', "no");
+    PrefUtils.prefs!.setString('applesignin', "no");
+    initiateFacebookLogin();
+  }
+
+
+  Future<void> addprimarylocation() async {
+
+    var url = IConstants.API_PATH + 'add-primary-location';
+    try {
+      // SharedPreferences prefs = await SharedPreferences.getInstance();
+      final response = await http.post(url, body: {
+        // await keyword is used to wait to this operation is complete.
+        "id": PrefUtils.prefs!.containsKey("apikey")? PrefUtils.prefs!.getString("apikey"): PrefUtils.prefs!.getString("ftokenid"),
+        "latitude": PrefUtils.prefs!.getString("latitude"),
+        "longitude":PrefUtils.prefs!.getString("longitude"),
+        "area": IConstants.deliverylocationmain.value.toString(),
+        "branch": PrefUtils.prefs!.getString('branch'),
+        "ref": IConstants.isEnterprise && Features.ismultivendor ? IConstants.refIdForMultiVendor : IConstants.refIdForMultiVendor,
+        "branchtype": IConstants.isEnterprise && Features.ismultivendor ? IConstants.branchtype.toString() : IConstants.branchtype.toString(),
+      });
+      final responseJson = json.decode(response.body);
+      if (responseJson["data"].toString() == "true") {
+        if(PrefUtils.prefs!.getString("ismap").toString()=="true") {
+          if(PrefUtils.prefs!.getString("fromcart").toString()=="cart_screen"){
+            // Navigator.of(context).pop();
+            /*Navigator.of(context)
+                .pushNamed(LoginScreen.routeName,);*/
+            Navigation(context, name:Routename.Login,navigatore: NavigatoreTyp.Push);
+
+          }
+          else{
+            /* Navigator.of(context).pop();
+            return Navigator.of(context).pushReplacementNamed(
+              HomeScreen.routeName,
+            );*/
+            Navigator.pushNamedAndRemoveUntil(context, HomeScreen.routeName, (route) => false);
+          }
+
+
+        }
+        else if(PrefUtils.prefs!.getString("isdelivering").toString()=="true"){
+
+
+          Navigator.pushNamedAndRemoveUntil(context, HomeScreen.routeName, (route) => false);
+
+
+        }
+        else {
+          PrefUtils.prefs!.setString("formapscreen", "homescreen");
+          PrefUtils.prefs!.setString("latitude", PrefUtils.prefs!.getString("restaurant_lat")!);
+          PrefUtils.prefs!.setString("longitude", PrefUtils.prefs!.getString("restaurant_long")!);
+          PrefUtils.prefs!.setString("ismap", "true");
+          PrefUtils.prefs!.setString("isdelivering", "true");
+          Navigator.pushNamedAndRemoveUntil(context, HomeScreen.routeName, (route) => false);
+          //Navigator.of(context).pushReplacementNamed(MapScreen.routeName);
+          /* Navigator.of(context).pushReplacementNamed(
+            LocationScreen.routeName,
+          );*/
+        }
+      }
+    } catch (error) {
+      Navigator.of(context).pop();
+      throw error;
+    }
   }
 
   Future<void> appleLogIn() async {
-    PrefUtils.prefs.setString('applesignin', "yes");
+    PrefUtils.prefs!.setString('applesignin', "yes");
     _dialogforProcessing();
-    PrefUtils.prefs.setString('skip', "no");
-    if (await AppleSignIn.isAvailable()) {
-      final AuthorizationResult result = await AppleSignIn.performRequests([
-        AppleIdRequest(requestedScopes: [Scope.email, Scope.fullName])
-      ]);
-      switch (result.status) {
-        case AuthorizationStatus.authorized:
-          try {
-            final response = await http.post(Api.emailLogin, body: {
-              // await keyword is used to wait to this operation is complete.
-              "email": result.credential.user.toString(),
-              "tokenId": PrefUtils.prefs.getString('tokenid'),
-            });
-            final responseJson = json.decode(utf8.decode(response.bodyBytes));
-            if (responseJson['type'].toString() == "old") {
-              if (responseJson['data'] != "null") {
-                final data = responseJson['data'] as Map<String, dynamic>;
+    PrefUtils.prefs!.setString('skip', "no");
+    userappauth.login(AuthPlatform.ios,onSucsess: (SocialAuthUser value,_){
+      if(value.newuser!){
+        userappauth.register(data:RegisterAuthBodyParm(
+          username: value.name,
+          email: value.email,
+          branch: PrefUtils.prefs!.getString("branch"),
+          tokenId:PrefUtils.prefs!.getString("ftokenid"),
+          guestUserId:PrefUtils.prefs!.getString("tokenid"),
+          device:channel,
+          referralid:_referController.text,
+          path: _appletoken ,
+          mobileNumber: ((PrefUtils.prefs!.getString('Mobilenum'))??""),
+          ref: IConstants.refIdForMultiVendor.toString(),
+          branchtype: IConstants.branchtype.toString(),
+          language_code: IConstants.languageId,
+        ),onSucsess: (UserData response){
+          //  PrefUtils.prefs!.setString('FirstName', response.username);
+          //  PrefUtils.prefs!.setString('LastName', "");
+          //  PrefUtils.prefs!.setString('Email', response.email);
 
-                if (responseJson['status'].toString() == "true") {
-                  PrefUtils.prefs.setString('apiKey', data['apiKey'].toString());
-                  // PrefUtils.prefs.setString('apikey', data['userID'].toString());
-                  PrefUtils.prefs.setString('membership', data['membership'].toString());
-                  PrefUtils.prefs.setString("mobile", data['mobile'].toString());
-                  PrefUtils.prefs.setString("latitude", data['latitude'].toString());
-                  PrefUtils.prefs.setString("longitude", data['longitude'].toString());
+          /* Navigator.pushNamedAndRemoveUntil(
+                context, HomeScreen.routeName, (route) => false);*/
 
-                  PrefUtils.prefs.setString('name', data['name'].toString());
-                  PrefUtils.prefs.setString('FirstName', data['name'].toString());
-                  PrefUtils.prefs.setString('FirstName', data['username'].toString());
-                  PrefUtils.prefs.setString('LastName', "");
-                  PrefUtils.prefs.setString('Email', data['email'].toString());
-                  PrefUtils.prefs.setString("photoUrl", "");
-                  PrefUtils.prefs.setString('apple', data['apple'].toString());
-                } else if (responseJson['status'].toString() == "false") {}
-              }
-              PrefUtils.prefs.setString('LoginStatus', "true");
-              setState(() {
-               /* if (PrefUtils.prefs.getString('FirstName') != null) {
-                  if (PrefUtils.prefs.getString('LastName') != null) {
-                    name = PrefUtils.prefs.getString('FirstName') +
-                        " " +
-                        PrefUtils.prefs.getString('LastName');
-                  } else {
-                    name = PrefUtils.prefs.getString('FirstName');
-                  }
-                } else {
-                  name = "";
-                }*/
-                name = store.userData.username;
-                //name = PrefUtils.prefs.getString('FirstName') + " " + PrefUtils.prefs.getString('LastName');
-                if (PrefUtils.prefs.getString('prevscreen') == 'signInAppleNoEmail') {
-                  email = "";
-                } else {
-                  email = PrefUtils.prefs.getString('Email');
-                }
-                mobile = PrefUtils.prefs.getString('Mobilenum');
-                tokenid = PrefUtils.prefs.getString('tokenid');
 
-                if (store.userData.mobileNumber != null) {
-                  phone = store.userData.mobileNumber;
-                } else {
-                  phone = "";
-                }
-                if (PrefUtils.prefs.getString('photoUrl') != null) {
-                  photourl = PrefUtils.prefs.getString('photoUrl');
-                } else {
-                  photourl = "";
-                }
-              });
-              _getprimarylocation();
-            } else {
-              PrefUtils.prefs.setString('apple', result.credential.user.toString());
-              PrefUtils.prefs.setString(
-                  'FirstName', result.credential.fullName?.givenName);
-              PrefUtils.prefs.setString(
-                  'LastName', result.credential.fullName?.familyName);
-              PrefUtils.prefs.setString("photoUrl", "");
-
-              if (result.credential.email.toString() == "null") {
-                PrefUtils.prefs.setString('prevscreen', "signInAppleNoEmail");
-                Navigator.of(context).pop();
-                /*Navigator.of(context).pushReplacementNamed(
-                  LoginScreen.routeName,);*/
-              } else {
-                PrefUtils.prefs.setString('Email', result.credential.email);
-                PrefUtils.prefs.setString('prevscreen', "signInApple");
-                checkusertype("signInApple");
-              }
-            }
-          } catch (error) {
-            Navigator.of(context).pop();
-            throw error;
+          if (PrefUtils.prefs!.getString("ismap").toString() == "true") {
+            addprimarylocation();
           }
+          else if (PrefUtils.prefs!.getString("isdelivering").toString() == "true") {
+            // Navigator.of(context).pop();
+            addprimarylocation();
+          }
+          else {
+            //Navigator.of(context).pop();
 
-          break;
-        case AuthorizationStatus.error:
+            PrefUtils.prefs!.setString("latitude", PrefUtils.prefs!.getString("restaurant_lat")!);
+            PrefUtils.prefs!.setString("longitude", PrefUtils.prefs!.getString("restaurant_long")!);
+            PrefUtils.prefs!.setString("ismap", "true");
+            PrefUtils.prefs!.setString("isdelivering", "true");
+            addprimarylocation();
+            //prefs.setString("formapscreen", "homescreen");
+            //Navigator.of(context).pushReplacementNamed(MapScreen.routeName);
+            /* Navigator.of(context).pushReplacementNamed(
+              LocationScreen.routeName,
+            );*/
+          }
+        },onerror: (message){
           Navigator.of(context).pop();
-          Fluttertoast.showToast(
-              msg: S.of(context).sign_in_failed,//"Sign in failed!",
-              fontSize: MediaQuery.of(context).textScaleFactor *13,
-              backgroundColor: Colors.black87,
-              textColor: Colors.white);
-          break;
-        case AuthorizationStatus.cancelled:
-          Navigator.of(context).pop();
-          Fluttertoast.showToast(
-              msg: S.of(context).sign_in_cancelledbyuser,//"Sign in cancelled by user!",
-              fontSize: MediaQuery.of(context).textScaleFactor *13,
-              backgroundColor: Colors.black87,
-              textColor: Colors.white);
-          break;
+          Fluttertoast.showToast(msg: message);
+        });
       }
-    } else {
+      else{
+        PrefUtils.prefs!.setString("apikey",value.id!);
+        _auth.getuserProfile(onsucsess: (value){
+          Navigator.pushNamedAndRemoveUntil(
+              context, HomeScreen.routeName, (route) => false);
+        },onerror: (){
+
+        });
+
+        /*Navigator.pushNamedAndRemoveUntil(
+              context, HomeScreen.routeName, (route) => false);*/
+        ///navigatev to home page
+      }
+
+    },onerror:(message){
       Navigator.of(context).pop();
-      Fluttertoast.showToast(
-          msg: S.of(context).apple_signin_not_available_forthis_device,//"Apple SignIn is not available for your device!",
-          fontSize: MediaQuery.of(context).textScaleFactor *13,
-          backgroundColor: Colors.black87,
-          textColor: Colors.white);
-    }
+      Fluttertoast.showToast(msg: message);
+    });
   }
 
   Future<void> otpCall() async {
@@ -759,8 +845,8 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
 
       final response = await http.post(Api.resendOtpCall, body: {
         // await keyword is used to wait to this operation is complete.
-        "resOtp": PrefUtils.prefs.getString('Otp'),
-        "mobileNumber": PrefUtils.prefs.getString('Mobilenum'),
+        "resOtp": PrefUtils.prefs!.getString('Otp'),
+        "mobileNumber": PrefUtils.prefs!.getString('Mobilenum'),
       });
     } catch (error) {
       setState(() {
@@ -776,8 +862,8 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
       //   SharedPreferences PrefUtils.prefs = await SharedPreferences.getInstance();
       final response = await http.post(Api.resendOtp30, body: {
         // await keyword is used to wait to this operation is complete.
-        "resOtp": PrefUtils.prefs.getString('Otp'),
-        "mobileNumber": PrefUtils.prefs.getString('Mobilenum'),
+        "resOtp": PrefUtils.prefs!.getString('Otp'),
+        "mobileNumber": PrefUtils.prefs!.getString('Mobilenum'),
       });
     } catch (error) {
       setState(() {
@@ -794,15 +880,15 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
       if (prev == "signInApple") {
         response = await http.post(Api.emailLogin, body: {
           // await keyword is used to wait to this operation is complete.
-          "email": PrefUtils.prefs.getString('Email'),
-          "tokenId": PrefUtils.prefs.getString('tokenid'),
-          "apple":PrefUtils. prefs.getString('apple'),
+          "email": PrefUtils.prefs!.getString('Email'),
+          "tokenId": PrefUtils.prefs!.getString('tokenid'),
+          "apple":PrefUtils. prefs!.getString('apple'),
         });
       } else {
         response = await http.post(Api.emailLogin, body: {
           // await keyword is used to wait to this operation is complete.
-          "email": PrefUtils.prefs.getString('Email'),
-          "tokenId": PrefUtils.prefs.getString('tokenid'),
+          "email": PrefUtils.prefs!.getString('Email'),
+          "tokenId": PrefUtils.prefs!.getString('tokenid'),
         });
       }
 
@@ -812,45 +898,45 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
           final data = responseJson['data'] as Map<String, dynamic>;
 
           if (responseJson['status'].toString() == "true") {
-            PrefUtils.prefs.setString('apiKey', data['apiKey'].toString());
-            // PrefUtils.prefs.setString('userID', data['userID'].toString());
-            PrefUtils.prefs.setString('membership', data['membership'].toString());
-            PrefUtils. prefs.setString("mobile", data['mobile'].toString());
-            PrefUtils.prefs.setString("latitude", data['latitude'].toString());
-            PrefUtils.prefs.setString("longitude", data['longitude'].toString());
+            PrefUtils.prefs!.setString('apiKey', data['apiKey'].toString());
+            // PrefUtils.prefs!.setString('userID', data['userID'].toString());
+            PrefUtils.prefs!.setString('membership', data['membership'].toString());
+            PrefUtils. prefs!.setString("mobile", data['mobile'].toString());
+            PrefUtils.prefs!.setString("latitude", data['latitude'].toString());
+            PrefUtils.prefs!.setString("longitude", data['longitude'].toString());
           } else if (responseJson['status'].toString() == "false") {}
         }
 
-        PrefUtils.prefs.setString('LoginStatus', "true");
+        PrefUtils.prefs!.setString('LoginStatus', "true");
         setState(() {
-         /* if (PrefUtils.prefs.getString('FirstName') != null) {
-            if (PrefUtils.prefs.getString('LastName') != null) {
-              name = PrefUtils.prefs.getString('FirstName') +
+         /* if (PrefUtils.prefs!.getString('FirstName') != null) {
+            if (PrefUtils.prefs!.getString('LastName') != null) {
+              name = PrefUtils.prefs!.getString('FirstName') +
                   " " +
-                  PrefUtils.prefs.getString('LastName');
+                  PrefUtils.prefs!.getString('LastName');
             } else {
-              name = PrefUtils.prefs.getString('FirstName');
+              name = PrefUtils.prefs!.getString('FirstName');
             }
           } else {
             name = "";
           }*/
-          name = store.userData.username;
+          name = store.userData.username!;
           //name = prefs.getString('FirstName') + " " + prefs.getString('LastName');
-          if (PrefUtils.prefs.getString('prevscreen') == 'signInAppleNoEmail') {
+          if (PrefUtils.prefs!.getString('prevscreen') == 'signInAppleNoEmail') {
             email = "";
           } else {
-            email = PrefUtils.prefs.getString('Email');
+            email = PrefUtils.prefs!.getString('Email')!;
           }
-          mobile = PrefUtils.prefs.getString('Mobilenum');
-          tokenid = PrefUtils.prefs.getString('tokenid');
+          mobile = PrefUtils.prefs!.getString('Mobilenum')!;
+          tokenid = PrefUtils.prefs!.getString('tokenid')!;
 
           if (store.userData.mobileNumber != null) {
-            phone =PrefUtils. prefs.getString('mobile');
+            phone =PrefUtils. prefs!.getString('mobile')!;
           } else {
             phone = "";
           }
-          if (PrefUtils.prefs.getString('photoUrl') != null) {
-            photourl = PrefUtils.prefs.getString('photoUrl');
+          if (PrefUtils.prefs!.getString('photoUrl') != null) {
+            photourl = PrefUtils.prefs!.getString('photoUrl')!;
           } else {
             photourl = "";
           }
@@ -890,7 +976,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                         height: 10.0,
                       ),
                       Text(
-                        S.of(context).refer_earn,//"Refer And Earn",
+                        S .of(context).refer_earn,//"Refer And Earn",
                         style: TextStyle(
                             color: Colors.black,
                             fontWeight: FontWeight.bold,
@@ -902,7 +988,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                       TextField(
                         controller: _referController,
                         decoration: InputDecoration(
-                          hintText: S.of(context).refer_earn,//"Refer and Earn (optional)",//"Reasons (Optional)",
+                          hintText: S .of(context).refer_earn,//"Refer and Earn (optional)",//"Reasons (Optional)",
                           contentPadding: EdgeInsets.all(16),
                           border: OutlineInputBorder(),
                         ),
@@ -918,7 +1004,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                           SignupUser();//SignupUser();
                         },
                         child: Text(
-                          S.of(context).next ,//translate('forconvience.Next'), // "Next",
+                          S .of(context).next ,//translate('forconvience.Next'), // "Next",
                           style: TextStyle(
                             fontSize: 12,
                             color: Colors.white,
@@ -938,21 +1024,21 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
     // prefs.setString('applesignin', "no");
     try {
       final response = await _googleSignIn.signIn();
-      response.email.toString();
+      response!.email.toString();
       response.displayName.toString();
       response.photoUrl.toString();
-      PrefUtils.prefs.setString('FirstName', response.displayName.toString());
-      PrefUtils.prefs.setString('LastName', "");
-      PrefUtils.prefs.setString('Email', response.email.toString());
-      PrefUtils.prefs.setString("photoUrl", response.photoUrl.toString());
+      PrefUtils.prefs!.setString('FirstName', response.displayName.toString());
+      PrefUtils.prefs!.setString('LastName', "");
+      PrefUtils.prefs!.setString('Email', response.email.toString());
+      PrefUtils.prefs!.setString("photoUrl", response.photoUrl.toString());
 
-      PrefUtils.prefs.setString('prevscreen', "signingoogle");
+      PrefUtils.prefs!.setString('prevscreen', "signingoogle");
       checkusertype("Googlesigin");
     } catch (error) {
       Navigator.of(context).pop();
 
       Fluttertoast.showToast(
-          msg: S.of(context).sign_in_failed,//"Sign in failed!",
+          msg: S .of(context).sign_in_failed,//"Sign in failed!",
           backgroundColor: Colors.black87,
           textColor: Colors.white);
     }
@@ -975,7 +1061,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
   //
   //     final responseJson = json.decode(utf8.decode(response.bodyBytes));
   //     if (responseJson['status'].toString() == "yes") {
-  //       if (PrefUtils.prefs.getString("branch") ==
+  //       if (PrefUtils.prefs!.getString("branch") ==
   //           responseJson['branch'].toString()) {
   //         final routeArgs =
   //         ModalRoute
@@ -987,7 +1073,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
   //         if (prev == "address_screen") {
   //           _dialogforProcessing();
   //           cartCheck(
-  //             PrefUtils.prefs.getString("addressId"),
+  //             PrefUtils.prefs!.getString("addressId"),
   //             addressitemsData.items[addressitemsData.items.length - 1].userid,
   //             addressitemsData
   //                 .items[addressitemsData.items.length - 1].useraddtype,
@@ -1005,7 +1091,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
   //             address = addressitemsData.items[0].useraddress;
   //             addressicon = addressitemsData
   //                 .items[0].addressicon;
-  //             PrefUtils.prefs.setString(
+  //             PrefUtils.prefs!.setString(
   //                 "addressId",
   //                 addressitemsData
   //                     .items[0].userid);
@@ -1036,113 +1122,147 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
   //   }
   // }
 
-  Future<void> checkLocation() async {
+  Future<void> checkLocation(String fromscreen) async {
     //addressitemsData = Provider.of<AddressItemsList>(context, listen: false);
-    debugPrint('call2......');
     addressdata = (VxState.store as GroceStore).userData;
-   // try {
-      final response = await http.post(Api.checkLocation, body: {
-        "lat": /*addressitemsData.items[0].userlat*/(VxState.store as GroceStore).userData.billingAddress[0].lattitude,
-        "long": (VxState.store as GroceStore).userData.billingAddress[0].logingitude,
+    try {
+      debugPrint("lat......1.."+(VxState.store as GroceStore).userData.latitude.toString()+ "....."
+          +(VxState.store as GroceStore).userData.longitude.toString()+"....."+PrefUtils.prefs!.getString("branch")!
+          +"...."+PrefUtils.prefs!.getString("latitude")!+"....."+PrefUtils.prefs!.getString("longitude")!+"...."+
+          (VxState.store as GroceStore).userData.billingAddress![0].lattitude!+"..."+(VxState.store as GroceStore).userData.billingAddress![0].logingitude!);
+
+      final response = await http.post(Api.checkLocationmultivendor, body: {
+        "lat":(VxState.store as GroceStore).userData.billingAddress![0].lattitude,
+        "long": (VxState.store as GroceStore).userData.billingAddress![0].logingitude,
+        "branch": PrefUtils.prefs!.getString("branch"),
+        "ref": IConstants.refIdForMultiVendor.toString(),
+        "branchtype": IConstants.branchtype.toString(),
       });
 
       SharedPreferences prefs = await SharedPreferences.getInstance();
 
       final responseJson = json.decode(response.body);
-
-      if (responseJson['status'].toString() == "yes") {
-        if (prefs.getString("branch") == responseJson['branch'].toString()) {
+       if (responseJson['status'].toString() == "yes") {
+        debugPrint("responseJson['branch'].toString()......"+responseJson.toString()+ "\n" +responseJson['branch'].toString());
+        if(fromscreen == "nonavailability"){
+          _dialogforAvailability(
+              PrefUtils.prefs!.getString("addressId")!,
+              addressdata!.billingAddress![0].id.toString(),
+              addressdata!.billingAddress![0].addressType!,
+              addressdata!.billingAddress![0].address!,
+              addressdata!.billingAddress![0].addressicon!,
+              responseJson['branch'].toString()
+          );
+        }else {
+        if (IConstants.isEnterprise && Features.ismultivendor?IConstants.refIdForMultiVendor == responseJson['ref'].toString():
+        prefs.getString("branch") == responseJson['branch'].toString()) {
           final routeArgs =
-          ModalRoute.of(context).settings.arguments as Map<String, String>;
-         /* final prev = routeArgs['prev'];
+          ModalRoute
+              .of(context)!
+              .settings
+              .arguments as Map<String, String>;
+          final prev = routeArgs['prev'];
           if (prev == "address_screen") {
-            debugPrint("kiki....");
             _dialogforProcessing();
             cartCheck(
-              PrefUtils.prefs.getString("addressId"),
-              addressdata.billingAddress[0].id.toString(),
-              addressdata.billingAddress[0].addressType,
-              addressdata.billingAddress[0].address,
-              addressdata.billingAddress[0].addressicon,
-              addressdata.billingAddress[0].fullName,
+              /* prefs.getString("addressId"),
+              addressitemsData.items[0].userid,
+              addressitemsData
+                  .items[0].useraddtype,
+
+              addressitemsData.items[0].useraddress,
+              addressitemsData
+                  .items[0].addressicon,
+              addressitemsData.items[0].username,*/
+              prefs.getString("addressId")!,
+              addressdata!.billingAddress![0].id.toString(),
+              addressdata!.billingAddress![0].addressType!,
+              addressdata!.billingAddress![0].address!,
+              addressdata!.billingAddress![0].addressicon!,
+              addressdata!.billingAddress![0].fullName,
             );
-          } else {*/
-            if (addressdata.billingAddress.length > 0) {
-              debugPrint("ok.....");
-                _checkaddress = true;
-                addtype = addressdata.billingAddress[0].addressType;
-                address = addressdata.billingAddress[0].address;
-                name = addressdata.billingAddress[0].fullName;
-                addressicon = addressdata.billingAddress[0].addressicon;
-                prefs.setString(
-                    "addressId",
-                    addressdata.billingAddress[0].id.toString());
-                calldeliverslots(addressdata.billingAddress[0].id.toString());
-                deliveryCharge(addressdata.billingAddress[0].id.toString());
-             // _Load=false;
+          } else {
+            if (addressdata!.billingAddress!.length > 0) {
+              _checkaddress = true;
+              addtype = addressdata!.billingAddress![0].addressType;
+              address = addressdata!.billingAddress![0].address;
+              name = addressdata!.billingAddress![0].fullName!;
+              addressicon = addressdata!.billingAddress![0].addressicon;
+              prefs.setString(
+                  "addressId",
+                  addressdata!.billingAddress![0].id.toString());
+              if (!Features.ismultivendor) calldeliverslots(
+                  addressdata!.billingAddress![0].id.toString());
+              deliveryCharge(addressdata!.billingAddress![0].id.toString());
+              // _Load=false;
             } else {
-              debugPrint("okn.....");
-                _checkaddress = false;
+              _checkaddress = false;
             }
-        //  }
-        } else {
+          }
+        }
+        else {
+          debugPrint("pipipi.....1...");
           setState(() {
             _isChangeAddress = true;
              _loading = false;
             _slotsLoading = false;
           });
         }
+        }
+
       } else {
+         debugPrint("pipipi.....");
         setState(() {
           _isChangeAddress = true;
            _loading = false;
           _slotsLoading = false;
         });
       }
-    // } catch (error) {
-    //   throw error;
-    // }
+    } catch (error) {
+      throw error;
+    }
   }
 
 
 
   Future<void> calldeliverslots(String addressid) async {
-    debugPrint('call......');
     Provider.of<DeliveryslotitemsList>(context,listen: false)
         .fetchDeliveryslots(addressid)
         .then((_) {
       deliveryslotData = Provider.of<DeliveryslotitemsList>(context, listen: false);
+
       for(int i = 0; i < deliveryslotData.items.length; i++) {
         setState(() {
           if(i == 0) {
             deliveryslotData.items[i].selectedColor = ColorCodes.mediumgren;
             deliveryslotData.items[i].isSelect = true;
+
           } else {
             deliveryslotData.items[i].selectedColor = ColorCodes.whiteColor;
             deliveryslotData.items[i].isSelect = false;
           }
         });
+        final tagName = deliveryslotData.items[i].date.toString();
+        dateSplit = tagName.split(',');
       }
-      final timeData = Provider.of<DeliveryslotitemsList>(context, listen: false);
-      for(int i = 0; i < timeData.times.length; i++) {
-        setState(() {
-          if(i == 0) {
-            timeData.times[i].selectedColor = ColorCodes.mediumBlueColor;
-            timeData.times[i].isSelect = true;
-          } else {
-            timeData.times[i].selectedColor = ColorCodes.lightgrey;
-            timeData.times[i].isSelect = false;
-          }
-        });
-      }
+      //  final timeData = Provider.of<DeliveryslotitemsList>(context, listen: false);
+      // for(int i = 0; i < timeData.times.length; i++) {
+      //   setState(() {
+      //     if(i == 0) {
+      //       timeData.times[i].selectedColor = ColorCodes.mediumBlueColor;
+      //       timeData.times[i].isSelect = true;
+      //     } else {
+      //       timeData.times[i].selectedColor = ColorCodes.lightgrey;
+      //       timeData.times[i].isSelect = false;
+      //     }
+      //   });
+      // }
       setState(() {
         if (deliveryslotData.items.length <= 0) {
-          debugPrint('true.....');
           _checkslots = false;
           _loadingSlots = false;
           _slotsLoading = false;
         } else {
-          debugPrint('true.....');
           _checkslots = true;
           day = deliveryslotData.items[0].day;
           date = deliveryslotData.items[0].date;
@@ -1151,28 +1271,37 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
             listen: false,
           ).findById(timeslotsindex);
           for (int j = 0; j < timeslotsData.length; j++) {
-            if (j== 0) {
-              timeData.times[j].selectedColor = ColorCodes.mediumgren;
-              timeData.times[j].isSelect = true;
-              PrefUtils.prefs.setString("fixdate", deliveryslotData.items[0].dateformat);
-              PrefUtils.prefs.setString('fixtime', timeslotsData[0].time);
-            } else {
-              timeData.times[j].selectedColor = ColorCodes.whiteColor;
-              timeData.times[j].isSelect = false;
-            }
-          }
-          // time = timeslotsData[0].time;
-          /*for (int j = 0; j < timeslotsData.length; j++) {
-              if (j == 0) {
-                timeslotsData[j].titlecolor = ColorCodes.mediumBlueColor);
-                timeslotsData[j].iconcolor = ColorCodes.mediumBlueColor);
+
+            setState(() {
+              PrefUtils.prefs!.setString("fixdate", deliveryslotData.items[0].dateformat);
+              if (timeslotsData[j].status == "1") {
+                timeslotsData[j].selectedColor = Colors.grey;
+                timeslotsData[j].isSelect = false;
+                timeslotsData[j].textColor = Colors.grey;
               } else {
-                timeslotsData[j].titlecolor = ColorCodes.lightgrey;
-                timeslotsData[j].iconcolor = Color(0xFFFFFFFF);
+
+                timeslotsData[j].selectedColor = ColorCodes.whiteColor;
+                timeslotsData[j].textColor = ColorCodes.blackColor;
+                timeslotsData[j].isSelect = false;
+                //  prefs.setString("fixdate", deliveryslotData.items[j].dateformat);
+                // prefs.setString('fixtime', timeslotsData[j].time);
+                // if (j== 0 && timeslotsData.times[j].status != "1") {
+                //   timeslotsData.times[j].selectedColor = ColorCodes.mediumgren;
+                //   timeslotsData.times[j].isSelect = true;
+                //   timeslotsData[j].textColor = ColorCodes.greenColor;
+                //   prefs.setString("fixdate", deliveryslotData.items[0].dateformat);
+                //   prefs.setString('fixtime', timeslotsData[0].time);
+                // } else {
+                //    timeslotsData.times[j].selectedColor = ColorCodes.whiteColor;
+                //    timeslotsData.times[j].isSelect = false;
+                //   timeslotsData[j].textColor = ColorCodes.greenColor;
+                // }
+
               }
-            }*/
-          // prefs.setString("fixdate", deliveryslotData.items[0].dateformat);
-          // prefs.setString('fixtime', timeslotsData[0].time);
+            });
+            _loadingSlots = false;
+            _slotsLoading = false;
+          }
           _loadingSlots = false;
           _slotsLoading = false;
         }
@@ -1181,7 +1310,6 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
   }
 
   Future<void> deliveryCharge(String addressid) async {
-    debugPrint('call1......');
     Provider.of<BrandItemsList>(context,listen: false).deliveryCharges(addressid).then((_) {
       setState(() {
         delChargeData = Provider.of<BrandItemsList>(context, listen: false);
@@ -1210,70 +1338,74 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
     });
   }
   Future<void> cartCheck(String prevAddressid, String addressid, String addressType, String adressSelected, IconData adressIcon,username) async {
-    debugPrint('call3......');
     // imp feature in adding async is the it automatically wrap into Future.
 
     //SharedPreferences prefs = await SharedPreferences.getInstance();
-    setDefaultAddress(addressid);
-    String itemId = "";
-    for (int i = 0; i < cartItemList.length; i++) {
-      if (itemId == "") {
-        itemId = cartItemList[i].itemId.toString();
-      } else {
-        itemId =
-            itemId + "," + cartItemList[i].itemId.toString();
+   // setDefaultAddress(addressid);
+    AddressRepo _addressRepo = AddressRepo();
+    _addressRepo.setDefultAddress(addressId:addressid ,branch:PrefUtils.prefs!.getString('branch') ).then((value) async {
+      String itemId = "";
+      for (int i = 0; i < cartItemList.length; i++) {
+        if (itemId == "") {
+          itemId = cartItemList[i].itemId.toString();
+        } else {
+          itemId =
+              itemId + "," + cartItemList[i].itemId.toString();
+        }
       }
-    }
 
-    var url = Api.cartCheck + addressid + "/" + itemId;
-    try {
-      final response = await http.get(
-        url,
-      );
-
-      final responseJson = json.decode(utf8.decode(response.bodyBytes));
-
-      //if status = 0 for reset cart and status = 1 for default
-      if (responseJson["status"].toString() == "1") {
-        setState(() {
-          //setDefaultAddress(addressid);
-          _isChangeAddress = false;
-          _checkaddress = true;
-          _slotsLoading = true;
-          PrefUtils.prefs.setString("addressId", addressid);
-          addtype = addressType;
-          address = adressSelected;
-          name = username;
-          addressicon = adressIcon;
-          calldeliverslots(addressid);
-          deliveryCharge(addressid);
-        });
-        Navigator.of(context).pop();
-      } else {
-        _dialogforAvailability(
-          prevAddressid,
-          addressid,
-          addressType,
-          adressSelected,
-          adressIcon,
+      var url = IConstants.isEnterprise && Features.ismultivendor?Api.cartCheckMultivendor + addressid + "/" + itemId + "/" + IConstants.refIdForMultiVendor.toString() + "/" + IConstants.branchtype.toString():Api.cartCheck + addressid + "/" + itemId;
+      try {
+        final response = await http.get(
+          url,
         );
+
+        final responseJson = json.decode(utf8.decode(response.bodyBytes));
+
+        //if status = 0 for reset cart and status = 1 for default
+        print("cart status....."+responseJson.toString());
+        if (responseJson["status"].toString() == "1") {
+          setState(() {
+            //setDefaultAddress(addressid);
+            _isChangeAddress = false;
+            _checkaddress = true;
+            _slotsLoading = true;
+            PrefUtils.prefs!.setString("addressId", addressid);
+            addtype = addressType;
+            address = adressSelected;
+            name = username;
+            addressicon = adressIcon;
+            if(!Features.ismultivendor)calldeliverslots(addressid);
+            deliveryCharge(addressid);
+          });
+          Navigator.of(context).pop();
+        } else {
+
+          if(!Features.ismultivendor)
+          {
+            checkLocation("nonavailability");
+          }
+          else{
+            Navigator.of(context).pop();
+          }
+        }
+      } catch (error) {
+        Navigator.of(context).pop();
+        Navigator.of(context).pop();
+        Fluttertoast.showToast(
+            msg: S .of(context).something_went_wrong,//"Something went wrong!",
+            fontSize: MediaQuery.of(context).textScaleFactor *13,
+            backgroundColor: Colors.black87,
+            textColor: Colors.white);
+        throw error;
       }
-    } catch (error) {
-      Navigator.of(context).pop();
-      Navigator.of(context).pop();
-      Fluttertoast.showToast(
-          msg: S.of(context).something_went_wrong,//"Something went wrong!",
-          fontSize: MediaQuery.of(context).textScaleFactor *13,
-          backgroundColor: Colors.black87,
-          textColor: Colors.white);
-      throw error;
-    }
+    });
+
   }
   void setDefaultAddress(String addressid) async {
     bool _addresscheck = false;
-    debugPrint("checking..."+addressid.toString());
     AddressController addressController = AddressController();
-    await addressController.setdefult(addressId: addressid,branch:PrefUtils.prefs.getString('branch'));
+    await addressController.setdefult(addressId: addressid,branch:PrefUtils.prefs!.getString('branch')??"4");
     /* Provider.of<AddressItemsList>(context,listen: false)
         .setDefaultAddress(addressid)
         .then((_) {
@@ -1291,9 +1423,17 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
       });
     });*/
   }
-  _dialogforAvailability(String prevAddOd, String addressId, String addressType, String adressSelected, IconData adressIcon) {
+  _dialogforAvailability(String prevAddOd, String addressId, String addressType, String adressSelected, IconData adressIcon, String currentbranch) {
     String itemCount = "";
     itemCount = "   " + cartItemList.length.toString() + " " + "items";
+    // bool _checkMembership = false;
+
+    // if (PrefUtils.prefs!.getString("membership") == "1") {
+    //   _checkMembership = true;
+    // } else {
+    //   _checkMembership = false;
+    // }
+
     return showDialog(
         context: context,
         builder: (context) {
@@ -1323,7 +1463,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                           ),
                           children: <TextSpan>[
                             TextSpan(
-                              text: S.of(context).Availability_Check,//"Availability Check",
+                              text: S .of(context).Availability_Check,//"Availability Check",
                               style: TextStyle(
                                   color: Colors.black,
                                   fontWeight: FontWeight.bold,
@@ -1340,7 +1480,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                         height: 10.0,
                       ),
                       Text(
-                        S.of(context).changing_area,//"Changing area",
+                        S .of(context).changing_area,//"Changing area",
                         style: TextStyle(
                           color: Colors.red,
                           fontSize: 12.0,
@@ -1350,7 +1490,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                         height: 10.0,
                       ),
                       Text(
-                        S.of(context).product_price_availability,//"Product prices, availability and promos are area specific and may change accordingly. Confirm if you wish to continue.",
+                        S .of(context).product_price_availability,//"Product prices, availability and promos are area specific and may change accordingly. Confirm if you wish to continue.",
                         style: TextStyle(fontSize: 12.0),
                       ),
                       Spacer(),
@@ -1369,7 +1509,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                           Expanded(
                             flex: 4,
                             child: Text(
-                              S.of(context).items,//"Items",
+                              S .of(context).items,//"Items",
                               style: TextStyle(
                                   fontWeight: FontWeight.bold, fontSize: 12.0),
                             ),
@@ -1382,7 +1522,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                                   width: 15.0,
                                 ),
                                 Text(
-                                  S.of(context).reason, // "Reason",
+                                  S .of(context).reason, // "Reason",
                                   style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 12.0),
@@ -1399,8 +1539,8 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                         height: 5.0,
                       ),
                       Divider(),
-                      VxBuilder(builder: (BuildContext context, store, VxStatus status) {
-                        final productBox = store.CartItemList;
+                      VxBuilder(builder: (BuildContext context, store, VxStatus? status) {
+                        final productBox = store!.CartItemList;
                        return SizedBox(
                           height: MediaQuery.of(context).size.height * 30 / 100,
                           child: new ListView.builder(
@@ -1410,7 +1550,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                               itemBuilder: (_, i) => Row(
                                 children: <Widget>[
                                   FadeInImage(
-                                    image: NetworkImage(productBox[i].itemImage),
+                                    image: NetworkImage(productBox[i].itemImage!),
                                     placeholder:
                                     AssetImage(Images.defaultProductImg),
                                     width: 50,
@@ -1429,40 +1569,58 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                                       MainAxisAlignment.start,
                                       children: <Widget>[
                                         Text(
-                                            productBox[i]
-                                                .itemName,
+                                            cartItemList[i]
+                                                .itemName!,
                                             style: TextStyle(fontSize: 12.0)),
                                         SizedBox(
                                           height: 3.0,
                                         ),
                                         _checkmembership
-                                            ? (productBox[i].membershipPrice == '-' ||
-                                            productBox[i].membershipPrice == "0")
-                                            ? (double.parse(productBox[i].price) <=
+                                            ? (cartItemList[i].membershipPrice == '-' ||
+                                            cartItemList[i].membershipPrice == "0")
+                                            ? (double.parse(cartItemList[i].price!) <=
                                             0 ||
-                                            productBox[i].price
+                                            cartItemList[i].price
                                                 .toString() ==
                                                 "" ||
-                                            productBox[i].price ==
-                                                productBox[i].varMrp)
+                                            cartItemList[i].price ==
+                                                cartItemList[i].varMrp)
                                             ? Text(
+                                          Features.iscurrencyformatalign?
+                                          cartItemList[i].varMrp
+                                                  .toString()+
+                                                  " " +IConstants.currencyFormat :
                                             IConstants.currencyFormat +
                                                 " " +
-                                                productBox[i].varMrp
+                                                cartItemList[i].varMrp
                                                     .toString(),
                                             style: TextStyle(fontSize: 12.0))
-                                            : Text(IConstants.currencyFormat + " " + productBox[i].price.toString(), style: TextStyle(fontSize: 12.0))
-                                            : Text(IConstants.currencyFormat + " " + productBox[i].membershipPrice, style: TextStyle(fontSize: 12.0))
-                                            : (double.parse(productBox[i].price) <= 0 || productBox[i].price.toString() == "" || productBox[i].price == productBox[i].varMrp)
-                                            ? Text(IConstants.currencyFormat + " " + productBox[i].varMrp.toString(), style: TextStyle(fontSize: 12.0))
-                                            : Text(IConstants.currencyFormat + " " + productBox[i].price.toString(), style: TextStyle(fontSize: 12.0))
+                                            : Text(
+                                          Features.iscurrencyformatalign?
+                                          cartItemList[i].price.toString() + " " + IConstants.currencyFormat:
+                                            IConstants.currencyFormat + " " + cartItemList[i].price.toString(),
+                                            style: TextStyle(fontSize: 12.0))
+                                            : Text(Features.iscurrencyformatalign?
+                                        cartItemList[i].membershipPrice! + " " + IConstants.currencyFormat:
+                                            IConstants.currencyFormat + " " + cartItemList[i].membershipPrice!,
+                                            style: TextStyle(fontSize: 12.0))
+                                            : (double.parse(cartItemList[i].price!) <= 0 || cartItemList[i].price.toString() == "" || cartItemList[i].price == cartItemList[i].varMrp)
+                                            ? Text(
+                                          Features.iscurrencyformatalign?
+                                          cartItemList[i].varMrp.toString() + " " + IConstants.currencyFormat :
+                                            IConstants.currencyFormat + " " + cartItemList[i].varMrp.toString(),
+                                            style: TextStyle(fontSize: 12.0))
+                                            : Text(
+                                          Features.iscurrencyformatalign?
+                                          cartItemList[i].price.toString() + " " + IConstants.currencyFormat:
+                                            IConstants.currencyFormat + " " + cartItemList[i].price.toString(), style: TextStyle(fontSize: 12.0))
                                       ],
                                     ),
                                   ),
                                   Expanded(
                                       flex: 4,
                                       child: Text(
-                                          S.of(context).not_available,//"Not available",
+                                          S .of(context).not_available,//"Not available",
                                           style: TextStyle(fontSize: 12.0))),
                                 ],
                               )),
@@ -1486,13 +1644,13 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                           ),
                           children: <TextSpan>[
                             new TextSpan(
-                                text: S.of(context).note,//'Note: ',
+                                text: S .of(context).note,//'Note: ',
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                 )),
                             new TextSpan(
                               text:
-                              S.of(context).by_clicking_confirm,//'By clicking on confirm, we will remove the unavailable items from your basket.',
+                              S .of(context).by_clicking_confirm,//'By clicking on confirm, we will remove the unavailable items from your basket.',
                             ),
                           ],
                         ),
@@ -1516,7 +1674,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                                   border: Border.all(color: Colors.grey)),
                               child: new Center(
                                 child: Text(
-                                  S.of(context).cancel,
+                                  S .of(context).cancel,
                                   //"CANCEL"
                                 ),
                               ),
@@ -1529,24 +1687,45 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                             onTap: () async {
                               var com ="";
                               String val = "";
+                              // for(int i = 0; i < cartItemList.length; i++){
+                              //   val = val+com+cartItemList[i].itemId.toString();
+                              //   com = ",";
+                              // }
+                              String item ="";
                               for(int i = 0; i < cartItemList.length; i++){
-                                val = val+com+cartItemList[i].varId.toString();
+                                val = val+com+cartItemList[i].itemId.toString();
+
+                                if(cartItemList[i].mode =="3"){
+                                  item = item+com+cartItemList[i].itemId.toString();
+                                }
                                 com = ",";
                               }
                               confirmSwap = "confirmSwap";
                               Provider.of<CartItems>(context, listen: false).emptyCart().then((_) {
-                                Hive.box<Product>(productBoxName).clear();
+                              //  Hive.box<Product>(productBoxName).clear();
                                 Navigator.of(context).pop();
                                 Navigator.of(context).pop();
                                 //SharedPreferences prefs = await SharedPreferences.getInstance();
-                                PrefUtils.prefs.setString("formapscreen", "homescreen");
-                                Navigator.of(context)
+                                PrefUtils.prefs!.setString("formapscreen", "homescreen");
+                                /*Navigator.of(context)
                                     .pushNamed(MapScreen.routeName,
                                   arguments: {
                                       "valnext": val.toString(),
                                     "moveNext": confirmSwap.toString()
                                   }
-                                );
+                                );*/
+                              //  if(Vx.isWeb && !ResponsiveLayout.isSmallScreen(context)){
+                                // _dialogforaddress(context);
+                               // MapWeb(context,valnext: val.toString(),moveNext: confirmSwap.toString());
+                                debugPrint("currentBranch...val..item.."+val+"...."+item);
+                                  Navigation(context, name:Routename.NotAvailability,navigatore: NavigatoreTyp.Push,
+                                      qparms: {
+                                        "val" : val,
+                                        "currentbranch": currentbranch,
+                                        "item": item,
+
+                                      });
+
                               });
                               final sellingitemData = Provider.of<SellingItemsList>(context, listen: false);
                               for(int i = 0; i < sellingitemData.featuredVariation.length; i++) {
@@ -1580,7 +1759,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                                     )),
                                 child: new Center(
                                   child: Text(
-                                    S.of(context).confirm,//"CONFIRM",
+                                    S .of(context).confirm,//"CONFIRM",
                                     style: TextStyle(color: Colors.white),
                                   ),
                                 )),
@@ -1599,53 +1778,41 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
 
   addListnameToSF(String value) async {
     //SharedPreferences prefs = await SharedPreferences.getInstance();
-    PrefUtils.prefs.setString('list_name', value);
+    PrefUtils.prefs!.setString('list_name', value);
   }
 
   _saveForm() async {
-    final isValid = _form.currentState.validate();
+    final isValid = _form.currentState!.validate();
     if (!isValid) {
       return;
     } //it will check all validators
-    _form.currentState.save();
+    _form.currentState!.save();
     Navigator.of(context).pop();
-    _dialogforProceesing(context, S.of(context).creating_list,);
+    _dialogforProceesing(context, S .of(context).creating_list,);
 
     Provider.of<BrandItemsList>(context,listen: false).CreateShoppinglist().then((_) {
-      Provider.of<BrandItemsList>(context,listen: false).fetchShoppinglist().then((_) {
+      /*Provider.of<BrandItemsList>(context,listen: false).fetchShoppinglist().then((_) {
         shoplistData = Provider.of<BrandItemsList>(context, listen: false);
         Navigator.of(context).pop();
         _dialogforShoppinglist(context);
+      });*/
+
+      _auth.getuserProfile(onsucsess: (value){
+        shoplistData = (VxState.store as GroceStore).ShoppingList;
+        Navigator.of(context).pop();
+        _dialogforShoppinglist(context);
+      },onerror: (){
+
       });
     });
   }
-  _saveFormWeb() async {
-    final signcode = SmsAutoFill().getAppSignature;
-    final isValid = _form.currentState.validate();
-    if (!isValid) {
-      return;
-    } //it will check all validators
-    _form.currentState.save();
 
-    setState(() {
-      _isLoading = true;
-    });
-
-    //SharedPreferences prefs = await SharedPreferences.getInstance();
-    checkMobilenum();
-    /*if (PrefUtils.prefs.getString('prevscreen') == "signingoogle" ||
-        PrefUtils.prefs.getString('prevscreen') == "signInApple" ||
-        PrefUtils.prefs.getString('prevscreen') == "signinfacebook") {
-      checkMobilenum();
-    }*/
-//    return LoginUser();
-  }
   _saveFormLogin() async {
-    final isValid = _form.currentState.validate();
+    final isValid = _form.currentState!.validate();
     if (!isValid) {
       return;
     } //it will check all validators
-    _form.currentState.save();
+    _form.currentState!.save();
     setState(() {
       _isLoading = true;
     });
@@ -1661,14 +1828,14 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
     try {
       final response = await http.post(Api.mobileCheck, body: {
         // await keyword is used to wait to this operation is complete.
-        "mobileNumber": PrefUtils.prefs.getString('Mobilenum'),
+        "mobileNumber": PrefUtils.prefs!.getString('Mobilenum'),
       });
       final responseJson = json.decode(utf8.decode(response.bodyBytes));
 
       if (responseJson['status'].toString() == "true") {
         if (responseJson['type'].toString() == "old") {
           Navigator.of(context).pop();
-          return Fluttertoast.showToast(msg: S.of(context).mobile_exists,//"Mobile number already exists!!!",
+           Fluttertoast.showToast(msg: S .of(context).mobile_exists,//"Mobile number already exists!!!",
             fontSize: MediaQuery.of(context).textScaleFactor *13,);
         } else if (responseJson['type'].toString() == "new") {
 
@@ -1678,7 +1845,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
           return alertOtpWeb(context);
         }
       } else {
-        return Fluttertoast.showToast(msg: S.of(context).something_went_wrong,//"Something went wrong!!!",
+         Fluttertoast.showToast(msg: S .of(context).something_went_wrong,//"Something went wrong!!!",
           fontSize: MediaQuery.of(context).textScaleFactor *13,);
       }
     } catch (error) {
@@ -1690,39 +1857,41 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
     try {
       final response = await http.post(Api.preRegister, body: {
         // await keyword is used to wait to this operation is complete.
-        "mobileNumber": PrefUtils.prefs.getString('Mobilenum'),
-        "tokenId": PrefUtils.prefs.getString('tokenid'),
-        "signature" : PrefUtils.prefs.containsKey("signature") ? PrefUtils.prefs.getString('signature') : "",
+        "mobileNumber": PrefUtils.prefs!.getString('Mobilenum'),
+        "tokenId": PrefUtils.prefs!.getString('tokenid'),
+        "signature" : PrefUtils.prefs!.containsKey("signature") ? PrefUtils.prefs!.getString('signature') : "",
+        "branch" : PrefUtils.prefs!.getString("branch"),
       });
       final responseJson = json.decode(utf8.decode(response.bodyBytes));
+      print("response...login"+responseJson.toString());
       final data = responseJson['data'] as Map<String, dynamic>;
 
       if (responseJson['status'].toString() == "true") {
         fas.LogLogin();
         if(responseJson['type'].toString() == "new") {
-          PrefUtils.prefs.setString('Otp', data['otp'].toString());
-          PrefUtils.prefs.setString('type', responseJson['type'].toString());
+          PrefUtils.prefs!.setString('Otp', data['otp'].toString());
+          PrefUtils.prefs!.setString('type', responseJson['type'].toString());
         } else {
-          PrefUtils.prefs.setString('Otp', data['otp'].toString());
-          PrefUtils.prefs.setString('apiKey', data['apiKey'].toString());
-          PrefUtils.prefs.setString('userID', data['userID'].toString());
-          PrefUtils.prefs.setString('type', responseJson['type'].toString());
-          PrefUtils.prefs.setString('membership', data['membership'].toString());
-          PrefUtils.prefs.setString("mobile", data['mobile'].toString());
-          PrefUtils.prefs.setString("latitude", data['latitude'].toString());
-          PrefUtils.prefs.setString("longitude", data['longitude'].toString());
-          PrefUtils.prefs.setString('apple', data['apple'].toString());
+          PrefUtils.prefs!.setString('Otp', data['otp'].toString());
+          PrefUtils.prefs!.setString('apiKey', data['apiKey'].toString());
+          PrefUtils.prefs!.setString('userID', data['userID'].toString());
+          PrefUtils.prefs!.setString('type', responseJson['type'].toString());
+          PrefUtils.prefs!.setString('membership', data['membership'].toString());
+          PrefUtils.prefs!.setString("mobile", data['mobile'].toString());
+          PrefUtils.prefs!.setString("latitude", data['latitude'].toString());
+          PrefUtils.prefs!.setString("longitude", data['longitude'].toString());
+          PrefUtils.prefs!.setString('apple', data['apple'].toString());
 
-          if (PrefUtils.prefs.getString('prevscreen') != null) {
-            if (PrefUtils.prefs.getString('prevscreen') == 'signingoogle') {} else
-            if (PrefUtils.prefs.getString('prevscreen') == 'signinfacebook') {} else {
-              PrefUtils.prefs.setString('FirstName', data['name'].toString());
-              PrefUtils.prefs.setString('LastName', "");
-              PrefUtils.prefs.setString('Email', data['email'].toString());
-              PrefUtils.prefs.setString("photoUrl", "");
+          if (PrefUtils.prefs!.getString('prevscreen') != null) {
+            if (PrefUtils.prefs!.getString('prevscreen') == 'signingoogle') {} else
+            if (PrefUtils.prefs!.getString('prevscreen') == 'signinfacebook') {} else {
+              PrefUtils.prefs!.setString('FirstName', data['name'].toString());
+              PrefUtils.prefs!.setString('LastName', "");
+              PrefUtils.prefs!.setString('Email', data['email'].toString());
+              PrefUtils.prefs!.setString("photoUrl", "");
             }
           }
-          await Provider.of<BrandItemsList>(navigatorKey.currentContext,listen: false).userDetails();
+          await Provider.of<BrandItemsList>(navigatorKey.currentContext!,listen: false).userDetails();
 //        Navigator.of(context).pushNamed(
 //          OtpconfirmScreen.routeName,
 //        );
@@ -1735,40 +1904,47 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
 
   void _startTimer() {
     if (_timer != null) {
-      _timer.cancel();
+      _timer!.cancel();
     }
     _timer = Timer.periodic(Duration(seconds: 1), (timer) {
       //setState(() {
-      (_timeRemaining > 0) ? _timeRemaining-- : _timer.cancel();
+      (_timeRemaining > 0) ? _timeRemaining-- : _timer!.cancel();
       //});
-      _events.add(_timeRemaining);
+      _events!.add(_timeRemaining);
     });
   }
 
-  additemtolist() {
+  additemtolist(BuildContext context) {
     _dialogforProceesing(context, "Add item to list...");
-    for (int i = 0; i < shoplistData.itemsshoplist.length; i++) {
+    for (int i = 0; i < shoplistData.length; i++) {
+      print("shopping list length....."+shoplistData.length.toString());
       //adding item to multiple list
-      if (shoplistData.itemsshoplist[i].listcheckbox) {
+      final cartItemList = (VxState.store as GroceStore).CartItemList;
+      if (shoplistData[i].listcheckbox!) {
         for (int j = 0; j < cartItemList.length; j++) {
           Provider.of<BrandItemsList>(context,listen: false)
               .AdditemtoShoppinglist(
               cartItemList[j].itemId.toString(),
               cartItemList[j].varId.toString(),
-              shoplistData.itemsshoplist[i].listid)
+              shoplistData[i].id!,
+              cartItemList[j].type.toString())
               .then((_) {
-            if (i == (shoplistData.itemsshoplist.length - 1) &&
+           // Navigator.of(context).pop();
+            print("navigateion add cart....");
+            if (i == (shoplistData.length - 1) &&
                 j == (cartItemList.length - 1)) {
-              Navigator.of(context).pop();
 
-              Provider.of<BrandItemsList>(context,listen: false)
-                  .fetchShoppinglist()
-                  .then((_) {
-                shoplistData =
-                    Provider.of<BrandItemsList>(context, listen: false);
+              print("navigateion add cart....if");
+              _auth.getuserProfile(onsucsess: (value){
+                shoplistData = (VxState.store as GroceStore).ShoppingList;
+                shoplistData[i].listcheckbox = false;
+                Navigator.of(context).pop();
+              },onerror: (){
+
               });
-              for (int i = 0; i < shoplistData.itemsshoplist.length; i++) {
-                shoplistData.itemsshoplist[i].listcheckbox = false;
+
+              for (int i = 0; i < shoplistData.length; i++) {
+                shoplistData[i].listcheckbox = false;
               }
             }
           });
@@ -1821,7 +1997,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
                       Text(
-                        S.of(context).create_shopping_list,//'Create shopping list',
+                        S .of(context).create_shopping_list,//'Create shopping list',
                         style: TextStyle(
                             fontSize: 16.0,
                             color: Theme.of(context).primaryColor,
@@ -1834,19 +2010,19 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                           children: <Widget>[
                             TextFormField(
                               validator: (value) {
-                                if (value.isEmpty) {
-                                  return S.of(context).please_enter_list_name;//'Please enter a list name.';
+                                if (value!.isEmpty) {
+                                  return S .of(context).please_enter_list_name;//'Please enter a list name.';
                                 }
                                 return null; //it means user entered a valid input
                               },
                               onSaved: (value) {
-                                addListnameToSF(value);
+                                addListnameToSF(value!);
                               },
                               autofocus: true,
                               decoration: InputDecoration(
-                                labelText: S.of(context).shopping_list_name,//"Shopping list name",
+                                labelText: S .of(context).shopping_list_name,//"Shopping list name",
                                 labelStyle: TextStyle(
-                                    color: Theme.of(context).accentColor),
+                                    color: ColorCodes.primaryColor,/*Theme.of(context).accentColor*/),
                                 contentPadding: EdgeInsets.all(12),
                                 hintText: 'ex: Monthly Grocery',
                                 hintStyle: TextStyle(
@@ -1886,7 +2062,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                           ),
                           child: Center(
                               child: Text(
-                                S.of(context).create_shopping_list,//'Create Shopping List',
+                                S .of(context).create_shopping_list,//'Create Shopping List',
                                 textAlign: TextAlign.center,
                                 style:
                                 TextStyle(color: Theme.of(context).buttonColor),
@@ -1909,7 +2085,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                           ),
                           child: Center(
                               child: Text(
-                                S.of(context).cancel,//'Cancel',
+                                S .of(context).cancel,//'Cancel',
                                 textAlign: TextAlign.center,
                                 style:
                                 TextStyle(color: Theme.of(context).buttonColor),
@@ -1923,9 +2099,9 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
         });
   }
 
-  _dialogforShoppinglist(BuildContext context) {
+  _dialogforShoppinglist(BuildContext contexts) {
     return showDialog(
-        context: context,
+        context: contexts,
         builder: (context) {
           return StatefulBuilder(builder: (context, setState) {
             return Dialog(
@@ -1940,7 +2116,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
                         Text(
-                          S.of(context).add_to_list,//'Add to list',
+                          S .of(context).add_to_list,//'Add to list',
                           style: TextStyle(
                               fontSize: 16.0,
                               color: Theme.of(context).primaryColor,
@@ -1953,20 +2129,21 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                           child: new ListView.builder(
                             physics: NeverScrollableScrollPhysics(),
                             shrinkWrap: true,
-                            itemCount: shoplistData.itemsshoplist.length,
+                            itemCount: shoplistData.length,
                             itemBuilder: (_, i) => Row(
                               children: [
                                 Checkbox(
-                                  value: shoplistData
-                                      .itemsshoplist[i].listcheckbox,
-                                  onChanged: (bool value) {
+                                  checkColor: ColorCodes.primaryColor,
+                                  activeColor: ColorCodes.whiteColor,
+                                  value: shoplistData[i].listcheckbox,
+                                  onChanged: (bool? value) {
                                     setState(() {
-                                      shoplistData.itemsshoplist[i]
+                                      shoplistData[i]
                                           .listcheckbox = value;
                                     });
                                   },
                                 ),
-                                Text(shoplistData.itemsshoplist[i].listname,
+                                Text(shoplistData[i].name!,
                                     style: TextStyle(fontSize: 18.0)),
                               ],
                             ),
@@ -1980,9 +2157,9 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                             Navigator.of(context).pop();
                             _dialogforCreatelist(context);
                             for (int i = 0;
-                            i < shoplistData.itemsshoplist.length;
+                            i < shoplistData.length;
                             i++) {
-                              shoplistData.itemsshoplist[i].listcheckbox =
+                              shoplistData[i].listcheckbox =
                               false;
                             }
                           },
@@ -1999,7 +2176,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                                 width: 10.0,
                               ),
                               Text(
-                                S.of(context).create_new,//"Create New",
+                                S .of(context).create_new,//"Create New",
                                 style: TextStyle(
                                     color: Colors.grey, fontSize: 16.0),
                               ),
@@ -2013,19 +2190,20 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                           onTap: () {
                             bool check = false;
                             for (int i = 0;
-                            i < shoplistData.itemsshoplist.length;
+                            i < shoplistData.length;
                             i++) {
-                              if (shoplistData.itemsshoplist[i].listcheckbox)
+                              if (shoplistData[i].listcheckbox!)
                                 setState(() {
                                   check = true;
                                 });
                             }
                             if (check) {
+
                               Navigator.of(context).pop();
-                              additemtolist();
+                              additemtolist(contexts);
                             } else {
                               Fluttertoast.showToast(
-                                  msg: S.of(context).please_select_atleastonelist,//"Please select atleast one list!",
+                                  msg: S .of(context).please_select_atleastonelist,//"Please select atleast one list!",
                                   fontSize: MediaQuery.of(context).textScaleFactor *13,
                                   backgroundColor: Colors.black87,
                                   textColor: Colors.white);
@@ -2040,7 +2218,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                             ),
                             child: Center(
                                 child: Text(
-                                  S.of(context).cart_add,//'Add',
+                                  S .of(context).cart_add,//'Add',
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
                                       color: Theme.of(context).buttonColor),
@@ -2054,9 +2232,9 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                           onTap: () {
                             Navigator.of(context).pop();
                             for (int i = 0;
-                            i < shoplistData.itemsshoplist.length;
+                            i < shoplistData.length;
                             i++) {
-                              shoplistData.itemsshoplist[i].listcheckbox =
+                              shoplistData[i].listcheckbox =
                               false;
                             }
                           },
@@ -2069,7 +2247,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                             ),
                             child: Center(
                                 child: Text(
-                                  S.of(context).cancel,//'Cancel',
+                                  S .of(context).cancel,//'Cancel',
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
                                       color: Theme.of(context).buttonColor),
@@ -2201,7 +2379,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                     child: Align(
                         alignment: Alignment.centerLeft,
                         child: Text(
-                          S.of(context).signin,//"Sign in",
+                          S .of(context).signin,//"Sign in",
                           style: TextStyle(
                               color: ColorCodes.mediumBlackColor,
                               fontSize: 20.0),
@@ -2239,12 +2417,12 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                                 MainAxisAlignment.spaceEvenly,
                                 children: [
                                   Text(
-                                      S.of(context).country_region,
+                                      S .of(context).country_region,
                                       //"Country/Region",
                                       style: TextStyle(
                                         color: ColorCodes.greyColor,
                                       )),
-                                  Text(countryName + " (" + IConstants.countryCode + ")",
+                                  Text(countryName! + " (" + IConstants.countryCode + ")",
                                       style: TextStyle(
                                           color: Colors.black,
                                           fontWeight: FontWeight.bold))
@@ -2285,18 +2463,18 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                                       keyboardType: TextInputType.number,
                                       autofocus: true,
                                       decoration: new InputDecoration.collapsed(
-                                          hintText: S.of(context).enter_yor_mobile_number,//'Enter Your Mobile Number',
+                                          hintText: S .of(context).enter_yor_mobile_number,//'Enter Your Mobile Number',
                                           hintStyle: TextStyle(
                                             color: Colors.black12,
                                           )),
                                       validator: (value) {
-                                        if (value.isEmpty) {
-                                          return S.of(context).please_enter_phone_number;//'Please enter a Mobile number.';
+                                        if (value!.isEmpty) {
+                                          return S .of(context).please_enter_phone_number;//'Please enter a Mobile number.';
                                         }
                                         return null; //it means user entered a valid input
                                       },
                                       onSaved: (value) {
-                                        addMobilenumToSF(value);
+                                        addMobilenumToSF(value!);
                                       },
                                     ),
                                   ))
@@ -2308,7 +2486,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                           height: 60.0,
                           margin: EdgeInsets.only(top: 8.0, bottom: 36.0),
                           child: Text(
-                            S.of(context).we_will_call_or_text,// "We'll call or text you to confirm your number. Standard message data rates apply.",
+                            S .of(context).we_will_call_or_text,// "We'll call or text you to confirm your number. Standard message data rates apply.",
                             style: TextStyle(
                                 fontSize: 13, color: ColorCodes.mediumBlackWebColor),
                           ),
@@ -2318,9 +2496,9 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                           child: GestureDetector(
                             behavior: HitTestBehavior.translucent,
                             onTap: () {
-                              PrefUtils.prefs.setString('skip', "no");
-                              PrefUtils.prefs.setString('prevscreen', "mobilenumber");
-                              // PrefUtils.prefs.setString('Mobilenum', value);
+                              PrefUtils.prefs!.setString('skip', "no");
+                              PrefUtils.prefs!.setString('prevscreen', "mobilenumber");
+                              // PrefUtils.prefs!.setString('Mobilenum', value);
                               _saveFormLogin();
                               _dialogforProcess();
                             },
@@ -2336,7 +2514,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                                 ),
                               ),
                               child: Text(
-                                S.of(context).login_using_otp,//"LOGIN USING OTP",
+                                S .of(context).login_using_otp,//"LOGIN USING OTP",
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                     fontWeight: FontWeight.w500,
@@ -2360,36 +2538,27 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                               ),
                               children: <TextSpan>[
                                 new TextSpan(
-                                  text: S.of(context).agreed_terms,//'By continuing you agree to the '
+                                  text: S .of(context).agreed_terms,//'By continuing you agree to the '
                                 ),
                                 new TextSpan(
-                                    text: S.of(context).terms_of_service,//' terms of service',
+                                    text: S .of(context).terms_of_service,//' terms of service',
                                     style:
                                     new TextStyle(color: ColorCodes.darkthemeColor),
                                     recognizer: new TapGestureRecognizer()
                                       ..onTap = () {
-                                        Navigator.of(context).pushNamed(
-                                            PolicyScreen.routeName,
-                                            arguments: {
-                                              'title': S.of(context).terms_of_use,   //"Terms of Use",
-                                              'body': IConstants.restaurantTerms,
-                                            });
+                                        Navigation(context, name: Routename.Policy, navigatore: NavigatoreTyp.Push,
+                                            parms: {"title": S.of(context).terms_of_use/*, "body" :IConstants.restaurantTerms*/});
                                       }),
-                                new TextSpan(text: S.of(context).and//' and'
+                                new TextSpan(text: S .of(context).and//' and'
                                 ),
                                 new TextSpan(
-                                    text: S.of(context).privacy_policy,//' Privacy Policy',
+                                    text: S .of(context).privacy_policy,//' Privacy Policy',
                                     style:
                                     new TextStyle(color: ColorCodes.darkthemeColor),
                                     recognizer: new TapGestureRecognizer()
                                       ..onTap = () {
-                                        Navigator.of(context).pushNamed(
-                                            PolicyScreen.routeName,
-                                            arguments: {
-                                              'title':S.of(context).privacy,  // "Privacy",
-                                              'body':
-                                              PrefUtils.prefs.getString("privacy"),
-                                            });
+                                        Navigation(context, name: Routename.Policy, navigatore: NavigatoreTyp.Push,
+                                            parms: {"title": S.of(context).privacy/*, "body" :PrefUtils.prefs!.getString("privacy").toString()*/});
                                       }),
                               ],
                             ),
@@ -2418,7 +2587,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                                 ),
                                 child: Center(
                                     child: Text(
-                                      S.of(context).or,//"OR",
+                                      S .of(context).or,//"OR",
                                       style: TextStyle(
                                           fontSize: 10.0, color: ColorCodes.greyColor),
                                     )),
@@ -2467,7 +2636,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                                               width: 14,
                                             ),
                                             Text(
-                                              S.of(context).sign_in_with_google,//"Sign in with Google" , //"Sign in with Google",
+                                              S .of(context).sign_in_with_google,//"Sign in with Google" , //"Sign in with Google",
                                               textAlign: TextAlign.center,
                                               style: TextStyle(fontSize: 16,
                                                   fontWeight: FontWeight.bold,
@@ -2514,7 +2683,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                                               width: 14,
                                             ),
                                             Text(
-                                              S.of(context).sign_in_with_facebook,//"Sign in with Facebook" ,// "Sign in with Facebook",
+                                              S .of(context).sign_in_with_facebook,//"Sign in with Facebook" ,// "Sign in with Facebook",
                                               textAlign: TextAlign.center,
                                               style: TextStyle(fontSize: 16,
                                                   fontWeight: FontWeight.bold,
@@ -2558,7 +2727,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                                                 width: 14,
                                               ),
                                               Text(
-                                                S.of(context).signin_apple,//"Sign in with Apple"  , //"Sign in with Apple",
+                                                S .of(context).signin_apple,//"Sign in with Apple"  , //"Sign in with Apple",
                                                 textAlign: TextAlign.center,
                                                 style: TextStyle(fontSize: 16,
                                                     fontWeight: FontWeight.bold,
@@ -2606,7 +2775,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                       margin: EdgeInsets.only(top: 40.0, bottom: 20.0),
                       child: Align(
                           alignment: Alignment.centerLeft,
-                          child: Text( S.of(context).please_enter_your_mobile,//'Please enter your mobile number',
+                          child: Text( S .of(context).please_enter_your_mobile,//'Please enter your mobile number',
                             style: TextStyle(color: ColorCodes.mediumBlackWebColor, fontWeight: FontWeight.bold, fontSize: 18),))),
                   Container(
                     width: MediaQuery.of(context).size.width / 3.5,
@@ -2631,11 +2800,11 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           children: [
                             Text(
-                                S.of(context).country_region,//"Country/Region",
+                                S .of(context).country_region,//"Country/Region",
                                 style: TextStyle(
                                   color: ColorCodes.greyColor,
                                 )),
-                            Text(countryName + " (" + IConstants.countryCode + ")",
+                            Text(countryName! + " (" + IConstants.countryCode + ")",
                                 style: TextStyle(
                                     color: Colors.black, fontWeight: FontWeight.bold))
                           ],
@@ -2671,19 +2840,19 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                                 keyboardType: TextInputType.number,
                                 //autofocus: true,
                                 decoration: new InputDecoration.collapsed(
-                                    hintText: S.of(context).enter_yor_mobile_number,//'Enter Your Mobile Number',
+                                    hintText: S .of(context).enter_yor_mobile_number,//'Enter Your Mobile Number',
                                     hintStyle: TextStyle(
                                       color: Colors.black12,
                                     )),
                                 validator: (value) {
                                   String patttern = r'(^(?:[+0]9)?[0-9]{6,10}$)';
                                   RegExp regExp = new RegExp(patttern);
-                                  if (value.isEmpty) {
+                                  if (value!.isEmpty) {
                                     Navigator.of(context).pop();
-                                    return S.of(context).please_enter_phone_number;//'Please enter a Mobile number.';
+                                    return S .of(context).please_enter_phone_number;//'Please enter a Mobile number.';
                                   } else if (!regExp.hasMatch(value)) {
                                     Navigator.of(context).pop();
-                                    return S.of(context).valid_phone_number;//'Please enter valid mobile number';
+                                    return S .of(context).valid_phone_number;//'Please enter valid mobile number';
                                   }
                                   return null;
                                 }, //it means user entered a valid input
@@ -2700,7 +2869,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                     height: 60.0,
                     margin: EdgeInsets.only(top: 8.0, bottom: 36.0),
                     child: Text(
-                      S.of(context).we_will_call_or_text,//"We'll call or text you to confirm your number. Standard message data rates apply.",
+                      S .of(context).we_will_call_or_text,//"We'll call or text you to confirm your number. Standard message data rates apply.",
                       style: TextStyle(fontSize: 13, color: ColorCodes.mediumBlackWebColor),
                     ),
                   ),
@@ -2716,7 +2885,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                               onTap: () {
 
                                 _dialogforProcessing();
-                                PrefUtils.prefs.setString("Mobilenum", _mobilecontroller.text);
+                                PrefUtils.prefs!.setString("Mobilenum", _mobilecontroller.text);
                                 //_saveFormWeb();
                                 checkMobilenum();
                               },
@@ -2732,7 +2901,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                                   height: 60.0,
                                   child: Center(
                                     child: Text(
-                                      S.of(context).signup_otp,//"SIGNUP USING OTP",
+                                      S .of(context).signup_otp,//"SIGNUP USING OTP",
                                       style: TextStyle(
                                         fontSize: 18.0,
                                         color: Theme.of(context).buttonColor,
@@ -2754,11 +2923,11 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
   }
 
   addMobilenumToSF(String value) async {
-    PrefUtils.prefs.setString('Mobilenum', value);
+    PrefUtils.prefs!.setString('Mobilenum', value);
   }
 
   addReferralToSF(String value)async{
-    PrefUtils.prefs.setString('referid', value);
+    PrefUtils.prefs!.setString('referid', value);
   }
 
   _verifyOtp() async {
@@ -2766,56 +2935,56 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
 
     //SharedPreferences prefs = await SharedPreferences.getInstance();
 
-    if (controller.text == PrefUtils.prefs.getString('Otp')) {
+    if (controller.text == PrefUtils.prefs!.getString('Otp')) {
       setState(() {
         _isLoading = true;
       });
 
-      if (PrefUtils.prefs.getString('type') == "old") {
-        PrefUtils.prefs.setString('LoginStatus', "true");
+      if (PrefUtils.prefs!.getString('type') == "old") {
+        PrefUtils.prefs!.setString('LoginStatus', "true");
         setState(() {
-         /* if (PrefUtils.prefs.getString('FirstName') != null) {
-            if (PrefUtils.prefs.getString('LastName') != null) {
-              name = PrefUtils.prefs.getString('FirstName') +
+         /* if (PrefUtils.prefs!.getString('FirstName') != null) {
+            if (PrefUtils.prefs!.getString('LastName') != null) {
+              name = PrefUtils.prefs!.getString('FirstName') +
                   " " +
-                  PrefUtils.prefs.getString('LastName');
+                  PrefUtils.prefs!.getString('LastName');
             } else {
-              name = PrefUtils.prefs.getString('FirstName');
+              name = PrefUtils.prefs!.getString('FirstName');
             }
           } else {
             name = "";
           }*/
-          name = store.userData.username;
-          //name = PrefUtils.prefs.getString('FirstName') + " " + PrefUtils.prefs.getString('LastName');
-          if (PrefUtils.prefs.getString('prevscreen') == 'signInAppleNoEmail') {
+          name = store.userData.username!;
+          //name = PrefUtils.prefs!.getString('FirstName') + " " + PrefUtils.prefs!.getString('LastName');
+          if (PrefUtils.prefs!.getString('prevscreen') == 'signInAppleNoEmail') {
             email = "";
           } else {
-            email = PrefUtils.prefs.getString('Email');
+            email = PrefUtils.prefs!.getString('Email')!;
           }
-          mobile = PrefUtils.prefs.getString('Mobilenum');
-          tokenid = PrefUtils.prefs.getString('tokenid');
+          mobile = PrefUtils.prefs!.getString('Mobilenum')!;
+          tokenid = PrefUtils.prefs!.getString('tokenid')!;
 
           if (store.userData.mobileNumber != null) {
-            phone = store.userData.mobileNumber;
+            phone = store.userData.mobileNumber!;
           } else {
             phone = "";
           }
-          if (PrefUtils.prefs.getString('photoUrl') != null) {
-            photourl = PrefUtils.prefs.getString('photoUrl');
+          if (PrefUtils.prefs!.getString('photoUrl') != null) {
+            photourl = PrefUtils.prefs!.getString('photoUrl')!;
           } else {
             photourl = "";
           }
         });
         _getprimarylocation();
       } else {
-        if (PrefUtils.prefs.getString('prevscreen') == 'signingoogle' ||
-            PrefUtils.prefs.getString('prevscreen') == 'signupselectionscreen' ||
-            PrefUtils.prefs.getString('prevscreen') == 'signInAppleNoEmail' ||
-            PrefUtils.prefs.getString('prevscreen') == 'signInApple' ||
-            PrefUtils.prefs.getString('prevscreen') == 'signinfacebook') {
+        if (PrefUtils.prefs!.getString('prevscreen') == 'signingoogle' ||
+            PrefUtils.prefs!.getString('prevscreen') == 'signupselectionscreen' ||
+            PrefUtils.prefs!.getString('prevscreen') == 'signInAppleNoEmail' ||
+            PrefUtils.prefs!.getString('prevscreen') == 'signInApple' ||
+            PrefUtils.prefs!.getString('prevscreen') == 'signinfacebook') {
           return signupUser();
         } else {
-          PrefUtils.prefs.setString('prevscreen', "otpconfirmscreen");
+          PrefUtils.prefs!.setString('prevscreen', "otpconfirmscreen");
           await Future.delayed(Duration(seconds: 2));
           Navigator.of(context).pop();
           Navigator.of(context).pop();
@@ -2827,7 +2996,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
       Navigator.of(context).pop();
       //_customToast("Please enter a valid otp!!!");
       return Fluttertoast.showToast(
-          msg: S.of(context).please_enter_valid_otp,//"Please enter a valid otp!!!",
+          msg: S .of(context).please_enter_valid_otp,//"Please enter a valid otp!!!",
           fontSize: MediaQuery.of(context).textScaleFactor *13,
           backgroundColor: Colors.black87,
           textColor: Colors.white);
@@ -2838,7 +3007,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
 
     //SharedPreferences prefs = await SharedPreferences.getInstance();
 
-    if (controller.text == PrefUtils.prefs.getString('Otp')) {
+    if (controller.text == PrefUtils.prefs!.getString('Otp')) {
       setState(() {
         _isLoading = true;
       });
@@ -2848,7 +3017,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
       Navigator.of(context).pop();
       //_customToast("Please enter a valid otp!!!");
       return Fluttertoast.showToast(
-          msg: S.of(context).please_enter_valid_otp,//"Please enter a valid otp!!!",
+          msg: S .of(context).please_enter_valid_otp,//"Please enter a valid otp!!!",
           fontSize: MediaQuery.of(context).textScaleFactor *13,
           backgroundColor: Colors.black87,
           textColor: Colors.white);
@@ -2856,15 +3025,15 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
   }
 
   _saveAddInfoForm() async {
-    final isValid = _form.currentState.validate();
+    final isValid = _form.currentState!.validate();
     if (!isValid) {
       return;
     } //it will check all validators
-    _form.currentState.save();
+    _form.currentState!.save();
     //SharedPreferences prefs = await SharedPreferences.getInstance();
     //checkemail();
     _dialogforProcessing();
-    if(PrefUtils.prefs.getString('Email') == "" || PrefUtils.prefs.getString('Email') == "null") {
+    if(PrefUtils.prefs!.getString('Email') == "" || PrefUtils.prefs!.getString('Email') == "null") {
       return SignupUser();
     } else {
       checkemail();
@@ -2877,7 +3046,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
 
       final response = await http.post(Api.emailCheck, body: {
         // await keyword is used to wait to this operation is complete.
-        "email": PrefUtils.prefs.getString('Email'),
+        "email": PrefUtils.prefs!.getString('Email'),
       });
       final responseJson = json.decode(response.body);
 
@@ -2886,8 +3055,8 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
           Navigator.of(context).pop();
           (Vx.isWeb)?Navigator.of(context).pop():null;
           //Fluttertoast.showToast(msg: 'Email id already exists!!!');
-          return Fluttertoast.showToast(
-              msg: S.of(context).email_exist,//"Email id already exists",
+           Fluttertoast.showToast(
+              msg: S .of(context).email_exist,//"Email id already exists",
               fontSize: MediaQuery.of(context).textScaleFactor *13,
               backgroundColor: Colors.black87,
               textColor: Colors.white);
@@ -2895,7 +3064,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
           return SignupUser();
         }
       } else {
-        return Fluttertoast.showToast(msg: S.of(context).something_went_wrong//"Something went wrong!!!"
+         Fluttertoast.showToast(msg: S .of(context).something_went_wrong//"Something went wrong!!!"
         );
       }
     } catch (error) {
@@ -2922,9 +3091,9 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
         "mobileNumber": mobile,
         "path": apple,
         "tokenId": tokenid,
-        "branch": PrefUtils.prefs.getString('branch') /*'999'*/,
+        "branch": PrefUtils.prefs!.getString('branch') /*'999'*/,
         "signature":
-        PrefUtils.prefs.containsKey("signature") ? PrefUtils.prefs.getString('signature') : "",
+        PrefUtils.prefs!.containsKey("signature") ? PrefUtils.prefs!.getString('signature') : "",
         "referralid": _referController.text,
         "device": channel.toString(),
 
@@ -2933,50 +3102,57 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
       final data = responseJson['data'] as Map<String, dynamic>;
 
       if (responseJson['status'].toString() == "true") {
-        PrefUtils.prefs.setString('apiKey', data['apiKey'].toString());
-        PrefUtils.prefs.setString('userID', responseJson['userId'].toString());
-        PrefUtils.prefs.setString('membership', responseJson['membership'].toString());
-        PrefUtils.prefs.setString('referral', PrefUtils.prefs.getString('referralCode'));
-        PrefUtils.prefs.setString('referid', _referController.text);
+        PrefUtils.prefs!.setString('apiKey', data['apiKey'].toString());
+        PrefUtils.prefs!.setString('userID', responseJson['userId'].toString());
+        PrefUtils.prefs!.setString('membership', responseJson['membership'].toString());
+        PrefUtils.prefs!.setString('referral', PrefUtils.prefs!.getString('referralCode')!);
+        PrefUtils.prefs!.setString('referid', _referController.text);
 
-        PrefUtils.prefs.setString('LoginStatus', "true");
+        PrefUtils.prefs!.setString('LoginStatus', "true");
         setState(() {
 
-        /*  if (PrefUtils.prefs.getString('FirstName') != null) {
-            if (PrefUtils.prefs.getString('LastName') != null) {
-              name = PrefUtils.prefs.getString('FirstName') +
+        /*  if (PrefUtils.prefs!.getString('FirstName') != null) {
+            if (PrefUtils.prefs!.getString('LastName') != null) {
+              name = PrefUtils.prefs!.getString('FirstName') +
                   " " +
-                  PrefUtils.prefs.getString('LastName');
+                  PrefUtils.prefs!.getString('LastName');
             } else {
-              name = PrefUtils.prefs.getString('FirstName');
+              name = PrefUtils.prefs!.getString('FirstName');
             }
           } else {
             name = "";
           }*/
-          name = store.userData.username;
-          //name = PrefUtils.prefs.getString('FirstName') + " " + PrefUtils.prefs.getString('LastName');
-          if (PrefUtils.prefs.getString('prevscreen') == 'signInAppleNoEmail') {
+          name = store.userData.username!;
+          //name = PrefUtils.prefs!.getString('FirstName') + " " + PrefUtils.prefs!.getString('LastName');
+          if (PrefUtils.prefs!.getString('prevscreen') == 'signInAppleNoEmail') {
             email = "";
           } else {
-            email = PrefUtils.prefs.getString('Email');
+            email = PrefUtils.prefs!.getString('Email')!;
           }
-          mobile = PrefUtils.prefs.getString('Mobilenum');
-          tokenid = PrefUtils.prefs.getString('tokenid');
+          mobile = PrefUtils.prefs!.getString('Mobilenum')!;
+          tokenid = PrefUtils.prefs!.getString('tokenid')!;
 
           if (store.userData.mobileNumber != null) {
-            phone = store.userData.mobileNumber;
+            phone = store.userData.mobileNumber!;
           } else {
             phone = "";
           }
-          if (PrefUtils.prefs.getString('photoUrl') != null) {
-            photourl = PrefUtils.prefs.getString('photoUrl');
+          if (PrefUtils.prefs!.getString('photoUrl') != null) {
+            photourl = PrefUtils.prefs!.getString('photoUrl')!;
           } else {
             photourl = "";
           }
         });
-
-        return Navigator.of(context).pushNamedAndRemoveUntil(
-            MapScreen.routeName, ModalRoute.withName('/'));
+        if(Vx.isWeb && !ResponsiveLayout.isSmallScreen(context)){
+          // _dialogforaddress(context);
+          MapWeb(context);
+        }
+        else {
+          Navigation(context, name: Routename.MapScreen,
+              navigatore: NavigatoreTyp.Push);
+        }
+         /*Navigator.of(context).pushNamedAndRemoveUntil(
+            MapScreen.routeName, ModalRoute.withName('/'));*/
       } else if (responseJson['status'].toString() == "false") {}
     } catch (error) {
       setState(() {
@@ -2990,49 +3166,57 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
     try {
       final response = await http.post(Api.updateMobileNumber, body: {
         // await keyword is used to wait to this operation is complete.
-        "id":PrefUtils.prefs.getString('apikey'),
-        "mobile":PrefUtils.prefs.getString('Mobilenum'),
+        "id":PrefUtils.prefs!.getString('apikey'),
+        "mobile":PrefUtils.prefs!.getString('Mobilenum'),
 
       });
       final responseJson = json.decode(utf8.decode(response.bodyBytes));
       if (responseJson['status'].toString() == "200") {
-        PrefUtils.prefs.setString('mobile',PrefUtils.prefs.getString('Mobilenum'));
+        PrefUtils.prefs!.setString('mobile',PrefUtils.prefs!.getString('Mobilenum')!);
 
         Navigator.of(context).pop();
-
+        Navigator.of(context).pop();
         if (addressitemsData.items.length > 0) {
           Navigator.of(context).pushReplacementNamed(
               CartScreen.routeName,
               arguments: {
                 "prev": "cart_screen",
-                "after_login": ""});
+                "afterlogin": ""});
         } else {
-          final routeArgs =
-          ModalRoute.of(context).settings.arguments as Map<String, String>;
-          Navigator.of(context).pushNamedAndRemoveUntil(
-              AddInfo.routeName,
+         /* Navigator.of(context).pushNamedAndRemoveUntil(
+              AddressScreen.routeName,
               ModalRoute.withName(CartScreen.routeName), arguments: {
             'addresstype': "new",
             'addressid': "",
-            'title': "",
             'delieveryLocation': "",
             'latitude': "",
             'longitude': "",
             'branch': "",
-            "after_login": "",
-            "prev": "",
-            'minimumOrderAmountNoraml': routeArgs['minimumOrderAmountNoraml'],
-          'deliveryChargeNormal': routeArgs['deliveryChargeNormal'],
-          'minimumOrderAmountPrime': routeArgs['minimumOrderAmountPrime'],
-          'deliveryChargePrime': routeArgs['deliveryChargePrime'],
-          'minimumOrderAmountExpress': routeArgs['minimumOrderAmountExpress'],
-          'deliveryChargeExpress': routeArgs['deliveryChargeExpress'],
-          'deliveryType': routeArgs['deliveryType'],
-          'note': routeArgs['note'],
-          'deliveryCharge': routeArgs['deliveryCharge'],
-          'deliveryDurationExpress' : routeArgs['deliveryDurationExpress'],
-          });
+            "afterlogin": ""
+          });*/
 
+          if(Vx.isWeb && !ResponsiveLayout.isSmallScreen(context)){
+            // _dialogforaddress(context);
+            AddressWeb(context,
+              addresstype: "new",
+              addressid: "",
+              delieveryLocation: "",
+              latitude: "",
+              longitude: "",
+              branch: "",);
+          }
+          else {
+            Navigation(context, name: Routename.AddressScreen,
+                navigatore: NavigatoreTyp.Push,
+                qparms: {
+                  'addresstype': "new",
+                  'addressid': "",
+                  'delieveryLocation': "",
+                  'latitude': "",
+                  'longitude': "",
+                  'branch': "",
+                });
+          }
           /*Navigator.of(context).pushNamed(
               AddressScreen.routeName,
               arguments: {
@@ -3054,7 +3238,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
       else{
         Navigator.of(context).pop();
 
-        return Fluttertoast.showToast(msg: responseJson['data'], fontSize: MediaQuery.of(context).textScaleFactor *13,);
+         Fluttertoast.showToast(msg: responseJson['data'], fontSize: MediaQuery.of(context).textScaleFactor *13,);
       }
 
     }
@@ -3079,25 +3263,25 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
     }
     try {
       String apple = "";
-      if (PrefUtils.prefs.getString('applesignin') == "yes") {
-        apple = PrefUtils.prefs.getString('apple');
+      if (PrefUtils.prefs!.getString('applesignin') == "yes") {
+        apple = PrefUtils.prefs!.getString('apple')!;
       } else {
         apple = "";
       }
 
       String name =
-          PrefUtils.prefs.getString('FirstName').toString() + " " + PrefUtils.prefs.getString('LastName').toString();
+          PrefUtils.prefs!.getString('FirstName').toString() + " " + PrefUtils.prefs!.getString('LastName').toString();
 
       final response = await http.post(Api.register, body: {
         // await keyword is used to wait to this operation is complete.
         "username": name,
-        "email": PrefUtils.prefs.getString('Email'),
-        "mobileNumber": PrefUtils.prefs.containsKey("Mobilenum") ? PrefUtils.prefs.getString('Mobilenum') : "",
+        "email": PrefUtils.prefs!.getString('Email'),
+        "mobileNumber": PrefUtils.prefs!.containsKey("Mobilenum") ? PrefUtils.prefs!.getString('Mobilenum') : "",
         "path": apple,
-        "tokenId": PrefUtils.prefs.getString('tokenid'),
-        "branch": PrefUtils.prefs.getString('branch'),
+        "tokenId": PrefUtils.prefs!.getString('tokenid'),
+        "branch": PrefUtils.prefs!.getString('branch'),
         "signature":
-        PrefUtils.prefs.containsKey("signature") ? PrefUtils.prefs.getString('signature') : "",
+        PrefUtils.prefs!.containsKey("signature") ? PrefUtils.prefs!.getString('signature') : "",
         "referralid": _referController.text,
         "device": channel.toString(),
       });
@@ -3105,54 +3289,63 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
 
       if (responseJson['status'].toString() == "true") {
         final data = responseJson['data'] as Map<String, dynamic>;
-        PrefUtils.prefs.setString('apiKey', data['apiKey'].toString());
-        PrefUtils.prefs.setString('userID', responseJson['userId'].toString());
-        PrefUtils.prefs.setString('membership', responseJson['membership'].toString());
-        PrefUtils.prefs.setString("mobile", PrefUtils.prefs.getString('Mobilenum'));
-        PrefUtils.prefs.setString('referral', PrefUtils.prefs.getString('referralCode'));
-        PrefUtils.prefs.setString('referid', _referController.text);
+        PrefUtils.prefs!.setString('apiKey', data['apiKey'].toString());
+        PrefUtils.prefs!.setString('userID', responseJson['userId'].toString());
+        PrefUtils.prefs!.setString('membership', responseJson['membership'].toString());
+        PrefUtils.prefs!.setString("mobile", PrefUtils.prefs!.getString('Mobilenum')!);
+        PrefUtils.prefs!.setString('referral', PrefUtils.prefs!.getString('referralCode')!);
+        PrefUtils.prefs!.setString('referid', _referController.text);
 
-        PrefUtils.prefs.setString('LoginStatus', "true");
+        PrefUtils.prefs!.setString('LoginStatus', "true");
         setState(() {
 
-          /*if (PrefUtils.prefs.getString('FirstName') != null) {
-            if (PrefUtils.prefs.getString('LastName') != null) {
-              name = PrefUtils.prefs.getString('FirstName'.toString()) +
+          /*if (PrefUtils.prefs!.getString('FirstName') != null) {
+            if (PrefUtils.prefs!.getString('LastName') != null) {
+              name = PrefUtils.prefs!.getString('FirstName'.toString()) +
                   " " +
-                  PrefUtils.prefs.getString('LastName'.toString());
+                  PrefUtils.prefs!.getString('LastName'.toString());
             } else {
-              name = PrefUtils.prefs.getString('FirstName'.toString());
+              name = PrefUtils.prefs!.getString('FirstName'.toString());
             }
           } else {
             name = "";
           }*/
-          name = store.userData.username;
-          //name = PrefUtils.prefs.getString('FirstName') + " " + PrefUtils.prefs.getString('LastName');
-          if (PrefUtils.prefs.getString('prevscreen') == 'signInAppleNoEmail') {
+          name = store.userData.username!;
+          //name = PrefUtils.prefs!.getString('FirstName') + " " + PrefUtils.prefs!.getString('LastName');
+          if (PrefUtils.prefs!.getString('prevscreen') == 'signInAppleNoEmail') {
             email = "";
           } else {
-            email = PrefUtils.prefs.getString('Email'.toString());
+            email = PrefUtils.prefs!.getString('Email'.toString())!;
           }
-          mobile = PrefUtils.prefs.getString('Mobilenum'.toString());
-          tokenid = PrefUtils.prefs.getString('tokenid');
+          mobile = PrefUtils.prefs!.getString('Mobilenum'.toString())!;
+          tokenid = PrefUtils.prefs!.getString('tokenid')!;
 
           if (store.userData.mobileNumber != null) {
-            phone = PrefUtils.prefs.getString('mobile'.toString());
+            phone = PrefUtils.prefs!.getString('mobile'.toString())!;
           } else {
             phone = "";
           }
-          if (PrefUtils.prefs.getString('photoUrl') != null) {
-            photourl = PrefUtils.prefs.getString('photoUrl');
+          if (PrefUtils.prefs!.getString('photoUrl') != null) {
+            photourl = PrefUtils.prefs!.getString('photoUrl')!;
           } else {
             photourl = "";
           }
         });
         Navigator.of(context).pop();
 
-        PrefUtils.prefs.setString("formapscreen", "");
-        //PrefUtils.prefs.setString("fromcart", "cart_screen");
-        return Navigator.of(context).pushReplacementNamed(MapScreen.routeName);
+        PrefUtils.prefs!.setString("formapscreen", "");
+        //PrefUtils.prefs!.setString("fromcart", "cart_screen");
+        //  Navigator.of(context).pushReplacementNamed(MapScreen.routeName);
+        if(Vx.isWeb && !ResponsiveLayout.isSmallScreen(context)){
+          // _dialogforaddress(context);
+          MapWeb(context);
+        }
+        else {
+          Navigation(context, name: Routename.MapScreen,
+              navigatore: NavigatoreTyp.Push);
+        }
         /* return Navigator.pushNamedAndRemoveUntil(
+
             context, HomeScreen.routeName, (route) => false);*/
 
         /*Navigator.of(context).pushReplacementNamed(
@@ -3175,17 +3368,17 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
 
   addFirstnameToSF(String value) async {
     //  SharedPreferences prefs = await SharedPreferences.getInstance();
-    PrefUtils.prefs.setString('FirstName', value);
+    PrefUtils.prefs!.setString('FirstName', value);
   }
 
   addLastnameToSF(String value) async {
     //SharedPreferences prefs = await SharedPreferences.getInstance();
-    PrefUtils.prefs.setString('LastName', value);
+    PrefUtils.prefs!.setString('LastName', value);
   }
 
   addEmailToSF(String value) async {
     // SharedPreferences prefs = await SharedPreferences.getInstance();
-    PrefUtils.prefs.setString('Email', value);
+    PrefUtils.prefs!.setString('Email', value);
   }
 
   _dialogforAddInfo() {
@@ -3214,7 +3407,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                     child: Align(
                         alignment: Alignment.centerLeft,
                         child: Text(
-                          S.of(context).add_info,//"Add your info",
+                          S .of(context).add_info,//"Add your info",
                           style: TextStyle(
                               color: ColorCodes.mediumBlackColor,
                               fontSize: 20.0),
@@ -3239,7 +3432,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                               children: <Widget>[
                                 SizedBox(height: 10),
                                 Text(
-                                  S.of(context).what_should_we_call_you,//'* What should we call you?',
+                                  S .of(context).what_should_we_call_you,//'* What should we call you?',
                                   style: TextStyle(
                                       fontSize: 17, color: ColorCodes.lightBlack),
                                 ),
@@ -3248,7 +3441,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                                   textAlign: TextAlign.left,
                                   controller: firstnamecontroller,
                                   decoration: InputDecoration(
-                                    hintText: S.of(context).name,//'Name',
+                                    hintText: S .of(context).name,//'Name',
                                     hoverColor: Colors.green,
                                     enabledBorder: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(6),
@@ -3276,9 +3469,9 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                                         .requestFocus(_lnameFocusNode);
                                   },
                                   validator: (value) {
-                                    if (value.isEmpty) {
+                                    if (value!.isEmpty) {
                                       setState(() {
-                                        fn = S.of(context).please_enter_name;//"  Please Enter Name";
+                                        fn = S .of(context).please_enter_name;//"  Please Enter Name";
                                       });
                                       return '';
                                     }
@@ -3288,7 +3481,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                                     return null;
                                   },
                                   onSaved: (value) {
-                                    addFirstnameToSF(value);
+                                    addFirstnameToSF(value!);
                                   },
                                 ),
                                 Text(
@@ -3298,7 +3491,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                                 ),
                                 SizedBox(height: 10.0),
                                 Text(
-                                  S.of(context).tell_us_your_email,//'Tell us your e-mail',
+                                  S .of(context).tell_us_your_email,//'Tell us your e-mail',
                                   style: TextStyle(
                                       fontSize: 17, color: ColorCodes.lightBlack),
                                 ),
@@ -3342,11 +3535,11 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                                     else
                                       emailValid = RegExp(
                                           r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9]+\.[a-zA-Z]+")
-                                          .hasMatch(value);
+                                          .hasMatch(value!);
 
                                     if (!emailValid) {
                                       setState(() {
-                                        ea = S.of(context).please_enter_valid_email_address;//' Please enter a valid email address';
+                                        ea = S .of(context).please_enter_valid_email_address;//' Please enter a valid email address';
                                       });
                                       return '';
                                     }
@@ -3356,7 +3549,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                                     return null; //it means user entered a valid input
                                   },
                                   onSaved: (value) {
-                                    addEmailToSF(value);
+                                    addEmailToSF(value!);
                                   },
                                 ),
                                 Row(
@@ -3369,7 +3562,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                                   ],
                                 ),
                                 Text(
-                                  S.of(context).we_will_email,//' We\'ll email you as a reservation confirmation.',
+                                  S .of(context).we_will_email,//' We\'ll email you as a reservation confirmation.',
                                   style: TextStyle(
                                       fontSize: 15.2, color: ColorCodes.emailColor),
                                 ),
@@ -3379,7 +3572,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                                 ),
                                 if(Features.isReferEarn)
                                   Text(
-                                    S.of(context).apply_referal_code,//'Apply referral Code',
+                                    S .of(context).apply_referal_code,//'Apply referral Code',
                                     style: TextStyle(fontSize: 17, color: ColorCodes.lightBlack),
                                   ),
                                 if(Features.isReferEarn)
@@ -3393,7 +3586,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                                     style: new TextStyle(
                                         decorationColor: Theme.of(context).primaryColor),
                                     decoration: InputDecoration(
-                                      hintText: S.of(context).refer_earn,//'Refer and Earn',
+                                      hintText: S .of(context).refer_earn,//'Refer and Earn',
                                       fillColor: Colors.green,
                                       enabledBorder: OutlineInputBorder(
                                         borderRadius: BorderRadius.circular(6),
@@ -3433,7 +3626,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                         return null; //it means user entered a valid input
                       },*/
                                     onSaved: (value) {
-                                      addReferralToSF(value);
+                                      addReferralToSF(value!);
                                     },
                                   ),
                                 if(Features.isReferEarn)
@@ -3467,7 +3660,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                           height: 60.0,
                           child: Center(
                             child: Text(
-                              S.of(context).continue_button,// "CONTINUE",
+                              S .of(context).continue_button,// "CONTINUE",
                               style: TextStyle(
                                 fontSize: 18.0,
                                 color: Theme.of(context).buttonColor,
@@ -3489,11 +3682,11 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
   }
 
   void alertOtp(BuildContext ctx) {
-    mobile = PrefUtils.prefs.getString("Mobilenum");
+    mobile = PrefUtils.prefs!.getString("Mobilenum")!;
     var alert = AlertDialog(
         contentPadding: EdgeInsets.all(0.0),
         content: StreamBuilder<int>(
-            stream: _events.stream,
+            stream: _events!.stream,
             builder: (BuildContext context, AsyncSnapshot<int> snapshot) {
               return Container(
                   height: (Vx.isWeb && ResponsiveLayout.isSmallScreen(context))
@@ -3511,7 +3704,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                       child: Align(
                           alignment: Alignment.centerLeft,
                           child: Text(
-                            S.of(context).signup_otp, //"Signup using OTP",
+                            S .of(context).signup_otp, //"Signup using OTP",
                             style: TextStyle(
                                 color: ColorCodes.mediumBlackColor,
                                 fontSize: 20.0),
@@ -3527,7 +3720,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                             Padding(
                               padding: const EdgeInsets.all(20.0),
                               child: Text(
-                                S.of(context).please_check_otp_sent_to_your_mobile_number,//'Please check OTP sent to your mobile number',
+                                S .of(context).please_check_otp_sent_to_your_mobile_number,//'Please check OTP sent to your mobile number',
                                 style: TextStyle(
                                     color: ColorCodes.mediumBlackWebColor,
                                     fontWeight: FontWeight.bold,
@@ -3561,11 +3754,11 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                                       color: Colors.white,
                                       borderRadius: BorderRadius.circular(8),
                                       border: Border.all(
-                                          color: Color(0x707070B8), width: 1.5),
+                                          color: ColorCodes.baseColordark, width: 1.5),
                                     ),
                                     child: Center(
                                         child: Text(
-                                            S.of(context).change,//'Change',
+                                            S .of(context).change,//'Change',
                                             style: TextStyle(
                                                 color: ColorCodes.blackColor,
                                                 fontSize: 13))),
@@ -3577,7 +3770,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                             Padding(
                               padding: const EdgeInsets.only(left: 20.0),
                               child: Text(
-                                S.of(context).enter_otp,//'Enter OTP',
+                                S .of(context).enter_otp,//'Enter OTP',
                                 style: TextStyle(
                                     color: ColorCodes.greyColor, fontSize: 14),
                                 //textAlign: TextAlign.left,
@@ -3604,13 +3797,13 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                                               colorBuilder: FixedColorBuilder(
                                                   ColorCodes.greyColor)),
                                           onCodeChanged: (text) {
-                                            otpvalue = text;
-                                            SchedulerBinding.instance
+                                            otpvalue = text!;
+                                            SchedulerBinding.instance!
                                                 .addPostFrameCallback(
                                                     (_) => setState(() {}));
                                           },
                                           onCodeSubmitted: (text) {
-                                            SchedulerBinding.instance
+                                            SchedulerBinding.instance!
                                                 .addPostFrameCallback(
                                                     (_) => setState(() {
                                                   otpvalue = text;
@@ -3642,7 +3835,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                                       ),
                                       child: Center(
                                           child: Text(
-                                            S.of(context).resend_otp, //'Resend OTP'
+                                            S .of(context).resend_otp, //'Resend OTP'
                                           )),
                                     ),
                                   ),
@@ -3661,7 +3854,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                                     ),
                                     child: Center(
                                         child: Text(
-                                          S.of(context).or,//'OR',
+                                          S .of(context).or,//'OR',
                                           style: TextStyle(fontSize: 10),
                                         )),
                                   ),
@@ -3692,7 +3885,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
 
                                           child: Center(
                                               child: Text(
-                                                S.of(context).call_me_instead,//'Call me Instead'
+                                                S .of(context).call_me_instead,//'Call me Instead'
                                               )),
                                         ),
                                       ),
@@ -3716,7 +3909,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                                           text: TextSpan(
                                             children: <TextSpan>[
                                               new TextSpan(
-                                                  text: S.of(context).call_in,//'Call in',
+                                                  text: S .of(context).call_in,//'Call in',
                                                   style: TextStyle(
                                                       color: Colors
                                                           .black)),
@@ -3779,7 +3972,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                                         child: Center(
                                             child:
                                             Text(
-                                              S.of(context).resend_otp,//'Resend OTP'
+                                              S .of(context).resend_otp,//'Resend OTP'
                                             )),
                                       ),
                                     ),
@@ -3793,7 +3986,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                                       borderRadius:
                                       BorderRadius.circular(6),
                                       border: Border.all(
-                                          color: Color(0x707070B8),
+                                          color: ColorCodes.baseColordark,
                                           width: 1.5),
                                     ),
                                     child: Center(
@@ -3802,7 +3995,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                                           children: <TextSpan>[
                                             new TextSpan(
                                                 text:
-                                                S.of(context).resend_otp_in,//'Resend Otp in',
+                                                S .of(context).resend_otp_in,//'Resend Otp in',
                                                 style: TextStyle(
                                                     color: Colors
                                                         .black)),
@@ -3834,7 +4027,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                                   ),
                                   child: Center(
                                       child: Text(
-                                        S.of(context).or,//'OR',
+                                        S .of(context).or,//'OR',
                                         style: TextStyle(fontSize: 10),
                                       )),
                                 ),
@@ -3852,7 +4045,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                                     ),
                                     child: Center(
                                         child: Text(
-                                          S.of(context).call_me_instead,//'Call me Instead'
+                                          S .of(context).call_me_instead,//'Call me Instead'
                                         )),
                                   ),
                                 ),
@@ -3879,7 +4072,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                             height: 60.0,
                             child: Center(
                               child: Text(
-                                S.of(context).login,//"LOGIN",
+                                S .of(context).login,//"LOGIN",
                                 style: TextStyle(
                                   fontSize: 18.0,
                                   color: Theme.of(context).buttonColor,
@@ -3901,11 +4094,11 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
   }
 
   void alertOtpWeb(BuildContext ctx) {
-    mobile = PrefUtils.prefs.getString("Mobilenum");
+    mobile = PrefUtils.prefs!.getString("Mobilenum")!;
     var alert = AlertDialog(
         contentPadding: EdgeInsets.all(0.0),
         content: StreamBuilder<int>(
-            stream: _events.stream,
+            stream: _events!.stream,
             builder: (BuildContext context, AsyncSnapshot<int> snapshot) {
               return Container(
                   height: (Vx.isWeb && ResponsiveLayout.isSmallScreen(context))
@@ -3923,7 +4116,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                       child: Align(
                           alignment: Alignment.centerLeft,
                           child: Text(
-                            S.of(context).signup_otp, //"Signup using OTP",
+                            S .of(context).signup_otp, //"Signup using OTP",
                             style: TextStyle(
                                 color: ColorCodes.mediumBlackColor,
                                 fontSize: 20.0),
@@ -3939,7 +4132,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                             Padding(
                               padding: const EdgeInsets.all(20.0),
                               child: Text(
-                                S.of(context).please_check_otp_sent_to_your_mobile_number,//'Please check OTP sent to your mobile number',
+                                S .of(context).please_check_otp_sent_to_your_mobile_number,//'Please check OTP sent to your mobile number',
                                 style: TextStyle(
                                     color: ColorCodes.mediumBlackWebColor,
                                     fontWeight: FontWeight.bold,
@@ -3973,11 +4166,11 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                                       color: Colors.white,
                                       borderRadius: BorderRadius.circular(8),
                                       border: Border.all(
-                                          color: Color(0x707070B8), width: 1.5),
+                                          color: ColorCodes.baseColordark, width: 1.5),
                                     ),
                                     child: Center(
                                         child: Text(
-                                            S.of(context).change,//'Change',
+                                            S .of(context).change,//'Change',
                                             style: TextStyle(
                                                 color: ColorCodes.blackColor,
                                                 fontSize: 13))),
@@ -3989,7 +4182,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                             Padding(
                               padding: const EdgeInsets.only(left: 20.0),
                               child: Text(
-                                S.of(context).enter_otp,//'Enter OTP',
+                                S .of(context).enter_otp,//'Enter OTP',
                                 style: TextStyle(
                                     color: ColorCodes.greyColor, fontSize: 14),
                                 //textAlign: TextAlign.left,
@@ -4016,13 +4209,13 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                                               colorBuilder: FixedColorBuilder(
                                                   ColorCodes.greyColor)),
                                           onCodeChanged: (text) {
-                                            otpvalue = text;
-                                            SchedulerBinding.instance
+                                            otpvalue = text!;
+                                            SchedulerBinding.instance!
                                                 .addPostFrameCallback(
                                                     (_) => setState(() {}));
                                           },
                                           onCodeSubmitted: (text) {
-                                            SchedulerBinding.instance
+                                            SchedulerBinding.instance!
                                                 .addPostFrameCallback(
                                                     (_) => setState(() {
                                                   otpvalue = text;
@@ -4064,7 +4257,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                                       ),
                                       child: Center(
                                           child: Text(
-                                            S.of(context).resend_otp, //'Resend OTP'
+                                            S .of(context).resend_otp, //'Resend OTP'
                                           )),
                                     ),
                                   ),
@@ -4083,7 +4276,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                                     ),
                                     child: Center(
                                         child: Text(
-                                          S.of(context).or,//'OR',
+                                          S .of(context).or,//'OR',
                                           style: TextStyle(fontSize: 10),
                                         )),
                                   ),
@@ -4114,7 +4307,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
 
                                           child: Center(
                                               child: Text(
-                                                S.of(context).call_me_instead,//'Call me Instead'
+                                                S .of(context).call_me_instead,//'Call me Instead'
                                               )),
                                         ),
                                       ),
@@ -4138,7 +4331,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                                           text: TextSpan(
                                             children: <TextSpan>[
                                               new TextSpan(
-                                                  text: S.of(context).call_in,//'Call in',
+                                                  text: S .of(context).call_in,//'Call in',
                                                   style: TextStyle(
                                                       color: Colors
                                                           .black)),
@@ -4201,7 +4394,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                                         child: Center(
                                             child:
                                             Text(
-                                              S.of(context).resend_otp,//'Resend OTP'
+                                              S .of(context).resend_otp,//'Resend OTP'
                                             )),
                                       ),
                                     ),
@@ -4215,7 +4408,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                                       borderRadius:
                                       BorderRadius.circular(6),
                                       border: Border.all(
-                                          color: Color(0x707070B8),
+                                          color: ColorCodes.baseColordark,
                                           width: 1.5),
                                     ),
                                     child: Center(
@@ -4224,7 +4417,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                                           children: <TextSpan>[
                                             new TextSpan(
                                                 text:
-                                                S.of(context).resend_otp_in,//'Resend Otp in',
+                                                S .of(context).resend_otp_in,//'Resend Otp in',
                                                 style: TextStyle(
                                                     color: Colors
                                                         .black)),
@@ -4256,7 +4449,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                                   ),
                                   child: Center(
                                       child: Text(
-                                        S.of(context).or,//'OR',
+                                        S .of(context).or,//'OR',
                                         style: TextStyle(fontSize: 10),
                                       )),
                                 ),
@@ -4274,7 +4467,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                                     ),
                                     child: Center(
                                         child: Text(
-                                          S.of(context).call_me_instead,//'Call me Instead'
+                                          S .of(context).call_me_instead,//'Call me Instead'
                                         )),
                                   ),
                                 ),
@@ -4302,7 +4495,7 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
                             height: 60.0,
                             child: Center(
                               child: Text(
-                                S.of(context).login,//"LOGIN",
+                                S .of(context).login,//"LOGIN",
                                 style: TextStyle(
                                   fontSize: 18.0,
                                   color: Theme.of(context).buttonColor,
@@ -4323,22 +4516,12 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
         });
   }
 
-  _customToast(String msg) {
-    return showDialog(
-        context: context,
-        builder: (context) {
-          return AlertDialog(
-            content: Text(msg),
-          );
-        });
-  }
-
   @override
   Widget build(BuildContext context) {
     VxState.watch(context, on: [SetCartItem]);
     queryData = MediaQuery.of(context);
-    wid = queryData.size.width;
-    maxwid = wid * 0.90;
+    wid = queryData!.size.width;
+    maxwid = wid! * 0.90;
 
     Future<void> openMap(double latitude, double longitude) async {
       String googleUrl =
@@ -4350,30 +4533,53 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
       }
     }
 
-    if (!_isLoading) if (PrefUtils.prefs.getString("membership") == "1") {
+    if (!_isLoading) if (VxState.store.userData.membership == "1") {
       _checkmembership = true;
     } else {
       _checkmembership = false;
     }
 
+
+    for (int i = 0; i < cartItemList.length; i++) {
+      if (cartItemList[i].mode == "1") {
+        _checkmembership = true;
+      }
+      if (Features.ismultivendor && IConstants.isEnterprise) {
+        for (int i = 0; i <
+            (VxState.store as GroceStore).CartItemList.length; i++) {
+          IConstants.storename =
+          (VxState.store as GroceStore).CartItemList[i].restaurantName!;
+        }
+      }
+    }
+    print("membership check.....cartscreen"+(VxState.store.userData.membership.toString()));
+    print("cart check membership..."+_checkmembership.toString());
+    print("group 2 pickup...."+_groupCart.toString());
+
     _buildBottomNavigationBar(List<CartItem> cartItemList) {
-      // print("checkmemebership..."+_checkmembership.toString());
+
       for(int i=0;i<cartItemList.length;i++)
         if(cartItemList.length<=1 && cartItemList[i].mode=="1") {
           slots = true;
         }else if(cartItemList[i].mode=="1"){
           slots = true;
         }
-      if (CartCalculations.itemCount<=0) return SizedBox.shrink();
       if(slots)
         return  BottomNaviagation(
           itemCount: (CartCalculations.itemCount).toString() + " " + S
               .of(context)
               .items,
-          title: S
+          title: Features.ismultivendor && !_checkaddress?S.of(context).add_address:S
               .of(context)
-              .select_address,
-          total: _checkmembership ? (IConstants.numberFormat == "1")
+              .proceed_to_pay,
+          total: Features.ismultivendor?_checkmembership ? (IConstants.numberFormat == "1")
+              ?(CartCalculations.totalMember + deliveryfinalslotdate)
+              .toStringAsFixed(0):(CartCalculations.totalMember + deliveryfinalslotdate)
+              .toStringAsFixed(IConstants.decimaldigit)
+              :
+          (IConstants.numberFormat == "1")
+              ?(CartCalculations.total + deliveryfinalslotdate).toStringAsFixed(0):(CartCalculations.total + deliveryfinalslotdate).toStringAsFixed(IConstants.decimaldigit):
+          _checkmembership ? (IConstants.numberFormat == "1")
               ?(CartCalculations.totalMember)
               .toStringAsFixed(0):(CartCalculations.totalMember)
               .toStringAsFixed(IConstants.decimaldigit)
@@ -4384,83 +4590,392 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
             /* Navigator.of(context)
                     .pushNamed(OfferScreen.routeName);*/
             setState(() {
-              if (!PrefUtils.prefs.containsKey("apikey")) {
-                PrefUtils.prefs.setString("fromcart", "cart_screen");
-                debugPrint('v1....');
-                Navigator.of(context).pushReplacementNamed(
-                    SignupSelectionScreen.routeName,arguments: {
-                  "prev": "cartScreen",
-                } );
+              if(cartItemList.where((element) => double.parse(element.varStock!) == 0 || element.status == "1").count() >= 1 ){
+                _isunavailablepopup = true;
+              }
+               else{
+                 _isunavailablepopup = false;
+                 print("click1....");
+                 debugPrint("1...");
+              if (!PrefUtils.prefs!.containsKey("apikey")) {
+                PrefUtils.prefs!.setString("fromcart", "cart_screen");
+               /* Navigator.of(context).pushReplacementNamed(
+                    SignupSelectionScreen.routeName);*/
+                print("click2....");
+                debugPrint("2...");
+                Navigation(context, name: Routename.SignUpScreen, navigatore: NavigatoreTyp.PushReplacment);
               } else {
-                if(Features.isOffers){
+                print("click3....");
+                debugPrint("3...");
+               if (_groupCart == 2) {
+              Navigation(context, name: Routename.PickupScreen, navigatore: NavigatoreTyp.Push);
+              }
+               else if (_checkmembership && ((double.parse((CartCalculations.totalMember).toStringAsFixed(
+                   (IConstants.numberFormat == "1")
+                       ? 0 : IConstants.decimaldigit)) <
+                   double.parse(IConstants.minimumOrderAmount)) && cartItemList.length != 1)) {
+                   Fluttertoast.showToast(msg: S
+                       .of(context)
+                       .min_order_amount /*"Minimum order amount is "*/ +
+                       double.parse(
+                           IConstants.minimumOrderAmount).toStringAsFixed(
+                           (IConstants.numberFormat == "1")
+                               ? 0 : IConstants.decimaldigit),
+                     backgroundColor: Colors.black87,
+                     textColor: Colors.white,
+                     fontSize: MediaQuery
+                         .of(context)
+                         .textScaleFactor * 13,);
+               }
+                 else if(Features.isOffers && !slots){
+                 print("click4....");
+                 debugPrint("4...");
                   if (store.userData.mobileNumber !=
                       "null" && store.userData.mobileNumber
-                      .toString() != "") {
-                    /*  Navigator.of(context).pushNamed(
-                            ConfirmorderScreen.routeName,
-                            arguments: {"prev": "cart_screen"});*/
-                    Navigator.of(context).pushReplacementNamed(
-                        OfferScreen.routeName,
-                        arguments: {"_groupValue": _groupCart});
+                      .toString() != " ") {
+                    print("click5....");
+                    debugPrint("5...");
+                    if(Features.ismultivendor) {
+                      addressdata = (VxState.store as GroceStore).userData;
+                      if (addressdata!.billingAddress!=null&&addressdata!.billingAddress!.length > 0) {
+                        addtype = addressdata!.billingAddress![0].addressType;
+                        address = addressdata!.billingAddress![0].address;
+                        name = addressdata!.billingAddress![0].fullName!;
+                        addressicon = addressdata!.billingAddress![0].addressicon;
+                        PrefUtils.prefs!.setString(
+                            "addressId",
+                            addressdata!.billingAddress![0].id.toString());
+                        // calldeliverslots(addressdata.billingAddress[0].id.toString());
+                        deliveryCharge(addressdata!.billingAddress![0].id.toString());
+                        _checkaddress = true;
+                       // checkLocation();
+                        Navigation(context, name: Routename.PaymentScreen, navigatore: NavigatoreTyp.Push,
+                            qparms: {
+                              'minimumOrderAmountNoraml': _minimumOrderAmountNoraml,
+                              'deliveryChargeNormal': _deliveryChargeNormal,
+                              'minimumOrderAmountPrime': _minimumOrderAmountPrime,
+                              'deliveryChargePrime': _deliveryChargePrime,
+                              'minimumOrderAmountExpress': _minimumOrderAmountExpress,
+                              'deliveryChargeExpress': _deliveryChargeExpress,
+                              'addressId': PrefUtils.prefs!.getString(
+                                  "addressId"),
+                              'deliveryType': Features.ismultivendor?"OptionTwo":(_groupValueAdvance == 1)
+                                  ? "Default"
+                                  : "OptionTwo",
+                              'note': _message.text,
+                              'deliveryCharge': (_groupValueAdvance == 1)
+                                  ? deliveryfinalslotdate.toString()
+                                  : deliveryfinalslotdate.toString(),
+                              'deliveryDurationExpress': _deliveryDurationExpress,
+                              'fromScreen':'',
+                              'responsejson':"",
+                            });
+                      } else {
+                        if(Vx.isWeb && !ResponsiveLayout.isSmallScreen(context)){
+                          // _dialogforaddress(context);
+                          AddressWeb(context,
+                            addresstype: "new",
+                            addressid: "",
+                            delieveryLocation: "",
+                            latitude: "",
+                            longitude: "",
+                            branch: "",);
+                        }
+                        else {
+                          Navigation(context, name: Routename.AddressScreen,
+                              navigatore: NavigatoreTyp.Push,
+                              qparms: {
+                                'addresstype': "new",
+                                'addressid': "",
+                                'delieveryLocation': "",
+                                'latitude': "",
+                                'longitude': "",
+                                'branch': "",
+                              });
+                        }
+                      }
+                    }else {
+                      debugPrint("6...");
+
+                      if (_checkmembership  && cartItemList.length == 1) {
+                        debugPrint("9...if");
+                        addressdata = (VxState.store as GroceStore).userData;
+                        if (addressdata!.billingAddress != null &&
+                            addressdata!.billingAddress!.length > 0) {
+                          addtype = addressdata!.billingAddress![0].addressType;
+                          address = addressdata!.billingAddress![0].address;
+                          name = addressdata!.billingAddress![0].fullName!;
+                          addressicon = addressdata!.billingAddress![0]
+                              .addressicon;
+                          PrefUtils.prefs!.setString(
+                              "addressId",
+                              addressdata!.billingAddress![0].id.toString());
+                          // calldeliverslots(addressdata.billingAddress[0].id.toString());
+                          deliveryCharge(addressdata!.billingAddress![0].id
+                              .toString());
+                          _checkaddress = true;
+                          // checkLocation();
+                          Navigation(context, name: Routename.PaymentScreen,
+                              navigatore: NavigatoreTyp.Push,
+                              qparms: {
+                                'minimumOrderAmountNoraml': _minimumOrderAmountNoraml,
+                                'deliveryChargeNormal': _deliveryChargeNormal,
+                                'minimumOrderAmountPrime': _minimumOrderAmountPrime,
+                                'deliveryChargePrime': _deliveryChargePrime,
+                                'minimumOrderAmountExpress': _minimumOrderAmountExpress,
+                                'deliveryChargeExpress': _deliveryChargeExpress,
+                                'addressId': PrefUtils.prefs!.getString(
+                                    "addressId"),
+                                'deliveryType': Features.ismultivendor
+                                    ? "OptionTwo"
+                                    : (_groupValueAdvance == 1)
+                                    ? "Default"
+                                    : "OptionTwo",
+                                'note': _message.text,
+                                'deliveryCharge': (_groupValueAdvance == 1)
+                                    ? deliveryfinalslotdate.toString()
+                                    : deliveryfinalslotdate.toString(),
+                                'deliveryDurationExpress': _deliveryDurationExpress,
+                                'fromScreen': 'cartscreen',
+                                'responsejson': "",
+                              });
+                        }
+                        else {
+                          if(Vx.isWeb && !ResponsiveLayout.isSmallScreen(context)){
+                            // _dialogforaddress(context);
+                            AddressWeb(context,
+                              addresstype: "new",
+                              addressid: "",
+                              delieveryLocation: "",
+                              latitude: "",
+                              longitude: "",
+                              branch: "",);
+                          }
+                          else {
+                            Navigation(context, name: Routename.AddressScreen,
+                                navigatore: NavigatoreTyp.Push,
+                                qparms: {
+                                  'addresstype': "new",
+                                  'addressid': "",
+                                  'delieveryLocation': "",
+                                  'latitude': "",
+                                  'longitude': "",
+                                  'branch': "",
+                                });
+                          }
+                        }
+                      }
+                      else {
+                        Navigation(context, name: Routename.OfferScreen,
+                            navigatore: NavigatoreTyp.Push,
+                            qparms: {
+                              "_groupValue": _groupCart
+                            });
+                      }
+                    }
                   }
                   else {
-                    debugPrint('v2....');
-                    Navigator.of(context)
+                    /*Navigator.of(context)
                         .pushNamed(LoginScreen.routeName, arguments: {
                       "prev": "cartScreen"
-                    });
+                    });*/
+                    debugPrint("7...");
+                    Navigation(context, name:Routename.Login,navigatore: NavigatoreTyp.Push,
+                        qparms: {
+                          "prev": "cartScreen"
+                        });
                   }
-                }else if (_groupCart == 2) {
-                  Navigator.of(context)
-                      .pushNamed(PickupScreen.routeName);
-                } else {
+                }
+                else {
+                 debugPrint("8...");
                   if (store.userData.mobileNumber.toString() !=
                       "null" && store.userData.mobileNumber
                       .toString() != "") {
-                    debugPrint("payment data passing:"+{
-                      'minimumOrderAmountNoraml': _minimumOrderAmountNoraml,
-                      'deliveryChargeNormal': _deliveryChargeNormal,
-                      'minimumOrderAmountPrime': _minimumOrderAmountPrime,
-                      'deliveryChargePrime': _deliveryChargePrime,
-                      'minimumOrderAmountExpress': _minimumOrderAmountExpress,
-                      'deliveryChargeExpress': _deliveryChargeExpress,
-                      'deliveryType': (_groupValue == 1) ? "Default" : "OptionTwo",
-                      'addressId': PrefUtils.prefs.getString("addressId"),
-                      'note': _message.text,
-                      'deliveryCharge': _deliveryChargeNormal,
-                      'deliveryDurationExpress' : _deliveryDurationExpress,
-                      'fromScreen':'',
-                      'responsejson':"",
-                    }.toString());
-                     debugPrint("payment noa...."+_deliveryChargeNormal+"  "+_minimumOrderAmountNoraml);
-                    Navigator.of(context)
-                        .pushNamed(PaymentScreen.routeName, arguments: {
-                      'minimumOrderAmountNoraml': _minimumOrderAmountNoraml,
-                      'deliveryChargeNormal': _deliveryChargeNormal,
-                      'minimumOrderAmountPrime': _minimumOrderAmountPrime,
-                      'deliveryChargePrime': _deliveryChargePrime,
-                      'minimumOrderAmountExpress': _minimumOrderAmountExpress,
-                      'deliveryChargeExpress': _deliveryChargeExpress,
-                      'deliveryType': (_groupValue == 1) ? "Default" : "OptionTwo",
-                      'addressId': PrefUtils.prefs.getString("addressId"),
-                      'note': _message.text,
-                      'deliveryCharge': _deliveryChargeNormal,
-                      'deliveryDurationExpress' : _deliveryDurationExpress,
-                      'fromScreen':'',
-                      'responsejson':"",
-                    });
-                    /* Navigator.of(context).pushNamed(
-                         ConfirmorderScreen.routeName,
-                         arguments: {"prev": "cart_screen"});*/
+
+                   /* Navigator.of(context).pushNamed(
+                        ConfirmorderScreen.routeName,
+                        arguments: {"prev": "cart_screen"});*/
+
+                    if(Features.ismultivendor) {
+                      addressdata = (VxState.store as GroceStore).userData;
+                      if (addressdata!.billingAddress!=null&&addressdata!.billingAddress!.length > 0) {
+                        addtype = addressdata!.billingAddress![0].addressType;
+                        address = addressdata!.billingAddress![0].address;
+                        name = addressdata!.billingAddress![0].fullName!;
+                        addressicon = addressdata!.billingAddress![0].addressicon;
+                        PrefUtils.prefs!.setString(
+                            "addressId",
+                            addressdata!.billingAddress![0].id.toString());
+                        // calldeliverslots(addressdata.billingAddress[0].id.toString());
+                        deliveryCharge(addressdata!.billingAddress![0].id.toString());
+                        _checkaddress = true;
+                       // checkLocation();
+                        Navigation(context, name: Routename.PaymentScreen, navigatore: NavigatoreTyp.Push,
+                            qparms: {
+                              'minimumOrderAmountNoraml': _minimumOrderAmountNoraml,
+                              'deliveryChargeNormal': _deliveryChargeNormal,
+                              'minimumOrderAmountPrime': _minimumOrderAmountPrime,
+                              'deliveryChargePrime': _deliveryChargePrime,
+                              'minimumOrderAmountExpress': _minimumOrderAmountExpress,
+                              'deliveryChargeExpress': _deliveryChargeExpress,
+                              'addressId': PrefUtils.prefs!.getString(
+                                  "addressId"),
+                              'deliveryType': Features.ismultivendor?"OptionTwo":(_groupValueAdvance == 1)
+                                  ? "Default"
+                                  : "OptionTwo",
+                              'note': _message.text,
+                              'deliveryCharge': (_groupValueAdvance == 1)
+                                  ? deliveryfinalslotdate.toString()
+                                  : deliveryfinalslotdate.toString(),
+                              'deliveryDurationExpress': _deliveryDurationExpress,
+                              'fromScreen':'',
+                              'responsejson':"",
+                            });
+                      } else {
+
+                        if(Vx.isWeb && !ResponsiveLayout.isSmallScreen(context)){
+                          // _dialogforaddress(context);
+                          AddressWeb(context,
+                            addresstype: "new",
+                            addressid: "",
+                            delieveryLocation: "",
+                            latitude: "",
+                            longitude: "",
+                            branch: "",);
+                        }
+                        else {
+                          Navigation(context, name: Routename.AddressScreen,
+                              navigatore: NavigatoreTyp.Push,
+                              qparms: {
+                                'addresstype': "new",
+                                'addressid': "",
+                                'delieveryLocation': "",
+                                'latitude': "",
+                                'longitude': "",
+                                'branch': "",
+                              });
+                          }
+
+                      }
+                    }else {
+                      debugPrint("9...");
+                      if (_checkmembership && cartItemList[0].mode == "1" && cartItemList.length == 1) {
+                        debugPrint("9...if");
+                        addressdata = (VxState.store as GroceStore).userData;
+                        if (addressdata!.billingAddress != null &&
+                            addressdata!.billingAddress!.length > 0) {
+                          addtype = addressdata!.billingAddress![0].addressType;
+                          address = addressdata!.billingAddress![0].address;
+                          name = addressdata!.billingAddress![0].fullName!;
+                          addressicon = addressdata!.billingAddress![0]
+                              .addressicon;
+                          PrefUtils.prefs!.setString(
+                              "addressId",
+                              addressdata!.billingAddress![0].id.toString());
+                          // calldeliverslots(addressdata.billingAddress[0].id.toString());
+                          deliveryCharge(addressdata!.billingAddress![0].id
+                              .toString());
+                          _checkaddress = true;
+                          // checkLocation();
+                          Navigation(context, name: Routename.PaymentScreen,
+                              navigatore: NavigatoreTyp.Push,
+                              qparms: {
+                                'minimumOrderAmountNoraml': _minimumOrderAmountNoraml,
+                                'deliveryChargeNormal': _deliveryChargeNormal,
+                                'minimumOrderAmountPrime': _minimumOrderAmountPrime,
+                                'deliveryChargePrime': _deliveryChargePrime,
+                                'minimumOrderAmountExpress': _minimumOrderAmountExpress,
+                                'deliveryChargeExpress': _deliveryChargeExpress,
+                                'addressId': PrefUtils.prefs!.getString(
+                                    "addressId"),
+                                'deliveryType': Features.ismultivendor
+                                    ? "OptionTwo"
+                                    : (_groupValueAdvance == 1)
+                                    ? "Default"
+                                    : "OptionTwo",
+                                'note': _message.text,
+                                'deliveryCharge': (_groupValueAdvance == 1)
+                                    ? deliveryfinalslotdate.toString()
+                                    : deliveryfinalslotdate.toString(),
+                                'deliveryDurationExpress': _deliveryDurationExpress,
+                                'fromScreen': 'cartscreen',
+                                'responsejson': "",
+                              });
+                        }
+                        else {
+                          if (Vx.isWeb &&
+                              !ResponsiveLayout.isSmallScreen(context)) {
+                            // _dialogforaddress(context);
+                            AddressWeb(context,
+                              addresstype: "new",
+                              addressid: "",
+                              delieveryLocation: "",
+                              latitude: "",
+                              longitude: "",
+                              branch: "",);
+                          }
+                          else {
+                            Navigation(context, name: Routename.AddressScreen,
+                                navigatore: NavigatoreTyp.Push,
+                                qparms: {
+                                  'addresstype': "new",
+                                  'addressid': "",
+                                  'delieveryLocation': "",
+                                  'latitude': "",
+                                  'longitude': "",
+                                  'branch': "",
+                                });
+                          }
+                        }
+                      }
+                      else {
+                        debugPrint("9...else");
+                        Navigation(context, name: Routename.ConfirmOrder,
+                            navigatore: NavigatoreTyp.Push,
+                            parms: {"prev": "cart_screen"});
+                      }
+                    }
+
+
+
+                    /*Features.ismultivendor?
+                    Navigation(context, name: Routename.PaymentScreen, navigatore: NavigatoreTyp.Push,
+                        qparms: {
+                          'minimumOrderAmountNoraml': _minimumOrderAmountNoraml,
+                          'deliveryChargeNormal': _deliveryChargeNormal,
+                          'minimumOrderAmountPrime': _minimumOrderAmountPrime,
+                          'deliveryChargePrime': _deliveryChargePrime,
+                          'minimumOrderAmountExpress': _minimumOrderAmountExpress,
+                          'deliveryChargeExpress': _deliveryChargeExpress,
+                          'addressId': PrefUtils.prefs!.getString(
+                              "addressId"),
+                          'deliveryType': (_groupValueAdvance == 1)
+                              ? "Default"
+                              : "OptionTwo",
+                          'note': _message.text,
+                          'deliveryCharge': (_groupValueAdvance == 1)
+                              ? delCharge.toString()
+                              : delCharge.toString(),
+                          'deliveryDurationExpress': _deliveryDurationExpress,
+                          'fromScreen':'',
+                          'responsejson':"",
+                        }):
+                    Navigation(context, name:Routename.ConfirmOrder,navigatore: NavigatoreTyp.Push,
+                        parms:{"prev": "cart_screen"});*/
                   }
                   else {
-                    debugPrint('v3....');
-                    Navigator.of(context)
+                    /*Navigator.of(context)
                         .pushNamed(LoginScreen.routeName, arguments: {
                       "prev": "cartScreen"
-                    });
+                    });*/
+                    debugPrint("10...");
+                    Navigation(context, name:Routename.Login,navigatore: NavigatoreTyp.Push,
+                        qparms: {
+                          "prev": "cartScreen"
+                        });
                   }
                 }
+              }
               }
             });
           },
@@ -4490,8 +5005,15 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
             .items,
         title: S
             .of(context)
-            .select_address,
-        total: _checkmembership ? (CartCalculations.totalMember)
+            .proceed_to_pay,
+        total: Features.ismultivendor?
+        _checkmembership ? (CartCalculations.totalMember + deliveryfinalslotdate)
+            .toStringAsFixed((IConstants.numberFormat == "1")
+            ?0:IConstants.decimaldigit)
+            :
+        (CartCalculations.total + deliveryfinalslotdate).toStringAsFixed((IConstants.numberFormat == "1")
+            ?0:IConstants.decimaldigit)
+            :_checkmembership ? (CartCalculations.totalMember)
             .toStringAsFixed((IConstants.numberFormat == "1")
             ?0:IConstants.decimaldigit)
             :
@@ -4499,63 +5021,74 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
             ?0:IConstants.decimaldigit),
         onPressed: () {
           setState(() {
-            if (_checkmembership) {
-              if (double.parse((CartCalculations.totalMember).toStringAsFixed(
-                  (IConstants.numberFormat == "1")
-                      ?0:IConstants.decimaldigit)) <
-                  double.parse(IConstants.minimumOrderAmount)) {
-                Fluttertoast.showToast(msg: S
-                    .of(context)
-                    .min_order_amount /*"Minimum order amount is "*/ +
-                    double.parse(
-                        IConstants.minimumOrderAmount).toStringAsFixed(
-                        (IConstants.numberFormat == "1")
-                            ?0:IConstants.decimaldigit),
-                  backgroundColor: Colors.black87,
-                  textColor: Colors.white,
-                  fontSize: MediaQuery
-                      .of(context)
-                      .textScaleFactor * 13,);
-              } else {
-                Fluttertoast.showToast(msg: S
-                    .of(context)
-                    .max_order_amount /*"Maximum order amount is "*/ +
-                    IConstants
-                        .maximumOrderAmount,
-                  backgroundColor: Colors.black87,
-                  textColor: Colors.white,
-                  fontSize: MediaQuery
-                      .of(context)
-                      .textScaleFactor * 13,);
-              }
+            if(cartItemList.where((element) => double.parse(element.varStock!) == 0 || element.status == "1").count() >= 1 ){
+              _isunavailablepopup = true;
             }
-            else
-              {
-              if (double.parse((CartCalculations.total).toStringAsFixed(
-                  IConstants.numberFormat == "1"?0:IConstants.decimaldigit)) <
-                  double.parse(IConstants.minimumOrderAmount)) {
-                Fluttertoast.showToast(msg: S
-                    .of(context)
-                    .min_order_amount /*"Minimum order amount is "*/ +
-                    double.parse(
-                        IConstants.minimumOrderAmount).toStringAsFixed(
-                        IConstants.numberFormat == "1"?0:IConstants.decimaldigit),
-                  backgroundColor: Colors.black87,
-                  textColor: Colors.white,
-                  fontSize: MediaQuery
+            else {
+            _isunavailablepopup = false;
+              if (_checkmembership) {
+                print("member.......");
+                debugPrint("11...");
+                if (double.parse((CartCalculations.totalMember).toStringAsFixed(
+                    (IConstants.numberFormat == "1")
+                        ? 0 : IConstants.decimaldigit)) <
+                    double.parse(IConstants.minimumOrderAmount)) {
+                  Fluttertoast.showToast(msg: S
                       .of(context)
-                      .textScaleFactor * 13,);
-              } else {
-                Fluttertoast.showToast(msg: S
-                    .of(context)
-                    .max_order_amount /*"Maximum order amount is "*/ +
-                    IConstants
-                        .maximumOrderAmount,
-                  backgroundColor: Colors.black87,
-                  textColor: Colors.white,
-                  fontSize: MediaQuery
+                      .min_order_amount /*"Minimum order amount is "*/ +
+                      double.parse(
+                          IConstants.minimumOrderAmount).toStringAsFixed(
+                          (IConstants.numberFormat == "1")
+                              ? 0 : IConstants.decimaldigit),
+                    backgroundColor: Colors.black87,
+                    textColor: Colors.white,
+                    fontSize: MediaQuery
+                        .of(context)
+                        .textScaleFactor * 13,);
+                } else {
+                  Fluttertoast.showToast(msg: S
                       .of(context)
-                      .textScaleFactor * 13,);
+                      .max_order_amount /*"Maximum order amount is "*/ +
+                      IConstants
+                          .maximumOrderAmount,
+                    backgroundColor: Colors.black87,
+                    textColor: Colors.white,
+                    fontSize: MediaQuery
+                        .of(context)
+                        .textScaleFactor * 13,);
+                }
+              }
+              else {
+                print("member.......non");
+                debugPrint("12...");
+                if (double.parse((CartCalculations.total).toStringAsFixed(
+                    IConstants.numberFormat == "1" ? 0 : IConstants
+                        .decimaldigit)) <
+                    double.parse(IConstants.minimumOrderAmount)) {
+                  Fluttertoast.showToast(msg: S
+                      .of(context)
+                      .min_order_amount /*"Minimum order amount is "*/ +
+                      double.parse(
+                          IConstants.minimumOrderAmount).toStringAsFixed(
+                          IConstants.numberFormat == "1" ? 0 : IConstants
+                              .decimaldigit),
+                    backgroundColor: Colors.black87,
+                    textColor: Colors.white,
+                    fontSize: MediaQuery
+                        .of(context)
+                        .textScaleFactor * 13,);
+                } else {
+                  Fluttertoast.showToast(msg: S
+                      .of(context)
+                      .max_order_amount /*"Maximum order amount is "*/ +
+                      IConstants
+                          .maximumOrderAmount,
+                    backgroundColor: Colors.black87,
+                    textColor: Colors.white,
+                    fontSize: MediaQuery
+                        .of(context)
+                        .textScaleFactor * 13,);
+                }
               }
             }
           });
@@ -4566,10 +5099,15 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
         itemCount: (CartCalculations.itemCount).toString() + " " + S
             .of(context)
             .items,
-        title: S
+        title: Features.ismultivendor && !_checkaddress?S.of(context).add_address:S
             .of(context)
-            .select_address,
-        total: _checkmembership ? (CartCalculations.totalMember)
+            .proceed_to_pay,
+        total: Features.ismultivendor?
+        _checkmembership ? (CartCalculations.totalMember + deliveryfinalslotdate)
+            .toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit)
+            :
+        (CartCalculations.total + deliveryfinalslotdate).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit):
+        _checkmembership ? (CartCalculations.totalMember)
             .toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit)
             :
         (CartCalculations.total).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),
@@ -4577,75 +5115,418 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
           /* Navigator.of(context)
                     .pushNamed(OfferScreen.routeName);*/
           setState(() {
-            if (!PrefUtils.prefs.containsKey("apikey")) {
-              PrefUtils.prefs.setString("fromcart", "cart_screen");
-              Navigator.of(context).pushReplacementNamed(
-                  SignupSelectionScreen.routeName,arguments: {
-                "prev": "cartScreen",
-              } );
-            } else {
-              if(Features.isOffers){
-                if (store.userData.mobileNumber.toString() != "null" && store.userData.mobileNumber.toString() != "") {
-                  /*  Navigator.of(context).pushNamed(
+
+            if(cartItemList.where((element) => double.parse(element.varStock!) == 0 || element.status == "1").count() >= 1 ){
+              _isunavailablepopup = true;
+            }
+            else {
+              _isunavailablepopup = false;
+              debugPrint("13...");
+              if (!PrefUtils.prefs!.containsKey("apikey")) {
+                debugPrint("14...");
+                PrefUtils.prefs!.setString("fromcart", "cart_screen");
+                /* Navigator.of(context).pushReplacementNamed(
+                  SignupSelectionScreen.routeName);*/
+                Navigation(context, name: Routename.SignUpScreen,
+                    navigatore: NavigatoreTyp.Push);
+              } else {
+                debugPrint("15...");
+                if (_groupCart == 2) {
+                  /* Navigator.of(context)
+                    .pushNamed(PickupScreen.routeName);*/
+                  Navigation(context, name: Routename.PickupScreen,
+                      navigatore: NavigatoreTyp.Push);
+                }
+                else if (Features.isOffers && !slots) {
+                  debugPrint("16...");
+                  if (store.userData.mobileNumber.toString() != "null" &&
+                      store.userData.mobileNumber.toString() != "") {
+                    /*  Navigator.of(context).pushNamed(
                             ConfirmorderScreen.routeName,
                             arguments: {"prev": "cart_screen"});*/
-                  Navigator.of(context).pushReplacementNamed(
+                    /* Navigator.of(context).pushReplacementNamed(
                       OfferScreen.routeName,
-                      arguments: {"_groupValue": _groupCart,
+                      arguments: {"_groupValue": _groupCart});*/
+
+                    if (Features.ismultivendor) {
+                      addressdata = (VxState.store as GroceStore).userData;
+                      if (addressdata!.billingAddress != null &&
+                          addressdata!.billingAddress!.length > 0) {
+                        addtype = addressdata!.billingAddress![0].addressType;
+                        address = addressdata!.billingAddress![0].address;
+                        name = addressdata!.billingAddress![0].fullName!;
+                        addressicon = addressdata!.billingAddress![0]
+                            .addressicon;
+                        PrefUtils.prefs!.setString(
+                            "addressId",
+                            addressdata!.billingAddress![0].id.toString());
+                        // calldeliverslots(addressdata.billingAddress[0].id.toString());
+                        deliveryCharge(addressdata!.billingAddress![0].id
+                            .toString());
+                        _checkaddress = true;
+                        //checkLocation();
+                        Navigation(context, name: Routename.PaymentScreen,
+                            navigatore: NavigatoreTyp.Push,
+                            qparms: {
+                              'minimumOrderAmountNoraml': _minimumOrderAmountNoraml,
+                              'deliveryChargeNormal': _deliveryChargeNormal,
+                              'minimumOrderAmountPrime': _minimumOrderAmountPrime,
+                              'deliveryChargePrime': _deliveryChargePrime,
+                              'minimumOrderAmountExpress': _minimumOrderAmountExpress,
+                              'deliveryChargeExpress': _deliveryChargeExpress,
+                              'addressId': PrefUtils.prefs!.getString(
+                                  "addressId"),
+                              'deliveryType': Features.ismultivendor
+                                  ? "OptionTwo"
+                                  : (_groupValueAdvance == 1)
+                                  ? "Default"
+                                  : "OptionTwo",
+                              'note': _message.text,
+                              'deliveryCharge': (_groupValueAdvance == 1)
+                                  ? deliveryfinalslotdate.toString()
+                                  : deliveryfinalslotdate.toString(),
+                              'deliveryDurationExpress': _deliveryDurationExpress,
+                              'fromScreen': '',
+                              'responsejson': "",
+                            });
+                      } else {
+                      if(Vx.isWeb && !ResponsiveLayout.isSmallScreen(context)){
+                      // _dialogforaddress(context);
+                      AddressWeb(context,
+                        addresstype: "new",
+                        addressid: "",
+                        delieveryLocation: "",
+                        latitude: "",
+                        longitude: "",
+                        branch: "",);
+                      }
+                      else {
+                        Navigation(context, name: Routename.AddressScreen,
+                            navigatore: NavigatoreTyp.Push,
+                            qparms: {
+                              'addresstype': "new",
+                              'addressid': "",
+                              'delieveryLocation': "",
+                              'latitude': "",
+                              'longitude': "",
+                              'branch': "",
+                            });
+                        }
+                      }
+                    } else {
+                      if (_checkmembership  && cartItemList.length == 1) {
+                        debugPrint("9...if");
+                        addressdata = (VxState.store as GroceStore).userData;
+                        if (addressdata!.billingAddress != null &&
+                            addressdata!.billingAddress!.length > 0) {
+                          addtype = addressdata!.billingAddress![0].addressType;
+                          address = addressdata!.billingAddress![0].address;
+                          name = addressdata!.billingAddress![0].fullName!;
+                          addressicon = addressdata!.billingAddress![0]
+                              .addressicon;
+                          PrefUtils.prefs!.setString(
+                              "addressId",
+                              addressdata!.billingAddress![0].id.toString());
+                          // calldeliverslots(addressdata.billingAddress[0].id.toString());
+                          deliveryCharge(addressdata!.billingAddress![0].id
+                              .toString());
+                          _checkaddress = true;
+                          // checkLocation();
+                          Navigation(context, name: Routename.PaymentScreen,
+                              navigatore: NavigatoreTyp.Push,
+                              qparms: {
+                                'minimumOrderAmountNoraml': _minimumOrderAmountNoraml,
+                                'deliveryChargeNormal': _deliveryChargeNormal,
+                                'minimumOrderAmountPrime': _minimumOrderAmountPrime,
+                                'deliveryChargePrime': _deliveryChargePrime,
+                                'minimumOrderAmountExpress': _minimumOrderAmountExpress,
+                                'deliveryChargeExpress': _deliveryChargeExpress,
+                                'addressId': PrefUtils.prefs!.getString(
+                                    "addressId"),
+                                'deliveryType': Features.ismultivendor
+                                    ? "OptionTwo"
+                                    : (_groupValueAdvance == 1)
+                                    ? "Default"
+                                    : "OptionTwo",
+                                'note': _message.text,
+                                'deliveryCharge': (_groupValueAdvance == 1)
+                                    ? deliveryfinalslotdate.toString()
+                                    : deliveryfinalslotdate.toString(),
+                                'deliveryDurationExpress': _deliveryDurationExpress,
+                                'fromScreen': 'cartscreen',
+                                'responsejson': "",
+                              });
+                        }
+                        else {
+                          if(Vx.isWeb && !ResponsiveLayout.isSmallScreen(context)){
+                            AddressWeb(context,
+                              addresstype: "new",
+                              addressid: "",
+                              delieveryLocation: "",
+                              latitude: "",
+                              longitude: "",
+                              branch: "",);
+                      }
+                      else {
+                          Navigation(context, name: Routename.AddressScreen,
+                              navigatore: NavigatoreTyp.Push,
+                              qparms: {
+                                'addresstype': "new",
+                                'addressid': "",
+                                'delieveryLocation': "",
+                                'latitude': "",
+                                'longitude': "",
+                                'branch': "",
+                              });
+                          }
+                        }
+                      }
+                      else {
+                        Navigation(context, name: Routename.OfferScreen,
+                            navigatore: NavigatoreTyp.Push,
+                            qparms: {
+                              "_groupValue": _groupCart
+                            });
+                      }
+                    }
+
+                    /*
+                  Features.ismultivendor?
+                  Navigation(context, name: Routename.PaymentScreen, navigatore: NavigatoreTyp.Push,
+                      qparms: {
                         'minimumOrderAmountNoraml': _minimumOrderAmountNoraml,
                         'deliveryChargeNormal': _deliveryChargeNormal,
                         'minimumOrderAmountPrime': _minimumOrderAmountPrime,
                         'deliveryChargePrime': _deliveryChargePrime,
                         'minimumOrderAmountExpress': _minimumOrderAmountExpress,
                         'deliveryChargeExpress': _deliveryChargeExpress,
-                        'deliveryType': (_groupValue == 1) ? "Default" : "OptionTwo",
-                        'addressId': PrefUtils.prefs.getString("addressId"),
+                        'addressId': PrefUtils.prefs!.getString(
+                            "addressId"),
+                        'deliveryType': (_groupValueAdvance == 1)
+                            ? "Default"
+                            : "OptionTwo",
                         'note': _message.text,
-                        'deliveryCharge': _deliveryChargeNormal,
-                        'deliveryDurationExpress' : _deliveryDurationExpress,
+                        'deliveryCharge': (_groupValueAdvance == 1)
+                            ? delCharge.toString()
+                            : delCharge.toString(),
+                        'deliveryDurationExpress': _deliveryDurationExpress,
                         'fromScreen':'',
                         'responsejson':"",
-                      });
-                }
-                else {
-                  debugPrint("s1....");
-                  Navigator.of(context)
+                      }):
+                  Navigation(context, name:Routename.OfferScreen,navigatore: NavigatoreTyp.Push,
+                      qparms: {
+                        "_groupValue": _groupCart
+                      });*/
+                  } else
+                  if (VxState.store.userData.customerEngagementFlag! == "1") {
+                    debugPrint("18...");
+                    Navigation(context, name: Routename.OfferScreen,
+                        navigatore: NavigatoreTyp.Push,
+                        qparms: {
+                          "_groupValue": _groupCart
+                        });
+                  }
+                  else {
+                    /* Navigator.of(context)
                       .pushNamed(LoginScreen.routeName, arguments: {
                     "prev": "cartScreen"
-                  });
+                  });*/
+                    debugPrint("19...");
+                    Navigation(context, name: Routename.Login,
+                        navigatore: NavigatoreTyp.Push,
+                        qparms: {
+                          "prev": "cartScreen"
+                        });
+                  }
                 }
-              }else if (_groupCart == 2) {
-                Navigator.of(context)
-                    .pushNamed(PickupScreen.routeName);
-              } else {
-                if (store.userData.mobileNumber.toString() != "null" && store.userData.mobileNumber.toString() != "") {
-                  debugPrint("payment noa....1.."+_deliveryChargeNormal+"  "+_minimumOrderAmountNoraml);
-                  Navigator.of(context)
-                      .pushNamed(PaymentScreen.routeName, arguments: {
-                    'minimumOrderAmountNoraml': _minimumOrderAmountNoraml,
-                    'deliveryChargeNormal': _deliveryChargeNormal,
-                    'minimumOrderAmountPrime': _minimumOrderAmountPrime,
-                    'deliveryChargePrime': _deliveryChargePrime,
-                    'minimumOrderAmountExpress': _minimumOrderAmountExpress,
-                    'deliveryChargeExpress': _deliveryChargeExpress,
-                    'deliveryType': (_groupValue == 1) ? "Default" : "OptionTwo",
-                    'addressId': PrefUtils.prefs.getString("addressId"),
-                    'note': _message.text,
-                    'deliveryCharge': _deliveryChargeNormal,
-                    'deliveryDurationExpress' : _deliveryDurationExpress,
-                    'fromScreen':'',
-                    'responsejson':"",
-                  });
-                  /*Navigator.of(context).pushNamed(
+                else {
+                  debugPrint("20...");
+                  if (store.userData.mobileNumber.toString() != "null" &&
+                      store.userData.mobileNumber.toString() != "") {
+                    /*  Navigator.of(context).pushNamed(
                       ConfirmorderScreen.routeName,
                       arguments: {"prev": "cart_screen"});*/
-                }
-                else {
-                  debugPrint("s2....");
-                  Navigator.of(context)
+                    debugPrint("21...");
+                    if (Features.ismultivendor) {
+                      addressdata = (VxState.store as GroceStore).userData;
+                      if (addressdata!.billingAddress != null &&
+                          addressdata!.billingAddress!.length > 0) {
+                        addtype = addressdata!.billingAddress![0].addressType;
+                        address = addressdata!.billingAddress![0].address;
+                        name = addressdata!.billingAddress![0].fullName!;
+                        addressicon = addressdata!.billingAddress![0]
+                            .addressicon;
+                        PrefUtils.prefs!.setString(
+                            "addressId",
+                            addressdata!.billingAddress![0].id.toString());
+                        // calldeliverslots(addressdata.billingAddress[0].id.toString());
+                        deliveryCharge(addressdata!.billingAddress![0].id
+                            .toString());
+                        _checkaddress = true;
+                        // checkLocation();
+                        Navigation(context, name: Routename.PaymentScreen,
+                            navigatore: NavigatoreTyp.Push,
+                            qparms: {
+                              'minimumOrderAmountNoraml': _minimumOrderAmountNoraml,
+                              'deliveryChargeNormal': _deliveryChargeNormal,
+                              'minimumOrderAmountPrime': _minimumOrderAmountPrime,
+                              'deliveryChargePrime': _deliveryChargePrime,
+                              'minimumOrderAmountExpress': _minimumOrderAmountExpress,
+                              'deliveryChargeExpress': _deliveryChargeExpress,
+                              'addressId': PrefUtils.prefs!.getString(
+                                  "addressId"),
+                              'deliveryType': Features.ismultivendor
+                                  ? "OptionTwo"
+                                  : (_groupValueAdvance == 1)
+                                  ? "Default"
+                                  : "OptionTwo",
+                              'note': _message.text,
+                              'deliveryCharge': (_groupValueAdvance == 1)
+                                  ? deliveryfinalslotdate.toString()
+                                  : deliveryfinalslotdate.toString(),
+                              'deliveryDurationExpress': _deliveryDurationExpress,
+                              'fromScreen': '',
+                              'responsejson': "",
+                            });
+                      } else {
+                        if (Vx.isWeb && !ResponsiveLayout.isSmallScreen(
+                            context)) {
+                          AddressWeb(context,
+                            addresstype: "new",
+                            addressid: "",
+                            delieveryLocation: "",
+                            latitude: "",
+                            longitude: "",
+                            branch: "",);
+                        }
+                        else {
+                          Navigation(context, name: Routename.AddressScreen,
+                              navigatore: NavigatoreTyp.Push,
+                              qparms: {
+                                'addresstype': "new",
+                                'addressid': "",
+                                'delieveryLocation': "",
+                                'latitude': "",
+                                'longitude': "",
+                                'branch': "",
+                              });
+                        }
+                      }
+                    } else {
+                      if (_checkmembership && cartItemList[0].mode == "1" && cartItemList.length == 1) {
+                        debugPrint("9...if");
+                        addressdata = (VxState.store as GroceStore).userData;
+                        if (addressdata!.billingAddress != null &&
+                            addressdata!.billingAddress!.length > 0) {
+                          addtype = addressdata!.billingAddress![0].addressType;
+                          address = addressdata!.billingAddress![0].address;
+                          name = addressdata!.billingAddress![0].fullName!;
+                          addressicon = addressdata!.billingAddress![0]
+                              .addressicon;
+                          PrefUtils.prefs!.setString(
+                              "addressId",
+                              addressdata!.billingAddress![0].id.toString());
+                          // calldeliverslots(addressdata.billingAddress[0].id.toString());
+                          deliveryCharge(addressdata!.billingAddress![0].id
+                              .toString());
+                          _checkaddress = true;
+                          // checkLocation();
+                          PrefUtils.prefs!.setString("isPickup", "no");
+                          Navigation(context, name: Routename.PaymentScreen,
+                              navigatore: NavigatoreTyp.Push,
+                              qparms: {
+                                'minimumOrderAmountNoraml': _minimumOrderAmountNoraml,
+                                'deliveryChargeNormal': _deliveryChargeNormal,
+                                'minimumOrderAmountPrime': _minimumOrderAmountPrime,
+                                'deliveryChargePrime': _deliveryChargePrime,
+                                'minimumOrderAmountExpress': _minimumOrderAmountExpress,
+                                'deliveryChargeExpress': _deliveryChargeExpress,
+                                'addressId': PrefUtils.prefs!.getString(
+                                    "addressId"),
+                                'deliveryType': Features.ismultivendor
+                                    ? "OptionTwo"
+                                    : (_groupValueAdvance == 1)
+                                    ? "Default"
+                                    : "OptionTwo",
+                                'note': _message.text,
+                                'deliveryCharge': (_groupValueAdvance == 1)
+                                    ? deliveryfinalslotdate.toString()
+                                    : deliveryfinalslotdate.toString(),
+                                'deliveryDurationExpress': _deliveryDurationExpress,
+                                'fromScreen': 'cartscreen',
+                                'responsejson': "",
+                              });
+                        }
+                        else {
+                          if (Vx.isWeb &&
+                              !ResponsiveLayout.isSmallScreen(context)) {
+                            // _dialogforaddress(context);
+                            AddressWeb(context,
+                              addresstype: "new",
+                              addressid: "",
+                              delieveryLocation: "",
+                              latitude: "",
+                              longitude: "",
+                              branch: "",);
+                          }
+                          else {
+                            Navigation(context, name: Routename.AddressScreen,
+                                navigatore: NavigatoreTyp.Push,
+                                qparms: {
+                                  'addresstype': "new",
+                                  'addressid': "",
+                                  'delieveryLocation': "",
+                                  'latitude': "",
+                                  'longitude': "",
+                                  'branch': "",
+                                });
+                          }
+                        }
+                      }
+                      else {
+                        Navigation(context, name: Routename.ConfirmOrder,
+                            navigatore: NavigatoreTyp.Push,
+                            parms: {"prev": "cart_screen"});
+                      }
+                    }
+
+                    /* Features.ismultivendor?
+                  Navigation(context, name: Routename.PaymentScreen, navigatore: NavigatoreTyp.Push,
+                      qparms: {
+                        'minimumOrderAmountNoraml': _minimumOrderAmountNoraml,
+                        'deliveryChargeNormal': _deliveryChargeNormal,
+                        'minimumOrderAmountPrime': _minimumOrderAmountPrime,
+                        'deliveryChargePrime': _deliveryChargePrime,
+                        'minimumOrderAmountExpress': _minimumOrderAmountExpress,
+                        'deliveryChargeExpress': _deliveryChargeExpress,
+                        'addressId': PrefUtils.prefs!.getString(
+                            "addressId"),
+                        'deliveryType': (_groupValueAdvance == 1)
+                            ? "Default"
+                            : "OptionTwo",
+                        'note': _message.text,
+                        'deliveryCharge': (_groupValueAdvance == 1)
+                            ? delCharge.toString()
+                            : delCharge.toString(),
+                        'deliveryDurationExpress': _deliveryDurationExpress,
+                        'fromScreen':'',
+                        'responsejson':"",
+                      }):
+                  Navigation(context, name:Routename.ConfirmOrder,navigatore: NavigatoreTyp.Push,
+                      parms:{"prev": "cart_screen"});*/
+                  }
+                  else {
+                    /* Navigator.of(context)
                       .pushNamed(LoginScreen.routeName, arguments: {
                     "prev": "cartScreen"
-                  });
+                  });*/
+                    debugPrint("23...");
+                    Navigation(context, name: Routename.Login,
+                        navigatore: NavigatoreTyp.Push,
+                        qparms: {
+                          "prev": "cartScreen"
+                        });
+                  }
                 }
               }
             }
@@ -4653,1015 +5534,429 @@ class _CartScreenState extends State<CartScreen> with SingleTickerProviderStateM
         },
       );
     }
+    Widget paymentDetails() {
+      String minOrdAmount = "0.0";
+      String delCharge = "0.0";
+      String minOrdAmountExpress = "0.0";
+      String delChargeExpress = "0.0";
+      double deliveryfinalexpressdate=0.0;
+      double deliveryfinalexpressTime=0.0;
+      double deliveryDateamount1 = 0.0;
+      double deliveryTimeamount1 = 0.0;
+      double finalSlotDelivery=0.0;
+      double finalExpressDelivery=0.0;
+      if (membershipvx == "1" ||_checkmembership) {
+        cartTotal = CartCalculations.totalMember;
+      } else {
+        cartTotal = CartCalculations.total;
+      }
 
-    Widget cartScreen() {
-print("_isUnavailable web: $_isUnavailable sloat $_slots");
-if(_initialloading)
-    return ItemListShimmer();
-    return Column(
-      children: [
-        VxBuilder(mutations: {SetCartItem},builder: (context, store,state){
-          final snapshot = (VxState.store as GroceStore).CartItemList;
-          //final snapshot = store.CartItemList;
-          switch(state){
+      if (_radioValue == 1) {
+        if (membershipvx == "1" || _checkmembership) {
+          minOrdAmount = _minimumOrderAmountPrime;
+          delCharge = _deliveryChargePrime;
+        } else {
+          minOrdAmount = _minimumOrderAmountExpress;
+          delCharge = _deliveryChargeExpress;
+        }
+      } else {
+        minOrdAmount = _minimumOrderAmountExpress;
+        delCharge = _deliveryChargeExpress;
+      }
 
-            case VxStatus.none:
-              print("status non");
-              // TODO: Handle this case.
-              break;
-            case VxStatus.loading:
-              print("status loading");
 
-              // TODO: Handle this case.
-              break;
-            case VxStatus.success:
-              print("status sucsess");
+      if (membershipvx == "1" ||_checkmembership) {
+        if (CartCalculations.totalMember < double.parse(minOrdAmount)) {
+          deliveryfinalslotdate = double.parse(delCharge);
+          // deliveryDateamount1 = deliveryDateamount1+ deliveryfinalslotdate;
+        } else {
+          deliveryfinalslotdate = 0;
+        }
+      }
+      else{
 
-              // TODO: Handle this case.
-              break;
-            case VxStatus.error:
-              print("status error");
+        if (CartCalculations.total < double.parse(minOrdAmount)) {
+          deliveryfinalslotdate = double.parse(delCharge);
+          // deliveryDateamount1 = deliveryDateamount1+ deliveryfinalslotdate;
+        } else {
+          deliveryfinalslotdate = 0;
+        }
+      }
 
-              // TODO: Handle this case.
-              break;
-          }
-          if(snapshot!=null){
-            for(int i=0;i<snapshot.length;i++)
-              if (snapshot.length<1) {
-                if (snapshot[i].mode =="1") {
-                  _slots = false;
-                }
-              } else {
-                _slots = true;
-              }
-            if(snapshot.length <= 0){
-              if(Vx.isWeb && (!ResponsiveLayout.isLargeScreen(context)||!ResponsiveLayout.isMediumScreen(context)))
-                return Container(
-                  width: MediaQuery.of(context).size.width,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: <Widget>[
-                      Image.asset(
-                        Images.cartEmptyImg,
-                        height: 200.0,
-                      ),
-                      Text(
-                        S.of(context).cart_empty,//"Your cart is empty!",
-                        style: TextStyle(fontSize: 18.0),
-                      ),
-                      SizedBox(
-                        height: 20.0,
-                      ),
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.of(context).popUntil(ModalRoute.withName(
-                            HomeScreen.routeName,
-                          ));
-                        },
-                        child: Container(
-                            width: MediaQuery.of(context).size.width * 0.7,
-                            padding: EdgeInsets.all(5),
-                            height: 40.0,
-                            decoration: BoxDecoration(
-                                color: ColorCodes.discountoff,
-                                borderRadius: BorderRadius.circular(3.0),
-                                border: Border(
-                                  top: BorderSide(
-                                      width: 1.0,
-                                      color: ColorCodes.discountoff),
-                                  bottom: BorderSide(
-                                      width: 1.0,
-                                      color: ColorCodes.discountoff),
-                                  left: BorderSide(
-                                      width: 1.0,
-                                      color:ColorCodes.discountoff),
-                                  right: BorderSide(
-                                    width: 1.0,
-                                    color:ColorCodes.discountoff,
-                                  ),
-                                )),
-                            child: Center(
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    new Padding(
-                                      padding: const EdgeInsets.fromLTRB(
-                                          15.0, 0.0, 10.0, 0.0),
-                                      child: new Icon(
-                                        Icons.shopping_cart_outlined,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                    Text(
-                                      S.of(context).start_shopping,//'START SHOPPING',
-                                      //textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.bold),
-                                    ),
-                                  ],
-                                ))),
-                      ),
-                      SizedBox(
-                        height: 10,
-                      ),
-                     // if (Vx.isWeb && (!ResponsiveLayout.isLargeScreen(context)||!ResponsiveLayout.isMediumScreen(context))) Footer(address: _address),
-                    ],
-                  ),
-                );
-              else
-                return Container(
-                  width: MediaQuery.of(context).size.width,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: <Widget>[
-                      Image.asset(
-                        Images.cartEmptyImg,
-                        height: 200.0,
-                      ),
-                      Text(
-                        S.of(context).cart_empty,//"Your cart is empty!",
-                        style: TextStyle(fontSize: 18.0),
-                      ),
-                      SizedBox(
-                        height: 20.0,
-                      ),
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.of(context).popUntil(ModalRoute.withName(
-                            HomeScreen.routeName,
-                          ));
-                        },
-                        child: Container(
-                            width: MediaQuery.of(context).size.width * 0.7,
-                            padding: EdgeInsets.all(5),
-                            height: 40.0,
-                            decoration: BoxDecoration(
-                                color: ColorCodes.discountoff,
-                                borderRadius: BorderRadius.circular(3.0),
-                                border: Border(
-                                  top: BorderSide(
-                                      width: 1.0,
-                                      color: ColorCodes.discountoff),
-                                  bottom: BorderSide(
-                                      width: 1.0,
-                                      color: ColorCodes.discountoff),
-                                  left: BorderSide(
-                                      width: 1.0,
-                                      color: ColorCodes.discountoff),
-                                  right: BorderSide(
-                                    width: 1.0,
-                                    color: ColorCodes.discountoff,
-                                  ),
-                                )),
-                            child: Center(
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    new Padding(
-                                      padding: const EdgeInsets.fromLTRB(
-                                          15.0, 0.0, 10.0, 0.0),
-                                      child: new Icon(
-                                        Icons.shopping_cart_outlined,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                    Text(
-                                      S.of(context).start_shopping,//'START SHOPPING',
-                                      //textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.bold),
-                                    ),
-                                  ],
-                                ))),
-                      ),
-                      SizedBox(
-                        height: 10,
-                      ),
-                      if (Vx.isWeb&&(!ResponsiveLayout.isLargeScreen(context)||!ResponsiveLayout.isMediumScreen(context))) Footer(address: _address),
-                    ],
-                  ),
-                );
-            }
-            else  {
-              // for (int i = 0; i < snapshot.length; i++)
-                // if (snapshot[i].status == "1" || snapshot[i].quantity == "0") {
-                //   Future.delayed(Duration.zero, () async {
-                //     _isUnavailable = true;
-                //   });
-                // }
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if(_isUnavailable)
-                    Container(
-                      padding: EdgeInsets.only(
-                          left: 10, right: 10, top: 15, bottom: 15),
-                      child: Text(
-                        S.of(context).product_unavailable,//"Products unavailable",
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 18),
-                      ),
-                    ),
-                  if((double.parse(_minimumOrderAmountNoraml) > CartCalculations.total) && (double.parse(_minimumOrderAmountPrime) > CartCalculations.totalMember))
-                    (Vx.isWeb&&!ResponsiveLayout.isSmallScreen(context))?SizedBox(height:10):SizedBox.shrink(),
-                  if((double.parse(_minimumOrderAmountNoraml) > CartCalculations.total) && (double.parse(_minimumOrderAmountPrime) > CartCalculations.totalMember))
-                    (! _slots) ?SizedBox.shrink():
-                    Container(
-                      padding: EdgeInsets.all(10),
-                      //color: Colors.white,
-                      height: 50,
-                      width: (Vx.isWeb&&!ResponsiveLayout.isSmallScreen(context))?MediaQuery.of(context).size.width*0.40:MediaQuery.of(context).size.width,
-                      child:Row(
-                        children: [
-                          Container(
-                            height:30,
-                            width:100,
-                            decoration: BoxDecoration(
-                              color: ColorCodes.discountoff,
-                              borderRadius: BorderRadius.circular(3),
-                            ),
-                            child: Center(child:Text('FREE DELIVERY',style: TextStyle(fontSize: 12,fontWeight: FontWeight.bold,color: Colors.white),)),
-                          ),
-                          SizedBox(width:5),
-                          (_checkmembership)?
-                          Text(S.of(context).Shop//'Shop '
-                              +" "+IConstants.currencyFormat+" "+(double.parse(_minimumOrderAmountPrime) - CartCalculations.totalMember).toStringAsFixed((IConstants.numberFormat == "1")
-                              ?0:IConstants.decimaldigit)+" "+S.of(context).more_to_get//' more to get free delivery',
-                            ,maxLines:2,style: TextStyle(fontWeight: FontWeight.bold,fontSize: 12),
-                          )
-                              :
-                          Text(S.of(context).Shop+" "+IConstants.currencyFormat+" "+(double.parse(_minimumOrderAmountNoraml) - CartCalculations.total).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit)+" "+S.of(context).more_to_get//' more to get free delivery'
-                            ,maxLines:2,style: TextStyle(fontWeight: FontWeight.bold,fontSize: 12),)
-                        ],
-                      ),
-                    ),     //:SizedBox.shrink(),
+      if(deliveryfinalslotdate == 0){
+        deliverychargetext= "FREE";
+      }else{
+        deliverychargetext = Features.iscurrencyformatalign?
+        double.parse(delCharge).toString() + " " + IConstants.currencyFormat:
+        IConstants.currencyFormat + " " + double.parse(delCharge).toString();
+      }
+      amountPayable = (cartTotal + deliveryfinalslotdate);
 
-                  // if (!_isLoading)
-                    if (Features.isPickupfromStore)
-                      (Vx.isWeb && checkskip) ? SizedBox.shrink() : (_slots)
-                          ?
+      return Column(
+        children: [
+          Container(
+            decoration: BoxDecoration(
+                color: ColorCodes.whiteColor,
+                boxShadow: [
+                  BoxShadow(
+                    color: ColorCodes.grey.withOpacity(0.3),
+                    spreadRadius: 4,
+                    blurRadius: 5,
+                    offset: Offset(0, 3),
+                  )
+                ]
+            ),
+            width: MediaQuery.of(context).size.width,
+            padding: EdgeInsets.only(
+                top: 15.0, left: 20.0, right: 20.0, bottom: 8.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  S .of(context).payment_details,//"Your cart value",
+                  style: TextStyle(
+                      fontSize: 16.0,
+                      color: ColorCodes.emailColor,
+                      fontWeight: FontWeight.w600),
+                ),
+                SizedBox(
+                  height: 10.0,
+                ),
+                IntrinsicHeight(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
                       Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                          ),
-                          width:(Vx.isWeb&&!ResponsiveLayout.isSmallScreen(context))?MediaQuery.of(context).size.width*0.40:MediaQuery.of(context).size.width,
-                          padding: EdgeInsets.all(15),
-                          child:Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                S.of(context).select_delivery_type,//'Select Delivery Type',
-                                style: TextStyle(
-                                    fontSize: 20,
-                                    color: ColorCodes.greenColor,
-                                    fontWeight: FontWeight.bold),
-                              ),
-                              Text(
-                                S.of(context).tap_to_select_one_delivery_mode,// 'Tap to select one of the delivery modes',
-                                style: TextStyle(
-                                  //color: Color(0xff949292),
-                                    color: ColorCodes.greyColor,
-                                    fontWeight: FontWeight.w400,
-                                    fontSize: 14),
-                              ),
-                              SizedBox(height: 10),
-                              SizedBox(
-                                height: 150,
-                                child: ListView(
-                                  scrollDirection: Axis.horizontal,
-                                  physics: NeverScrollableScrollPhysics(),
-                                  // padding: EdgeInsets.all(5),
-                                  children: [
-                                    GestureDetector(
-                                        onTap:(){
-                                          setState(() {
-                                            Check=0;
-                                            _groupCart = 1;
-                                          });
-                                        },
-                                        child: Container(
-                                            height:130,
-                                            width:(Vx.isWeb&&!ResponsiveLayout.isSmallScreen(context))?MediaQuery.of(context).size.width*0.18:MediaQuery.of(context).size.width/2.25,
-                                            margin: EdgeInsets.only(right: 10),
-                                            padding: EdgeInsets.all(6),
-                                            decoration: BoxDecoration(
-                                              color:Check==0?ColorCodes.mediumgren:ColorCodes.whiteColor,
-                                              borderRadius: BorderRadius.circular(10),
-                                              border: Border.all(color:ColorCodes.lightgreen),
-                                            ),
-                                            child:Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              mainAxisAlignment: MainAxisAlignment.center,
-                                              children: [
-                                                Row(
-                                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                                  children: [
-                                                    Row(
-                                                      children: [
-                                                        Image.asset(
-                                                            Images.homeImg,
-                                                            width: 18.0,
-                                                            height: 18.0,
-                                                            color: ColorCodes.greenColor
-                                                        ),
-                                                        SizedBox(width: 5,),
-                                                        Text(
-                                                          S.of(context).home_delivery,// 'HOME DELIVERY',
-                                                          style: TextStyle(
-                                                            color: ColorCodes.greenColor,
-                                                            fontWeight: FontWeight.bold,
-                                                            fontSize:12,
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                    Check==0? Container(
-                                                      width: 18.0,
-                                                      height: 18.0,
-                                                      decoration: BoxDecoration(
-                                                        color: ColorCodes.whiteColor,
-                                                        border: Border.all(
-                                                          color: ColorCodes.greenColor,
-                                                        ),
-                                                        shape: BoxShape.circle,
-                                                      ),
-                                                      child: Container(
-                                                        margin: EdgeInsets.all(1.5),
-                                                        decoration: BoxDecoration(
-                                                          color: ColorCodes.whiteColor,
-                                                          shape: BoxShape.circle,
-                                                        ),
-                                                        child: Icon(Icons.check,
-                                                            color: ColorCodes.greenColor,
-                                                            size: 12.0),
-                                                      ),
-                                                    ):
-                                                    Icon(
-                                                      Icons.radio_button_off_outlined,
-                                                      color: ColorCodes.greenColor,size: 18,),
-                                                  ],
-                                                ),
-                                                SizedBox(height:10),
-                                                SizedBox(
-                                                  height: 50,
-                                                  child: Text( S.of(context).also_address/*+" "+S.of(context).address_of_your_choice*/,
-                                                    style: TextStyle(
-                                                      color: ColorCodes.greyColor,
-                                                      fontSize: 13,
-                                                    ),
-                                                  ),
-                                                ),
-                                                SizedBox(height:25),
-                                                Text(
-                                                  S.of(context).delivery_charge_extra,//'DELIVERY CHARGES EXTRA',
-                                                  style: TextStyle(
-                                                    color:ColorCodes.greenColor,
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize:12,
-                                                  ),
-                                                ),
-                                              ],
-                                            )
-                                        )),
-                                    GestureDetector(
-                                        onTap:(){
-                                          setState(() {
-                                            Check=1;
-                                            _groupCart = 2;
-                                          });
-                                        },
-                                        child:Container(
-                                            height:130,
-                                            width:(Vx.isWeb&&!ResponsiveLayout.isSmallScreen(context))?MediaQuery.of(context).size.width*0.18:MediaQuery.of(context).size.width/2.25,
-                                            margin: EdgeInsets.only(right: 10),
-                                            padding: EdgeInsets.all(6),
-                                            decoration: BoxDecoration(
-                                              color: Check==1?ColorCodes.mediumgren:ColorCodes.whiteColor,
-                                              borderRadius: BorderRadius.circular(10),
-                                              border: Border.all(color:ColorCodes.lightgreen),
-                                            ),
-                                            child:Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              mainAxisAlignment: MainAxisAlignment.center,
-                                              children: [
-                                                Row(
-                                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                                  children: [
-                                                    Row(
-                                                      children: [
-                                                        Image.asset(
-                                                            Images.Person,
-                                                            width: 18.0,
-                                                            height: 18.0,
-                                                            color: ColorCodes.greenColor
-                                                        ),
-                                                        SizedBox(width: 5,),
-                                                        Text(
-                                                          S.of(context).self_pickup,//'SELF PICK UP',
-                                                          style: TextStyle(
-                                                            color: ColorCodes.greenColor,
-                                                            fontWeight: FontWeight.bold,
-                                                            fontSize:12,
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                    SizedBox(width: 5,),
-                                                    Check==1?Container(
-                                                      width: 18.0,
-                                                      height: 18.0,
-                                                      decoration: BoxDecoration(
-                                                        color: ColorCodes.whiteColor,
-                                                        border: Border.all(
-                                                          color: ColorCodes.greenColor,
-                                                        ),
-                                                        shape: BoxShape.circle,
-                                                      ),
-                                                      child: Container(
-                                                        margin: EdgeInsets.all(1.5),
-                                                        decoration: BoxDecoration(
-                                                          color: ColorCodes.whiteColor,
-                                                          shape: BoxShape.circle,
-                                                        ),
-                                                        child: Icon(Icons.check,
-                                                            color: ColorCodes.greenColor,
-                                                            size: 12.0),
-                                                      ),
-                                                    ): Icon(
-                                                        Icons.radio_button_off_outlined,
-                                                        color: ColorCodes.greenColor,size: 18),
-                                                  ],
-                                                ),
-                                                SizedBox(height:10),
-                                                SizedBox(
-                                                  height: 65,
-                                                  child: Text( S.of(context).select_self_pickup_point/*+" "+ S.of(context).your_order_doorstep*/,
-                                                    style: TextStyle(
-                                                      color: ColorCodes.greyColor,
-                                                      fontSize: 13,
-                                                    ),
-                                                  ),
-                                                ),
-                                                SizedBox(height:8),
-                                                Text(
-                                                  S.of(context).free_delivery,//'DELIVERY FREE',
-                                                  style: TextStyle(
-                                                    color:ColorCodes.greenColor,
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize:12,
-                                                  ),
-                                                ),
-                                              ],
-                                            )
-                                        )),
-                                  ],
+                        width:  MediaQuery.of(context).size.width / 2.3,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              Features.ismultivendor?S .of(context).item_total:  S .of(context).your_cart_value,//"Your cart value",
+                              style: TextStyle(
+                                  fontSize: 14.0,
+                                  color: ColorCodes.emailColor,
+                                  fontWeight: FontWeight.w500),
+                            ),
+                            SizedBox(
+                              height: 5.0,
+                            ),
+                            DottedLine(
+                                dashColor: ColorCodes.lightgrey,
+                                lineThickness: 1.0,
+                                dashLength: 2.0,
+                                dashRadius: 0.0,
+                                dashGapLength: 1.0),
+                            SizedBox(
+                              height: 5.0,
+                            ),
+                            Text(
+                              Features.ismultivendor?S.of(context).delivery_fee:S .of(context).payment_delivery_charge,//"Delivery charges",
+                              style: TextStyle(
+                                  fontSize: 14.0,
+                                  color: ColorCodes.emailColor,
+                                  fontWeight: FontWeight.w500),
+
+                            ),
+
+                            SizedBox(
+                              height: 5.0,
+                            ),
+                            DottedLine(
+                                dashColor: ColorCodes.lightgrey,
+                                lineThickness: 1.0,
+                                dashLength: 2.0,
+                                dashRadius: 0.0,
+                                dashGapLength: 1.0),
+                            SizedBox(
+                              height: 5.0,
+                            ),
+                            if(!_checkmembership)
+                              if ((CartCalculations.totalprice)  > 0)
+
+                                Text(
+                                  S .of(context).discount_applied,//"Discount applied:",
+                                  style: TextStyle(
+                                      fontSize: 14.0,
+                                      color: Features.ismultivendor?ColorCodes.greenColor:ColorCodes.emailColor,
+                                      fontWeight: FontWeight.w500),
                                 ),
-                              )
-                            ],
-                          )
-                      ):SizedBox.shrink(),
-                  // Container(
-                  //   color:  ColorCodes.appdrawerColor,
-                  //   height: 15,
-                  // ),
-                  for(int i = 0; i < snapshot.length; i++)if(/*snapshot
-                      [i].status == "0" &&*/
-                      int.parse(snapshot[i].quantity??"0") > 0) //available products
-                    Container(
-                      width: (Vx.isWeb &&
-                          !ResponsiveLayout.isSmallScreen(context))
-                          ? MediaQuery
-                          .of(context)
-                          .size
-                          .width * 0.40
-                          : MediaQuery
-                          .of(context)
-                          .size
-                          .width,
-                      decoration: new BoxDecoration(
-                        color: ColorCodes.backgroundcolor,
-                      ),
-                      child: SingleChildScrollView(
-                        child: Card(
-                          elevation: 1,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          margin: EdgeInsets.only(bottom: 6),
-                          child: CartitemsDisplay(snapshot[i],),
-                        ),
-                      ),
-                    ),
-                  if(IConstants.giftWrapamount != "")
-                  SizedBox(height: 0),
-                  if(IConstants.giftWrapamount != "")
-                  Container(
-                    padding: const EdgeInsets.only(left: 15.0, right: 15,top:5,bottom: 5),
-                    width: (Vx.isWeb &&
-                        !ResponsiveLayout.isSmallScreen(context))
-                        ? MediaQuery
-                        .of(context)
-                        .size
-                        .width * 0.40
-                        : MediaQuery
-                        .of(context)
-                        .size
-                        .width,
-                    decoration: new BoxDecoration(
-                      boxShadow: [
-                        BoxShadow(
-                          color: ColorCodes.grey.withOpacity(0.2),
-                          spreadRadius: 4,
-                          blurRadius: 5,
-                          offset: Offset(0, 2),
-                        )
-                      ],
-                      color: ColorCodes.whiteColor,
-                    ),
-                    child: Row(
-                      children: [
-                        Image.asset(
-                          Images.giftwrap,
-                          height: 26,
-                          width: 26,
-                          color: ColorCodes.blackColor,
-                        ),
-                        SizedBox(width: 10),
-                        Text(
-                          "Gift Wrap" + ' ' + "(" + (IConstants.currencyFormat) + IConstants.giftWrapamount + ")",
-                          style: TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.w800,
-                              color: ColorCodes.blackColor),
-                        ),
-                        Spacer(),
-                        Checkbox(
-                          checkColor: ColorCodes.whiteColor,
-                          activeColor: ColorCodes.discountoff,
-                          value: this.valuefirst,
-                          onChanged: (bool value) { // This is where we update the state when the checkbox is tapped
-                            setState(() {
-                              valuefirst = value;
-                              if(valuefirst){
-                               PrefUtils.prefs.setString("gift", "1");
-                              }
-                              else{
-                                PrefUtils.prefs.setString("gift", "0");
-                              }
-                              print("fhjvbv" + valuefirst.toString());
-                              print("vfgvf" + PrefUtils.prefs.getString("gift"));
-                            });
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                  SizedBox(height: 6),
-                  Container(
-                    margin: EdgeInsets.only(bottom: 80),
-                    padding: const EdgeInsets.symmetric(vertical: 15.0, horizontal: 15),
-                    width: (Vx.isWeb &&
-                        !ResponsiveLayout.isSmallScreen(context))
-                        ? MediaQuery
-                        .of(context)
-                        .size
-                        .width * 0.40
-                        : MediaQuery
-                        .of(context)
-                        .size
-                        .width,
-                    decoration: new BoxDecoration(
-                      boxShadow: [
-                        BoxShadow(
-                          color: ColorCodes.grey.withOpacity(0.2),
-                          spreadRadius: 4,
-                          blurRadius: 5,
-                          offset: Offset(0, 2),
-                        )
-                      ],
-                      color: ColorCodes.whiteColor,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "Order Summary",
-                          style: TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.w800,
-                              color: ColorCodes.blackColor),
-                        ),
-                        SizedBox(height: 10),
-                        Row(
-                          children: [
-                            Text(
-                              "Cart Total",
-                              style: TextStyle(
-                                  fontSize: 14.0,
-                                  color: ColorCodes.greyColor,
-                                  fontWeight: FontWeight.bold),
-                            ),
-                            Spacer(),
-                            Text(
-                              _checkmembership ?   IConstants.currencyFormat +
-                                  " " + (CartCalculations.totalmrp)
-                                  .toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit)
-                                  :
-                              IConstants.currencyFormat +
-                                  " " + (CartCalculations.totalmrp).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),
-                              style: TextStyle(
-                                  fontSize: 14.0,
-                                  color: ColorCodes.greyColor,
-                                  fontWeight: FontWeight.bold),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 5),
-                        Row(
-                          children: [
-                            Text(
-                              "Discount",
-                              style: TextStyle(
-                                  fontSize: 14.0,
-                                  color: ColorCodes.greyColor,
-                                  fontWeight: FontWeight.bold),
-                            ),
-                            Spacer(),
-                            Text(
-                               _checkmembership ? "-" + " " +  IConstants.currencyFormat +
-                                  " " +  (CartCalculations.totalMembersPrice)
-                                  .toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit)
-                                  :
-                               "-" + " " + IConstants.currencyFormat +
-                                  " " + (CartCalculations.totalprice).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),
-                              style: TextStyle(
-                                  fontSize: 14.0,
-                                  color: ColorCodes.greyColor,
-                                  fontWeight: FontWeight.bold),
-                            ),
-                          ],
-                        ),
-                        if(valuefirst)
-                        SizedBox(height: 5),
-                        if(valuefirst)
-                        Row(
-                          children: [
-                            Text(
-                              "Gift Wrap",
-                              style: TextStyle(
-                                  fontSize: 14.0,
-                                  color: ColorCodes.greyColor,
-                                  fontWeight: FontWeight.bold),
-                            ),
-                            Spacer(),
-                            Text(
-                              "+" + " "+ IConstants.currencyFormat +
-                                  " " + IConstants.giftWrapamount,
-                              style: TextStyle(
-                                  fontSize: 14.0,
-                                  color: ColorCodes.greyColor,
-                                  fontWeight: FontWeight.bold),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 1),
-                        Divider(color: ColorCodes.greyColor,),
-                        SizedBox(height: 1),
-                        Row(
-                          children: [
-                            Text(
-                              "Total Amount",
-                              style: TextStyle(
-                                  fontSize: 17,
-                                  fontWeight: FontWeight.w800,
-                                  color: ColorCodes.blackColor),
-                            ),
-                            Spacer(),
-                            Text(
-                              _checkmembership ? IConstants.currencyFormat +
-                                  " " +  (CartCalculations.totalMember)
-                                  .toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit)
-                                  :
-                              IConstants.currencyFormat +
-                                  " " + (CartCalculations.total).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),
-                              style: TextStyle(
-                                  fontSize: 17,
-                                  fontWeight: FontWeight.w800,
-                                  color: ColorCodes.blackColor),
-                            ),
-                          ],
-                        ),
-                        Text(
-                          "Include all Tax",
-                          style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                              color: ColorCodes.grey),
-                        ),
-                        SizedBox(height: 15),
-                        Container(
-                          padding: EdgeInsets.all(5),
-                          decoration: BoxDecoration(
-                            //color: ColorCodes.cyanColor,
-                            border: Border.all(
-                                color: ColorCodes.saving
-                            ),
-                            color: ColorCodes.saving,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Row(
-                            children: [
-                              Text(
-                                "Your Total Savings",
-                                style: TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w800,
-                                    color: ColorCodes.blackColor),
-                              ),
-                              Spacer(),
-                              Text(
-                                _checkmembership ? IConstants.currencyFormat +
-                                    " " +  (CartCalculations.totalMembersPrice)
-                                    .toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit)
-                                    :
-                                IConstants.currencyFormat +
-                                    " " + (CartCalculations.totalprice).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),
-                                style: TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w800,
-                                    color: ColorCodes.blackColor),
-                              ),
-                            ],
-                          ),
-                        ),
+                            /*if ((Calculations.totalmrp - cartTotal) > 0)
+                                SizedBox(
+                                  height: 10.0,
+                                ),*/
+                            if(!_checkmembership)
+                              if ((CartCalculations.totalprice) > 0)
+                                SizedBox(
+                                  height: 5.0,
+                                ),
+                            if(!_checkmembership)
+                              if ((CartCalculations.totalprice) > 0)
+                                DottedLine(
+                                    dashColor: ColorCodes.lightgrey,
+                                    lineThickness: 1.0,
+                                    dashLength: 2.0,
+                                    dashRadius: 0.0,
+                                    dashGapLength: 1.0),
+                            if(!_checkmembership)
+                              if ((CartCalculations.totalprice) > 0)
+                                SizedBox(
+                                  height: 5.0,
+                                ),
+                            if(_checkmembership)
+                              if((CartCalculations.totalMembersPrice /*- Calculations.totalprice*/) > 0)
+                                Text(
+                                  S .of(context).membership_savings,//"Membership savings:",
+                                  style: TextStyle(
+                                      fontSize: 14.0,
+                                      color: ColorCodes.emailColor,
+                                      fontWeight: FontWeight.w500),
+                                ),
+                            if(_checkmembership)
+                              if((CartCalculations.totalMembersPrice /*- Calculations.totalprice*/) > 0)
+                                SizedBox(
+                                  height: 5.0,
+                                ),
+                            if(_checkmembership)
+                              if((CartCalculations.totalMembersPrice /*- Calculations.totalprice*/) > 0)
+                                DottedLine(
+                                    dashColor: ColorCodes.lightgrey,
+                                    lineThickness: 1.0,
+                                    dashLength: 2.0,
+                                    dashRadius: 0.0,
+                                    dashGapLength: 1.0),
+                            if(_checkmembership)
+                              if((CartCalculations.totalMembersPrice /*- Calculations.totalprice*/) > 0)
+                                SizedBox(
+                                  height: 5.0,
+                                ),
 
-                      ],
-                    ),
-                  ),
-                ],
-              );
-            }
-          }
-          else{
-            return SizedBox.shrink();
-          }
-        },),
+                            Text(
+                              Features.ismultivendor?S.of(context).to_pay:S .of(context).amount_payable,//"Amount payable:",
+                              style: TextStyle(
+                                fontSize: 14.0,
+                                color: ColorCodes.primaryColor,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      /* Container(
+                            child: VerticalDivider(
+                                color: ColorCodes.greyColor)),*/
+                      Container(
+                        width:  MediaQuery.of(context).size.width / 4.7,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              Features.iscurrencyformatalign?
+                              membershipvx == "1" ||_checkmembership?
+                              CartCalculations.totalMember.toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit)+
+                                  " " + IConstants.currencyFormat:
+                              CartCalculations.totalmrp.toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit)+
+                                  " " + IConstants.currencyFormat :
+                              membershipvx == "1" ||_checkmembership?
+                              IConstants.currencyFormat +
+                                  " " +
+                                  CartCalculations.totalMember.toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit):
+                              IConstants.currencyFormat +
+                                  " " +
+                                  CartCalculations.totalmrp.toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),
+                              style: TextStyle(
+                                  fontSize: 13.0,
+                                  color: ColorCodes.blackColor,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                            SizedBox(
+                              height: 10.0,
+                            ),
+                            // if (!_isPickup)
+                            Text(
+                              deliverychargetext!,
+                              style: TextStyle(
+                                  fontSize: 13.0, color: ColorCodes.blackColor,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                            // if (!_isPickup)
+                            SizedBox(
+                              height: 10.0,
+                            ),
+                            if(!_checkmembership)
+                              if ((CartCalculations.totalprice) > 0)
+                                Text(
+                                  "- " +
+                                      (CartCalculations.totalmrp - cartTotal)
+                                          .toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),
+                                  style: TextStyle(
+                                      fontSize: 13.0,
+                                      color: Features.ismultivendor?ColorCodes.greenColor:ColorCodes.greyColor,
+                                      fontWeight: FontWeight.bold),
+                                ),
+                            /*if ((Calculations.totalmrp - cartTotal) > 0)
+                                SizedBox(
+                                  height: 10.0,
+                                ),*/
+                            if(!_checkmembership)
+                              if ((CartCalculations.totalprice) > 0)
+                                SizedBox(
+                                  height: 10.0,
+                                ),
+                            if(_checkmembership)
+                              if((CartCalculations.totalMembersPrice /*- Calculations.totalprice*/) > 0)
+                                Text(
+                                  "-"+ (/*Calculations.totalprice -*/ CartCalculations.totalMembersPrice)
+                                      .toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),
+                                  style: TextStyle(
+                                      fontSize: 13.0,
+                                      color: ColorCodes.blackColor,
+                                      fontWeight: FontWeight.bold),
+                                ),
 
-        //SizedBox(height: 10),
-        (Vx.isWeb && ResponsiveLayout.isSmallScreen(context))
-            ? Container(
-          width: MediaQuery
-              .of(context)
-              .size
-              .width,
-          height: 50,
-          child: Row(
-            children: <Widget>[
-              (_checkmembership
-                  ?
-              (double.parse(
-                  (CartCalculations.totalMember).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit)) <
-                  double.parse(IConstants.minimumOrderAmount) || double.parse(
-                  (CartCalculations.totalMember).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit)) >
-                  double.parse(IConstants.maximumOrderAmount))
-                  :
-              (double.parse((CartCalculations.total).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit)) <
-                  double.parse(IConstants.minimumOrderAmount) || double.parse(
-                  (CartCalculations.total).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit)) > double.parse(IConstants.maximumOrderAmount)))
-                  ? GestureDetector(
-                onTap: () =>
-                {
-                  if(_checkmembership) {
-                    if(double.parse(
-                        (CartCalculations.totalMember).toStringAsFixed(
-                            IConstants.numberFormat == "1"?0:IConstants.decimaldigit)) < double.parse(IConstants.minimumOrderAmount)) {
-                      Fluttertoast.showToast(msg: S.of(context).min_order_amount/*"Minimum order amount is " */+  IConstants.currencyFormat + double.parse(IConstants.minimumOrderAmount).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit), backgroundColor: Colors.black87, textColor: Colors.white,
-                        fontSize: MediaQuery.of(context).textScaleFactor *13,),
-                      /*_customToast("Minimum order amount is " +
-                                    IConstants.currencyFormat +
-                                    minimumOrderAmount.toStringAsFixed(IConstants.decimaldigit)),*/
-                    } else
-                      {
-                        Fluttertoast.showToast(msg: S.of(context).max_order_amount/*"Maximum order amount is "*/ +  IConstants.currencyFormat + IConstants.maximumOrderAmount, backgroundColor: Colors.black87, textColor: Colors.white,
-                          fontSize:MediaQuery.of(context).textScaleFactor *13,),
-                        /* _customToast("Maximum order amount is " +
-                                      IConstants.currencyFormat +
-                                      IConstants.maximumOrderAmount),*/
-                      }
-                  } else
-                    {
-                      if(double.parse(
-                          (CartCalculations.total).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit)) <
-                          double.parse(IConstants.minimumOrderAmount)) {
-                        Fluttertoast.showToast(msg: S.of(context).min_order_amount/*"Minimum order amount is "*/ +  IConstants.currencyFormat + double.parse(IConstants.minimumOrderAmount).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit), backgroundColor: Colors.black87, textColor: Colors.white,
-                          fontSize:MediaQuery.of(context).textScaleFactor *13,),
-                        /*_customToast("Minimum order amount is " +
-                                      IConstants.currencyFormat +
-                                      minimumOrderAmount.toStringAsFixed(IConstants.decimaldigit)),*/
-                      } else
-                        {
-                          Fluttertoast.showToast(msg: S.of(context).max_order_amount/*"Maximum order amount is "*/ +  IConstants.currencyFormat + IConstants.maximumOrderAmount, backgroundColor: Colors.black87, textColor: Colors.white,
-                            fontSize:MediaQuery.of(context).textScaleFactor *13,),
-                          /*_customToast("Maximum order amount is " +
-                                        IConstants.currencyFormat +
-                                        IConstants.maximumOrderAmount),*/
-                        }
-                    },
-                },
-                child: Container(
-                  color: Theme
-                      .of(context)
-                      .primaryColor,
-                  width: MediaQuery
-                      .of(context)
-                      .size
-                      .width,
-                  height: 50,
-                  child: Column(children: <Widget>[
-                    SizedBox(
-                      height: 17,
-                    ),
-                    Center(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          _checkmembership ? Text('Total: '+IConstants.currencyFormat +(CartCalculations.totalMember)
-                              .toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),   style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold),):
-                          Text('Total: '+IConstants.currencyFormat +(CartCalculations.total)
-                              .toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),   style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold),),
-                          Text(
-                            S.of(context).select_address,//'Select Address',
-                            style: TextStyle(
-                                fontSize: 13.0,
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold),
-                          ),
-                        ],
+                            if(_checkmembership)
+                              if((CartCalculations.totalMembersPrice /*- Calculations.totalprice*/) > 0)
+                                SizedBox(
+                                  height: 10.0,
+                                ),
+
+                            Text(
+                              Features.iscurrencyformatalign?
+                              amountPayable.toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit) +
+                                  " " + IConstants.currencyFormat :
+                              IConstants.currencyFormat +
+                                  " " +
+                                  amountPayable.toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),
+                              style: TextStyle(
+                                  fontSize: 13.0,
+                                  fontWeight: FontWeight.bold,
+                                  color: ColorCodes.primaryColor),
+                            ),
+                          ],
+                        ),
                       ),
-                    )
-                  ]),
+                    ],
+                  ),
                 ),
-              )
-                  : _isDiscounted
-                  ? GestureDetector(
-                child: Container(
-                  color: Colors.grey,
-                  width: MediaQuery
-                      .of(context)
-                      .size
-                      .width,
-                  height: 50,
-                  child: Column(children: <Widget>[
-                    SizedBox(
-                      height: 17,
-                    ),
-                    Center(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          _checkmembership ? Text('Total: '+IConstants.currencyFormat +(CartCalculations.totalMember)
-                              .toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),   style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold),):
-                          Text('Total: '+IConstants.currencyFormat +(CartCalculations.total)
-                              .toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),   style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold),),
-                          Text(
-                            S.of(context).select_address,//'Select Address',
-                            style: TextStyle(
-                                fontSize: 12.0,
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
-                    )
-                  ]),
+                SizedBox(
+                  height: 10.0,
                 ),
-              )
-                  : GestureDetector(
-                onTap: () =>
-                {
-                  setState(() {
-                    if (PrefUtils.prefs.getString("skip") == "yes") {
-                      PrefUtils.prefs.setString(
-                          "fromcart", "cart_screen");
-                      Navigator.of(context)
-                          .pushReplacementNamed(
-                          SignupSelectionScreen
-                              .routeName);
-                    } else {
-                      if (_groupCart == 2) {
-                        Navigator.of(context).pushNamed(
-                            PickupScreen.routeName);
-                      } else {
-                        //PrefUtils.prefs.setString('totalamount', totalAmount);
-                        /*if (addressitemsData.items.length > 0) {*/
-                        debugPrint("payment noa....3.."+_deliveryChargeNormal+"  "+_minimumOrderAmountNoraml);
-                            Navigator.of(context)
-                                .pushNamed(PaymentScreen.routeName, arguments: {
-                              'minimumOrderAmountNoraml': _minimumOrderAmountNoraml,
-                              'deliveryChargeNormal': _deliveryChargeNormal,
-                              'minimumOrderAmountPrime': _minimumOrderAmountPrime,
-                              'deliveryChargePrime': _deliveryChargePrime,
-                              'minimumOrderAmountExpress': _minimumOrderAmountExpress,
-                              'deliveryChargeExpress': _deliveryChargeExpress,
-                              'deliveryType': (_groupValue == 1) ? "Default" : "OptionTwo",
-                              'addressId': PrefUtils.prefs.getString("addressId"),
-                              'note': _message.text,
-                              'deliveryCharge': _deliveryChargeNormal,
-                              'deliveryDurationExpress' : _deliveryDurationExpress,
-                              'fromScreen':'',
-                              'responsejson':"",
-                            });
-                        /*} else {
-                              Navigator.of(context).pushNamed(
-                                  AddressScreen.routeName,
-                                  arguments: {
-                                    'addresstype': "new",
-                                    'addressid': "",
-                                    'delieveryLocation': "",
-                                    'latitude': "",
-                                    'longitude': "",
-                                    'branch': ""
-                                  });
-                            }*/
-                      }
-                    }
-                  })
-                },
-                child: Container(
-                  color: Theme
-                      .of(context)
-                      .primaryColor,
-                  width: MediaQuery
-                      .of(context)
-                      .size
-                      .width,
-                  height: 50,
-                  child: Column(children: <Widget>[
-                    SizedBox(
-                      height: 17,
-                    ),
-                    Center(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          _checkmembership ? Text('Total: '+IConstants.currencyFormat +(CartCalculations.totalMember)
-                              .toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),   style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold),):
-                          Text('Total: '+IConstants.currencyFormat +(CartCalculations.total)
-                              .toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),   style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold),),
-                          Text(
-                            S.of(context).select_address,//'Select Address',
-                            style: TextStyle(
-                                fontSize: 12.0,
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
-                    )
-                  ]),
-                ),
-              ),
-            ],
+                // Divider(
+                //   color: ColorCodes.greyColor,
+                //   thickness: 0.8,
+                // ),
+
+
+              ],
+            ),
           ),
-        )
-            : SizedBox.shrink(),
-
-      ],
-    );
-
+          /*if(Features.isOffers)
+              if(offersData.offers.length > 0)
+                _offers(),*/
+          // (productBox.length == 1 && productBox.values.elementAt(0).mode == 1)
+          //     ? SizedBox.shrink()
+          //     :
+          //     (Features.isPromocode)?
+          //     !_checkpromo?
+          // GestureDetector(
+          //   behavior: HitTestBehavior.translucent,
+          //   /*onTap: () {
+          //     //_dialogforPromo(context);
+          //   },*/
+          //   child: Padding(
+          //     padding: const EdgeInsets.only(left:20.0,right:20),
+          //     child: Material(
+          //       elevation: 1,
+          //       child: Container(
+          //         padding: EdgeInsets.only(left: 15),
+          //         decoration: BoxDecoration(
+          //           color: ColorCodes.whiteColor,
+          //           borderRadius: BorderRadius.circular(6)
+          //         ),
+          //         child: Row(
+          //           mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          //           children: <Widget>[
+          //             Container(
+          //               width: 170,
+          //               child: TextField(
+          //                 decoration: InputDecoration(
+          //                     border: InputBorder.none,
+          //                     hintText: S .of(context).enter_promo),//'Enter Promo Code'),
+          //                 controller: myController,
+          //                 onSubmitted: (String newVal) {
+          //                   /*prefs.setString("promovalue", newVal);
+          //                             setState(() {
+          //                               _checkpromo = true;
+          //                               _promocode = newVal;
+          //                             });*/
+          //                   setState(() {
+          //                     _checkpromo = true;
+          //                   });
+          //                   checkPromo();
+          //                 },),
+          //             ),
+          //             MouseRegion(
+          //               cursor: SystemMouseCursors.click,
+          //               child: GestureDetector(
+          //                 onTap: () {
+          //                   setState(() {
+          //                     _checkpromo = true;
+          //                   });
+          //                   checkPromo();
+          //                 },
+          //                 child: Container(
+          //                   width: 100.0,
+          //                   height: 48.0,
+          //                   decoration: BoxDecoration(
+          //                     color: Theme.of(context).primaryColor,
+          //                     borderRadius: BorderRadius.circular(4.0),
+          //                   ),
+          //                   child: Center(
+          //                       child: Text(
+          //                         S .of(context).apply,//'Apply',
+          //                         textAlign: TextAlign.center,
+          //                         style: TextStyle(color: Colors.white),
+          //                       )),
+          //                 ),
+          //               ),
+          //             ),
+          //
+          //           ],
+          //         ),
+          //       ),
+          //     ),
+          //   ),
+          // ):
+          //     Center(
+          //       child: CircularProgressIndicator(
+          //         valueColor: new AlwaysStoppedAnimation<Color>(Theme.of(context).primaryColor,),
+          //       ),
+          //     ):SizedBox.shrink(),
+          // (productBox.length == 1 && productBox.values.elementAt(0).mode == 1)
+          //     ? SizedBox.shrink()
+          //     :
+          //
+          // Padding(
+          //   padding: const EdgeInsets.only(left:20.0,right:20.0),
+          //       child: Divider(
+          //       color: ColorCodes.whiteColor,
+          //   //thickness: 2.5,
+          // ),
+          //     ),
+        ],
+      );
     }
 
     Widget confirmOrder() {
-      debugPrint('why??????');
       VxState.watch(context, on: [SetCartItem]);
-      for(int i=0;i<cartItemList.length;i++)
-        if(cartItemList.length<=1 && cartItemList[i].mode=="1") {
+      for(int i=0;i<cartItemList.length;i++) {
+        if (cartItemList.length <= 1 && cartItemList[i].mode == "1") {
           slots = true;
-        }else if(cartItemList[i].mode==1){
+        } else if (cartItemList[i].mode == 1) {
           slots = true;
         }
+      }
       //productBox = (VxState.store as GroceStore).CartItemList;
-
       double deliveryamount = 0.0;
       String minOrdAmount = "0.0";
       String delCharge = "0.0";
@@ -5676,18 +5971,26 @@ if(_initialloading)
       double finalSlotDelivery=0.0;
       double finalExpressDelivery=0.0;
       String deliveryDurationExpress;
-
-
-      final routeArgs = ModalRoute.of(context).settings.arguments as Map<String, String>;
-      deliveryDurationExpress = routeArgs["deliveryDurationExpress"];
-
+      double deviceWidth = MediaQuery.of(context).size.width;
+      int widgetsInRow = 2;
+      MediaQueryData queryData;
+      queryData = MediaQuery.of(context);
+      if (deviceWidth > 1200) {
+        widgetsInRow = 2;
+      } else if (deviceWidth > 768) {
+        widgetsInRow = 2;
+      }
+      double aspectRatio =   (Vx.isWeb && !ResponsiveLayout.isSmallScreen(context))?
+      (deviceWidth - (20 + ((widgetsInRow - 1) * 10))) / widgetsInRow / 120
+          : (deviceWidth - (20 + ((widgetsInRow - 1) * 10))) / widgetsInRow / 120;
+      final routeArgs = ModalRoute.of(context)!.settings.arguments as Map<String, String>;
+      //deliveryDurationExpress = routeArgs["deliveryDurationExpress"]!;
       for(int i=0;i<cartItemList.length;i++)
         if(cartItemList.length == 1 && cartItemList[0].mode == 1){
           _deliveryChargeNormal="0";
           _deliveryChargeExpress="0";
           _deliveryChargePrime="0";
         }
-      debugPrint("ap...."+_isshow.toString());
       if (!_isshow) {
         if (_radioValue == 1) {
           if (_checkmembership) {
@@ -5702,13 +6005,6 @@ if(_initialloading)
           delCharge = _deliveryChargeExpress;
         }
 
-      /*  if (_checkmembership
-            ? (CartCalculations.totalMember < double.parse(minOrdAmount))
-            : (CartCalculations.total < double.parse(minOrdAmount))) {
-          deliveryamount = double.parse(delCharge);
-        }*/
-
-
         if (!_loadingSlots && !_loadingDelCharge) {
           _loading = false;
         }
@@ -5716,7 +6012,7 @@ if(_initialloading)
 
         deliveryslotData = Provider.of<DeliveryslotitemsList>(context, listen: false);
         for(int i=0;i< cartItemList.length;i++) {
-          durType = cartItemList[i].durationType;
+          durType = cartItemList[i].durationType!;
           mode = cartItemList[i].mode.toString();
         }
 
@@ -5727,13 +6023,10 @@ if(_initialloading)
 
         for(int i=0;i< cartItemList.length;i++) {
           if (cartItemList[i].varStock == "0" || cartItemList[i].status == "1") {
-            debugPrint("entered if....");
-            print("Product..."+ cartItemList[i].itemName+" "+"out of stock");
-          } else {
+          }
+          else {
             ////////Delivery Option Two
 
-            debugPrint("entered else....");
-            debugPrint("stock....status..."+cartItemList[i].varStock.toString()+"  "+cartItemList[i].status.toString());
             if (((cartItemList[i].durationType == "" ||
                 cartItemList[i].durationType == null) &&
                 (cartItemList[i].eligibleForExpress == "1" ||
@@ -5744,13 +6037,19 @@ if(_initialloading)
 
               double SecondSlotTotal = 0.0;
               for (int i = 0; i < something.length; i++) {
-                SecondSlotTotal = _checkmembership
-                    ? SecondSlotTotal + (double.parse(
-                    (double.parse(something[i].membershipPrice) *
-                        int.parse(something[i].quantity)).toString()))
+                SecondSlotTotal = _checkmembership?something[i].type == "1"?
+                SecondSlotTotal + (double.parse(
+                    (double.parse(something[i].membershipPrice!) *
+                        double.parse(something[i].weight!)).toString()))
+                    :SecondSlotTotal + (double.parse(
+                    (double.parse(something[i].membershipPrice!) *
+                        int.parse(something[i].quantity!)).toString())):something[i].type == "1"?
+                SecondSlotTotal + (double.parse(
+                    (double.parse(something[i].price!) *
+                        double.parse(something[i].weight!)).toString()))
                     : SecondSlotTotal + (double.parse(
-                    (double.parse(something[i].price) *
-                        int.parse(something[i].quantity)).toString()));
+                    (double.parse(something[i].price!) *
+                        int.parse(something[i].quantity!)).toString()));
 
                 if (SecondSlotTotal < double.parse(minOrdAmount)) {
                   deliverySlotamount = double.parse(delCharge);
@@ -5762,7 +6061,9 @@ if(_initialloading)
               if (deliverySlotamount == 0) {
                 deliverychargetextSecond = "FREE";
               } else {
-                deliverychargetextSecond = IConstants.currencyFormat + " " +
+                deliverychargetextSecond = Features.iscurrencyformatalign?
+                deliverySlotamount.toString() + " " + IConstants.currencyFormat:
+                IConstants.currencyFormat + " " +
                     deliverySlotamount.toString();
               }
             }
@@ -5771,13 +6072,19 @@ if(_initialloading)
 
               double SecondExpressTotal = 0.0;
               for (int i = 0; i < ExpressDetails.length; i++) {
-                SecondExpressTotal = _checkmembership ?
+                SecondExpressTotal = _checkmembership ?ExpressDetails[i].type == "1"?
                 SecondExpressTotal + (double.parse(
-                    (double.parse(ExpressDetails[i].membershipPrice) *
-                        int.parse(ExpressDetails[i].quantity)).toString()))
+                    (double.parse(ExpressDetails[i].membershipPrice!) *
+                        double.parse(ExpressDetails[i].weight!)).toString())):
+                SecondExpressTotal + (double.parse(
+                    (double.parse(ExpressDetails[i].membershipPrice!) *
+                        int.parse(ExpressDetails[i].quantity!)).toString())):ExpressDetails[i].type == "1"?
+                SecondExpressTotal + (double.parse(
+                    (double.parse(ExpressDetails[i].price!) *
+                        double.parse(ExpressDetails[i].weight!)).toString()))
                     : SecondExpressTotal + (double.parse(
-                    (double.parse(ExpressDetails[i].price) *
-                        int.parse(ExpressDetails[i].quantity)).toString()));
+                    (double.parse(ExpressDetails[i].price!) *
+                        int.parse(ExpressDetails[i].quantity!)).toString()));
                 minOrdAmountExpress = _minimumOrderAmountExpress;
                 delChargeExpress = _deliveryChargeExpress;
                 if (SecondExpressTotal < double.parse(minOrdAmountExpress)) {
@@ -5790,7 +6097,8 @@ if(_initialloading)
               if (deliveryExpressamount == 0) {
                 deliverychargetextExpress = "FREE";
               } else {
-                deliverychargetextExpress = IConstants.currencyFormat + " " +
+                deliverychargetextExpress = Features.iscurrencyformatalign?
+                deliveryExpressamount.toString()  + " " + IConstants.currencyFormat:IConstants.currencyFormat + " " +
                     deliveryExpressamount.toString();
               }
             }
@@ -5802,12 +6110,16 @@ if(_initialloading)
               List<CartItem> finalList = [];
               dynamic1.clear();
               for (int i = 0; i < cartItemList.length; i++) {
-                dynamic1.add(cartItemList[i]);
+                if(cartItemList[i].varStock == "0" || cartItemList[i].status == "1"){
+
+                }else {
+                  dynamic1.add(cartItemList[i]);
+                }
                 finalList = dynamic1.where((i) =>
                 i.durationType == "0" &&
                     (i.eligibleForExpress == "1" || i.eligibleForExpress == ""))
                     .toList();
-                newMap2 = groupBy(finalList, (obj) => obj.duration);
+                newMap2 = groupBy(finalList, (obj) => obj.duration!);
               }
             }
             else if (cartItemList[i].durationType == "1" &&
@@ -5819,17 +6131,21 @@ if(_initialloading)
 
               dynamicTime.clear();
               for (int i = 0; i < cartItemList.length; i++) {
-                dynamicTime.add(cartItemList[i]);
+                if(cartItemList[i].varStock == "0" || cartItemList[i].status == "1"){
+
+                }else {
+                  dynamicTime.add(cartItemList[i]);
+                }
+                // dynamicTime.add(cartItemList[i]);
                 finalListTime = dynamicTime.where((i) =>
                 i.durationType == "1" &&
                     (i.eligibleForExpress == "1" || i.eligibleForExpress == ""))
                     .toList();
-                newMap3 = groupBy(finalListTime, (obj) => obj.duration);
+                newMap3 = groupBy(finalListTime, (obj) => obj.duration!);
               }
             }
 
             ////////Default Delivery Option
-            debugPrint("slot...." + cartItemList[i].durationType.toString());
             if ((cartItemList[i].durationType == "" ||
                 cartItemList[i].durationType == null)) {
               if ((cartItemList[i].eligibleForExpress == "0" ||
@@ -5840,14 +6156,22 @@ if(_initialloading)
                 double DefaultTota1 = 0.0;
 
                 for (int i = 0; i < DefaultSlot.length; i++) {
-                  DefaultTota1 = _checkmembership ?
+                  DefaultTota1 = _checkmembership ?DefaultSlot[i].type == "1"?
                   DefaultTota1 + (double.parse(
-                      (double.parse(DefaultSlot[i].membershipPrice) *
-                          int.parse(DefaultSlot[i].quantity))
+                      (double.parse(DefaultSlot[i].membershipPrice!) *
+                          double.parse(DefaultSlot[i].weight!))
+                          .toString())):
+                  DefaultTota1 + (double.parse(
+                      (double.parse(DefaultSlot[i].membershipPrice!) *
+                          int.parse(DefaultSlot[i].quantity!))
+                          .toString())):DefaultSlot[i].type == "1"?
+                  DefaultTota1 + (double.parse(
+                      (double.parse(DefaultSlot[i].price!) *
+                          double.parse(DefaultSlot[i].weight!))
                           .toString()))
                       : DefaultTota1 + (double.parse(
-                      (double.parse(DefaultSlot[i].price) *
-                          int.parse(DefaultSlot[i].quantity))
+                      (double.parse(DefaultSlot[i].price!) *
+                          int.parse(DefaultSlot[i].quantity!))
                           .toString()));
                   if (DefaultTota1 < double.parse(minOrdAmount)) {
                     deliveryamount = double.parse(delCharge);
@@ -5860,7 +6184,9 @@ if(_initialloading)
                   deliverychargetextdefault = "FREE";
                 } else {
                   deliverychargetextdefault =
-                      IConstants.currencyFormat + " " + deliveryamount.toString();
+                  Features.iscurrencyformatalign?
+                  deliveryamount.toString()  + " " + IConstants.currencyFormat:
+                  IConstants.currencyFormat + " " + deliveryamount.toString();
                 }
               }
             }
@@ -5871,10 +6197,14 @@ if(_initialloading)
 
               dynamic1.clear();
               for (int i = 0; i < cartItemList.length; i++) {
-                dynamic1.add(cartItemList[i]);
+                if(cartItemList[i].varStock == "0" || cartItemList[i].status == "1"){
+
+                }else {
+                  dynamic1.add(cartItemList[i]);
+                }
+
                 finalList = dynamic1.where((i) => i.durationType == "0").toList();
-                newMap = groupBy(finalList, (obj) => obj.duration);
-                debugPrint("newMap...." + newMap.toString());
+                newMap = groupBy(finalList, (obj) => obj.duration!);
               }
             }
             else if (cartItemList[i].durationType == "1") {
@@ -5884,20 +6214,24 @@ if(_initialloading)
 
               dynamicTime.clear();
               for (int i = 0; i < cartItemList.length; i++) {
-                dynamicTime.add(cartItemList[i]);
+                if(cartItemList[i].varStock == "0" || cartItemList[i].status == "1"){
+
+                }else {
+                  dynamicTime.add(cartItemList[i]);
+                }
+
                 finalListTime =
                     dynamicTime.where((i) => i.durationType == "1").toList();
-                newMap1 = groupBy(finalListTime, (obj) => obj.duration);
+                newMap1 = groupBy(finalListTime, (obj) => obj.duration!);
               }
             }
           }
         }
-        debugPrint('yes...');
-        }
+      }
 
 
-      Widget handler(bool isSelected) {
-        return (isSelected == true)  ?
+      Widget handler(bool isSelected,status) {
+        return (isSelected == true && status != "1")  ?
         Container(
           width: 20.0,
           height: 20.0,
@@ -5911,79 +6245,95 @@ if(_initialloading)
           child: Container(
             margin: EdgeInsets.all(1.5),
             decoration: BoxDecoration(
-              color: ColorCodes.whiteColor,
+              color:(status == "1")?ColorCodes.grey :ColorCodes.whiteColor,
               shape: BoxShape.circle,
             ),
             child: Icon(Icons.check,
-                color: ColorCodes.greenColor,
+                color: (status == "1")?ColorCodes.grey:ColorCodes.greenColor,
                 size: 15.0),
           ),
         )
             :
         Icon(
             Icons.radio_button_off_outlined,
-            color: ColorCodes.greenColor);
+            color: (status == "1")?ColorCodes.grey:ColorCodes.greenColor);
 
 
       }
+
       SelecttimeSlot(id, int i, date, String timeslotsindex) {
         timeslotsData = Provider.of<DeliveryslotitemsList>(
           context,
           listen: false,
         ).findById(timeslotsindex);
 
-        return  ListView.separated(
-          separatorBuilder: (context, index) => SizedBox(height: 10,),
+        return  GridView.builder(
+          // separatorBuilder: (context, index) => SizedBox(height: 10,),
           physics:new NeverScrollableScrollPhysics(),
           shrinkWrap: true,
+          gridDelegate:
+          new SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: widgetsInRow,
+            crossAxisSpacing: 10,
+            childAspectRatio: aspectRatio,
+            mainAxisSpacing: 10,
+          ),
           itemCount: timeslotsData.length,
           itemBuilder: (_, j) => GestureDetector(
             onTap: () async {
-              for(int k=0;k<timeslotsData.length;k++){
+              for (int k = 0; k < timeslotsData.length; k++) {
                 timeslotsData[k].isSelect = false;
                 timeslotsData[k].selectedColor = Colors.transparent;
+
               }
               setState(() {
-                time = timeslotsData[j].time;
-                final timeData = Provider.of<DeliveryslotitemsList>(context, listen: false);
+                if(timeslotsData[j].status == "1"){
+                  PrefUtils.prefs!.setString("fixtime","");
+                  Fluttertoast.showToast(
+                    msg: S.of(context).Selected_Slot_full,//"Selected Slot is full",
+                    fontSize: MediaQuery.of(context).textScaleFactor *13,);
+                }else {
+                  time = timeslotsData[j].time;
+                  final timeData = Provider.of<DeliveryslotitemsList>(
+                      context, listen: false);
 
-                PrefUtils.prefs.setString("fixdate", deliveryslotData.items[i].dateformat);
-                _index = (i == 0 && j == 0) ? 0 : _index + 1;
-                for(int i = 0; i < timeData.times.length; i++) {
-                  timeData.times[i].isSelect = false;
-                  timeslotsData[j].isSelect = false;
-                  // timeData.times[i].isSelect = false;
-                  if((int.parse(id) + j).toString() == timeData.times[i].index) {
-                    setState(() {
-                      timeslotsData[j].isSelect = true;
-                      PrefUtils.prefs.setString('fixtime', timeData.times[i].time);
+                  // PrefUtils.prefs!.setString("fixdate", deliveryslotData.items[i].dateformat);
+                  _index = (i == 0 && j == 0) ? 0 : _index + 1;
+                  for (int i = 0; i < timeData.times.length; i++) {
+                    timeData.times[i].isSelect = false;
+                    timeslotsData[j].isSelect = false;
+                    // timeData.times[i].isSelect = false;
+                    if (((int.parse(id) + j).toString() ==
+                        timeData.times[i].index) && timeslotsData[j].status != "1") {
+                      setState(() {
+                        timeslotsData[j].isSelect = true;
+                        PrefUtils.prefs!.setString('fixtime', timeData.times[i].time!);
+                      });
+                      break;
+                    } else {
+                      setState(() {
 
-                    });
-                    break;
-                  } else{
-
-                    setState(() {
-                      timeslotsData[j].isSelect = false;
-                      timeslotsData[j].selectedColor = Colors.transparent;
-                    });
+                        timeslotsData[j].isSelect = false;
+                        timeslotsData[j].selectedColor = Colors.transparent;
+                      });
+                    }
                   }
                 }
-
               });
 
             },
             child: Container(
-              height: 60,
+              height: 120,
+              width: MediaQuery.of(context).size.width*0.18,
               decoration: BoxDecoration(
-                color: timeslotsData[j].isSelect ?ColorCodes.mediumgren:ColorCodes.whiteColor,
+                color: timeslotsData[j].isSelect ?ColorCodes.varcolor:ColorCodes.whiteColor,
                 border: Border.all(
-                  color: ColorCodes.lightgreen,
+                  color: timeslotsData[j].isSelect ? ColorCodes.primaryColor : ColorCodes.varcolor,
                 ),
-                borderRadius: BorderRadius.circular(3),
+                borderRadius: BorderRadius.circular(6),
               ),
               // margin: EdgeInsets.only(left: 5.0, right: 5.0),
               //child: Container(
-              width: MediaQuery.of(context).size.width,
               //  padding: EdgeInsets.symmetric(horizontal: 40),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.start,
@@ -5992,11 +6342,13 @@ if(_initialloading)
                   Container(
                     child: Text(
                       timeslotsData[j].time,
-                      style: TextStyle(color: ColorCodes.greenColor , fontSize:14, fontWeight: FontWeight.bold),
+                      style: TextStyle(color: (timeslotsData[j].status=="1")?ColorCodes.grey  :ColorCodes.greenColor,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold),
                     ),
                   ),
                   Spacer(),
-                  handler(timeslotsData[j].isSelect),
+                  handler(timeslotsData[j].isSelect, timeslotsData[j].status),
                   SizedBox(width: 20,),
                 ],
               ),
@@ -6012,7 +6364,7 @@ if(_initialloading)
           children: [
             SizedBox(height: 10,),
             Container(
-              height: 70,
+              height: 88,
               width: double.infinity,
               child: ListView.separated(
                   separatorBuilder: (BuildContext context, int index) {
@@ -6026,12 +6378,14 @@ if(_initialloading)
                   itemCount: deliveryslotData.items.length,
                   itemBuilder: (_, i)
                   {
+                    final tagName = deliveryslotData.items[i].date.toString();
+                    dateSplit = tagName.split(',');
                     return GestureDetector(
                       onTap: (){
                         setState(() {
                           position = i;
                           visible = true;
-                          PrefUtils.prefs.setString("fixdate", deliveryslotData.items[i].dateformat);
+                          PrefUtils.prefs!.setString("fixdate", deliveryslotData.items[position].dateformat);
                           timeslotsindex = deliveryslotData.items[i].id;
                           timeslotsData = Provider.of<DeliveryslotitemsList>(context, listen: false,).findById(timeslotsindex);
                           for(int j=0;j<deliveryslotData.items.length;j++){
@@ -6045,36 +6399,65 @@ if(_initialloading)
                             }
                           }
                           for(int j = 0; j < timeslotsData.length; j++){
-                            if(j==0){
-                              timeslotsData[j].selectedColor = ColorCodes.mediumgren; //Color(0xFF45B343);
-                              timeslotsData[j].isSelect = true;
-                              PrefUtils.prefs.setString('fixtime', timeslotsData[j].time);
-                            }else{
-                              timeslotsData[j].isSelect = false;
+                            if (timeslotsData[j].status == "1") {
+                              setState(() {
+                                timeslotsData[j].selectedColor =Colors.grey; //Color(0xFF45B343);
+                                timeslotsData[j].isSelect = false;
+                                timeslotsData[j].textColor = Colors.grey;
+
+                              });
+                            }else {
+                              if (j == 0) {
+                                timeslotsData[j].selectedColor =
+                                    ColorCodes.mediumgren; //Color(0xFF45B343);
+                                //this change for time slot color change
+                                timeslotsData[j].isSelect = false;
+                                PrefUtils.prefs!.setString('fixtime', "");
+                              } else {
+                                timeslotsData[j].isSelect = false;
+                              }
                             }
                           }
                         });
                       },
-                      child: Container(
-                        height: 70,
-                        width: 95,
+                      child: Column(
+                        children: [
+                          Container(
+                            height: 60,
+                            width: 50,
 
-                        decoration: BoxDecoration(
-                          color: deliveryslotData.items[i].isSelect ?ColorCodes.mediumgren:ColorCodes.whiteColor,
-                          border: Border.all(
-                            color: ColorCodes.lightgreen,
+                            decoration: BoxDecoration(
+                              color: deliveryslotData.items[i].isSelect ?ColorCodes.varcolor:ColorCodes.whiteColor,
+                              border: Border.all(
+                                color: ColorCodes.varcolor,
+                              ),
+                              borderRadius: BorderRadius.circular(3),
+                            ),
+                            child: Center(
+                              child: Text(
+                                  dateSplit![0].toUpperCase(),
+                                  /*deliveryslotData.items[i].date,*/
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                      color: ColorCodes.darkgreen)),
+                            ),
                           ),
-                          borderRadius: BorderRadius.circular(3),
-                        ),
+                          Padding(
+                        padding: const EdgeInsets.only(top:2.0,left: 2,right:2),
                         child: Center(
                           child: Text(
-                              deliveryslotData.items[i].date,
+                              dateSplit![1].toUpperCase(),
+                              /* value2.toUpperCase(),*//*deliveryslotData.items[i].date,*/
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  fontSize: 16,
+                                  fontSize: 15,
                                   color: ColorCodes.darkgreen)),
                         ),
+                      ),
+                        ],
                       ),
                     );
                   }),
@@ -6112,7 +6495,7 @@ if(_initialloading)
                                 width: 40.0,
                               ),
                               Text(
-                                  S.of(context).deleting
+                                  S .of(context).deleting
                               ),
                             ],
                           )),
@@ -6135,7 +6518,7 @@ if(_initialloading)
       //     if (itemCount + 1 == varMinItem) {
       //       for (int i = 0; i < productBox.values.length; i++) {
       //         if (cartItemList[i].mode == 1) {
-      //           PrefUtils.prefs.setString("membership", "0");
+      //           PrefUtils.prefs!.setString("membership", "0");
       //         }
       //         if (cartItemList[i].varId == varIdb) {
       //           productBox.deleteAt(i);
@@ -6144,7 +6527,7 @@ if(_initialloading)
       //
       //           Navigator.of(context).pushNamed(CartScreen.routeName,
       //               arguments: {"prev": "home_screen",
-      //                "after_login": ""});
+      //                "afterlogin": ""});
       //           break;
       //         }
       //       }
@@ -6253,7 +6636,7 @@ if(_initialloading)
       //       Navigator.of(context).pop();
       //       Navigator.of(context).pushNamed(CartScreen.routeName,
       //           arguments: {"prev": "home_screen",
-      //             "after_login": ""});
+      //             "afterlogin": ""});
       //     }
       //
       //   });
@@ -6270,7 +6653,7 @@ if(_initialloading)
               child: Container(
                 width: (Vx.isWeb && !ResponsiveLayout.isSmallScreen(context))?MediaQuery.of(context).size.width*0.30:MediaQuery.of(context).size.width,
                 child: Stack(
-                  overflow: Overflow.visible,
+                  // overflow: Overflow.visible,
                   children: [
                     SingleChildScrollView(
                       child: Column(
@@ -6279,11 +6662,11 @@ if(_initialloading)
                             child: Column(
                               children: [
                                 SizedBox(height: 10,),
-                                Text(S.of(context).shipment+ " "+count.toString()+": " + slot_based_delivery,
+                                Text(S .of(context).shipment+ " "+count.toString()+": " + slot_based_delivery,
                                   style: TextStyle(color: ColorCodes.blackColor, fontWeight: FontWeight.bold, fontSize: 16),
                                 ),
                                 SizedBox(height: 10,),
-                                Text(length.toString()+" " + S.of(context).items,
+                                Text(length.toString()+" " + S .of(context).items,
                                   style: TextStyle(color: ColorCodes.greyColor, fontWeight: FontWeight.w400, fontSize: 14),
                                 ),
                                 SizedBox(height: 20,),
@@ -6318,7 +6701,7 @@ if(_initialloading)
                                             color: Theme.of(context).primaryColor,
                                           )
                                               :FadeInImage(
-                                            image: NetworkImage(something[i].itemImage),
+                                            image: NetworkImage(something[i].itemImage!),
                                             placeholder: AssetImage(
                                               Images.defaultProductImg,
                                             ),
@@ -6336,7 +6719,7 @@ if(_initialloading)
 
                                                     Container(
                                                       child: Text(
-                                                        something[i].itemName,
+                                                        something[i].itemName!,
                                                         overflow: TextOverflow.ellipsis,
                                                         maxLines: 2,
                                                         style: TextStyle(
@@ -6348,7 +6731,19 @@ if(_initialloading)
                                                     SizedBox(height: 5,),
                                                     Container(
                                                       child: Text(
-                                                        int.parse(something[i].quantity).toString()+" * "+ something[i].varName.toString(),
+                                                        something[i].type == "1"?
+                                                        something[i]
+                                                            .varName! +
+                                                            " * " +
+                                                            something[i]
+                                                                .weight
+                                                                .toString()
+                                                            :something[i]
+                                                            .varName! +
+                                                            " * " +
+                                                            something[i]
+                                                                .quantity
+                                                                .toString(),
                                                         overflow: TextOverflow.ellipsis,
                                                         maxLines: 1,
                                                         style: TextStyle(
@@ -6362,8 +6757,61 @@ if(_initialloading)
                                                   ])),
                                           Container(
                                             child: Text(
-                                              _checkmembership? (IConstants.currencyFormat + " "+(double.parse(something[i].membershipPrice) * int.parse(something[i].quantity)).toString()):
-                                              (IConstants.currencyFormat+ " "+(int.parse(something[i].price) * int.parse(something[i].quantity)).toString()),
+                                              _checkmembership ?
+                                              Features.iscurrencyformatalign?
+                                              something[i].type == "1"?
+                                              ((double.parse(something[i]
+                                                  .membershipPrice!) *
+                                                  double.parse(something[i]
+                                                      .weight!))
+                                                  .toString() + " " + IConstants
+                                                  .currencyFormat):
+                                              ((double.parse(something[i]
+                                                  .membershipPrice!) *
+                                                  int.parse(something[i]
+                                                      .quantity!))
+                                                  .toString() + " " + IConstants
+                                                  .currencyFormat):
+                                              something[i].type == "1"?
+                                              (IConstants
+                                                  .currencyFormat + " " +
+                                                  (double.parse(something[i]
+                                                      .membershipPrice!) *
+                                                      double.parse(something[i]
+                                                          .weight!))
+                                                      .toString()):
+                                              (IConstants
+                                                  .currencyFormat + " " +
+                                                  (double.parse(something[i]
+                                                      .membershipPrice!) *
+                                                      int.parse(something[i]
+                                                          .quantity!))
+                                                      .toString()) :
+                                              Features.iscurrencyformatalign?
+                                              something[i].type == "1"?
+                                              ((double.parse(something[i].price!)*
+                                                  double.parse(something[i]
+                                                      .weight!))
+                                                  .toString()+
+                                                  " " + IConstants.currencyFormat):
+                                              ((double.parse(something[i].price!)*
+                                                  int.parse(something[i]
+                                                      .quantity!))
+                                                  .toString()+
+                                                  " " + IConstants.currencyFormat):
+                                              something[i].type == "1"?
+                                              (IConstants.currencyFormat +
+                                                  " " +
+                                                  (double.parse(something[i].price!)*
+                                                      double.parse(something[i]
+                                                          .weight!))
+                                                      .toString()):
+                                              (IConstants.currencyFormat +
+                                                  " " +
+                                                  (double.parse(something[i].price!)*
+                                                      int.parse(something[i]
+                                                          .quantity!))
+                                                      .toString()) ,
                                               overflow: TextOverflow.ellipsis,
                                               maxLines: 1,
                                               style: TextStyle(
@@ -6379,8 +6827,14 @@ if(_initialloading)
                                               Navigator.of(context).pop();
                                               _dialogforDeleting();
                                               cartcontroller.update((done){
-                                              },quantity: "0",var_id: something[i].varId.toString(),price: int.parse(something[i].price).toString());
-                                       },
+                                                // setState(() {
+                                                //   _isAddToCart = !done;
+                                                // });
+                                              },quantity: "0",increament:something[i].increment,weight:"0",
+                                                var_id: something[i].varId.toString(),price: int.parse(something[i].price!).toString(),
+                                                cart_id: something[i].parent_id!,toppings: "",
+                                                topping_id: "",);
+                                            },
                                           ),
                                         ],
                                       ),
@@ -6429,7 +6883,7 @@ if(_initialloading)
               child: Container(
                 width: (Vx.isWeb && !ResponsiveLayout.isSmallScreen(context))?MediaQuery.of(context).size.width*0.30:MediaQuery.of(context).size.width,
                 child: Stack(
-                  overflow: Overflow.visible,
+                  // overflow: Overflow.visible,
                   children: [
                     SingleChildScrollView(
                       child: Column(
@@ -6438,11 +6892,11 @@ if(_initialloading)
                             child: Column(
                               children: [
                                 SizedBox(height: 10,),
-                                Text(S.of(context).shipment+ " "+count.toString()+": " + express_delivery ,
+                                Text(S .of(context).shipment+ " "+count.toString()+": " + express_delivery ,
                                   style: TextStyle(color: ColorCodes.blackColor, fontWeight: FontWeight.bold, fontSize: 16),
                                 ),
                                 SizedBox(height: 10,),
-                                Text(length.toString()+" " + S.of(context).items,
+                                Text(length.toString()+" " + S .of(context).items,
                                   style: TextStyle(color: ColorCodes.greyColor, fontWeight: FontWeight.w400, fontSize: 14),
                                 ),
                                 SizedBox(height: 20,),
@@ -6470,7 +6924,7 @@ if(_initialloading)
                                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                         children: <Widget>[
                                           FadeInImage(
-                                            image: NetworkImage(ExpressDetails[i].itemImage),
+                                            image: NetworkImage(ExpressDetails[i].itemImage!),
                                             placeholder: AssetImage(
                                               Images.defaultProductImg,
                                             ),
@@ -6488,7 +6942,7 @@ if(_initialloading)
 
                                                     Container(
                                                       child: Text(
-                                                        ExpressDetails[i].itemName,
+                                                        ExpressDetails[i].itemName!,
                                                         overflow: TextOverflow.ellipsis,
                                                         maxLines: 2,
                                                         style: TextStyle(
@@ -6500,7 +6954,19 @@ if(_initialloading)
                                                     SizedBox(height: 5,),
                                                     Container(
                                                       child: Text(
-                                                        int.parse(ExpressDetails[i].quantity).toString()+" * "+ ExpressDetails[i].varName.toString(),
+                                                        ExpressDetails[i].type == "1"?
+                                                        ExpressDetails[i]
+                                                            .varName! +
+                                                            " * " +
+                                                            ExpressDetails[i]
+                                                                .weight
+                                                                .toString()
+                                                            :ExpressDetails[i]
+                                                            .varName! +
+                                                            " * " +
+                                                            ExpressDetails[i]
+                                                                .quantity
+                                                                .toString(),
                                                         overflow: TextOverflow.ellipsis,
                                                         maxLines: 1,
                                                         style: TextStyle(
@@ -6513,8 +6979,61 @@ if(_initialloading)
                                                   ])),
                                           Container(
                                             child: Text(
-                                              _checkmembership? (IConstants.currencyFormat+ " "+(double.parse(ExpressDetails[i].membershipPrice) * int.parse(ExpressDetails[i].quantity)).toString()):
-                                              (IConstants.currencyFormat+ " "+(double.parse(ExpressDetails[i].price) * int.parse(ExpressDetails[i].quantity)).toString()),
+                                              _checkmembership ?
+                                              Features.iscurrencyformatalign?
+                                              ExpressDetails[i].type == "1"?
+                                              ((double.parse(ExpressDetails[i]
+                                                  .membershipPrice!) *
+                                                  double.parse(ExpressDetails[i]
+                                                      .weight!))
+                                                  .toString() + " " + IConstants
+                                                  .currencyFormat):
+                                              ((double.parse(ExpressDetails[i]
+                                                  .membershipPrice!) *
+                                                  int.parse(ExpressDetails[i]
+                                                      .quantity!))
+                                                  .toString() + " " + IConstants
+                                                  .currencyFormat):   ExpressDetails[i].type == "1"?
+                                              (IConstants
+                                                  .currencyFormat + " " +
+                                                  (double.parse(ExpressDetails[i]
+                                                      .membershipPrice!) *
+                                                      double.parse(ExpressDetails[i]
+                                                          .weight!))
+                                                      .toString())
+
+                                                  :(IConstants
+                                                  .currencyFormat + " " +
+                                                  (double.parse(ExpressDetails[i]
+                                                      .membershipPrice!) *
+                                                      int.parse(ExpressDetails[i]
+                                                          .quantity!))
+                                                      .toString()) :
+                                              Features.iscurrencyformatalign?
+                                              ExpressDetails[i].type == "1"?
+                                              ((double.parse(ExpressDetails[i].price!)*
+                                                  double.parse(ExpressDetails[i]
+                                                      .weight!))
+                                                  .toString()+
+                                                  " " + IConstants.currencyFormat):
+                                              ((double.parse(ExpressDetails[i].price!)*
+                                                  int.parse(ExpressDetails[i]
+                                                      .quantity!))
+                                                  .toString()+
+                                                  " " + IConstants.currencyFormat):
+                                              ExpressDetails[i].type == "1"?
+                                              (IConstants.currencyFormat +
+                                                  " " +
+                                                  (double.parse(ExpressDetails[i].price!)*
+                                                      double.parse(ExpressDetails[i]
+                                                          .weight!))
+                                                      .toString())
+                                                  :(IConstants.currencyFormat +
+                                                  " " +
+                                                  (double.parse(ExpressDetails[i].price!)*
+                                                      int.parse(ExpressDetails[i]
+                                                          .quantity!))
+                                                      .toString()) ,
                                               overflow: TextOverflow.ellipsis,
                                               maxLines: 1,
                                               style: TextStyle(
@@ -6530,11 +7049,13 @@ if(_initialloading)
                                               Navigator.of(context).pop();
                                               _dialogforDeleting();
                                               cartcontroller.update((done){
-
-                                              },quantity: "0",var_id: ExpressDetails[i].varId.toString(),price: double.parse(ExpressDetails[i].price).toString());
-
-
-
+                                                // setState(() {
+                                                //   _isAddToCart = !done;
+                                                // });
+                                              },quantity: "0",increament:ExpressDetails[i].increment,weight:"0",
+                                                var_id: ExpressDetails[i].varId.toString(),price: double.parse(ExpressDetails[i].price!).toString(),
+                                                cart_id: ExpressDetails[i].parent_id!,toppings: "",
+                                                topping_id: "",);
                                             },
                                           ),
                                         ],
@@ -6588,7 +7109,7 @@ if(_initialloading)
                 width: (Vx.isWeb && !ResponsiveLayout.isSmallScreen(context))?MediaQuery.of(context).size.width*0.30:MediaQuery.of(context).size.width,
 
                 child: Stack(
-                  overflow: Overflow.visible,
+                  // overflow: Overflow.visible,
                   children: [
 
                     SingleChildScrollView(
@@ -6598,11 +7119,11 @@ if(_initialloading)
                             child: Column(
                               children: [
                                 SizedBox(height: 10,),
-                                Text(S.of(context).shipment+ " "+count.toString()+": " + delivery_on +" "+ date,
+                                Text(S .of(context).shipment+ " "+count.toString()+": " + delivery_on +" "+ date,
                                   style: TextStyle(color: ColorCodes.blackColor, fontWeight: FontWeight.bold, fontSize: 16),
                                 ),
                                 SizedBox(height: 10,),
-                                Text(length.toString()+" " + S.of(context).items,
+                                Text(length.toString()+" " + S .of(context).items,
                                   style: TextStyle(color: ColorCodes.greyColor, fontWeight: FontWeight.w400, fontSize: 14),
                                 ),
                                 SizedBox(height: 20,),
@@ -6631,7 +7152,7 @@ if(_initialloading)
                                           child: Row(
                                             children: <Widget>[
                                               FadeInImage(
-                                                image: NetworkImage(orderLinesDate.elementAt(i).itemImage),
+                                                image: NetworkImage(orderLinesDate.elementAt(i).itemImage!),
                                                 placeholder: AssetImage(
                                                   Images.defaultProductImg,
                                                 ),
@@ -6652,7 +7173,7 @@ if(_initialloading)
                                                           child: Text(
                                                             orderLinesDate
                                                                 .elementAt(i)
-                                                                .itemName,
+                                                                .itemName!,
                                                             overflow: TextOverflow
                                                                 .ellipsis,
                                                             maxLines: 2,
@@ -6666,12 +7187,20 @@ if(_initialloading)
                                                         SizedBox(height: 5,),
                                                         Container(
                                                           child: Text(
-                                                            orderLinesDate
-                                                                .elementAt(i)
-                                                                .quantity
-                                                                .toString()+" * "+ orderLinesDate
-                                                                .elementAt(i).varName
-                                                                .toString(),
+                                                            orderLinesDate[i].type == "1"?
+                                                            orderLinesDate[i]
+                                                                .varName! +
+                                                                " * " +
+                                                                orderLinesDate[i]
+                                                                    .weight
+                                                                    .toString()
+                                                                :orderLinesDate[i]
+                                                                .varName! +
+                                                                " * " +
+                                                                orderLinesDate[i]
+                                                                    .quantity
+                                                                    .toString(),
+
                                                             overflow: TextOverflow
                                                                 .ellipsis,
                                                             maxLines: 1,
@@ -6686,8 +7215,60 @@ if(_initialloading)
                                                       ])),
                                               Container(
                                                 child: Text(
-                                                  _checkmembership? (IConstants.currencyFormat+ " "+(double.parse(orderLinesDate[i].membershipPrice) * int.parse(orderLinesDate[i].quantity)).toString()):
-                                                  (IConstants.currencyFormat+ " "+(double.parse(orderLinesDate[i].price) * int.parse(orderLinesDate[i].quantity)).toString()),
+                                                  _checkmembership ?
+                                                  Features.iscurrencyformatalign?orderLinesDate[i].type == "1"?
+                                                  ((double.parse(orderLinesDate[i]
+                                                      .membershipPrice!) *
+                                                      double.parse(orderLinesDate[i]
+                                                          .weight!))
+                                                      .toString() + " " + IConstants
+                                                      .currencyFormat):
+                                                  ((double.parse(orderLinesDate[i]
+                                                      .membershipPrice!) *
+                                                      int.parse(orderLinesDate[i]
+                                                          .quantity!))
+                                                      .toString() + " " + IConstants
+                                                      .currencyFormat):
+                                                  orderLinesDate[i].type == "1"?
+                                                  (IConstants
+                                                      .currencyFormat + " " +
+                                                      (double.parse(orderLinesDate[i]
+                                                          .membershipPrice!) *
+                                                          double.parse(orderLinesDate[i]
+                                                              .weight!))
+                                                          .toString()):
+                                                  (IConstants
+                                                      .currencyFormat + " " +
+                                                      (double.parse(orderLinesDate[i]
+                                                          .membershipPrice!) *
+                                                          int.parse(orderLinesDate[i]
+                                                              .quantity!))
+                                                          .toString()) :
+                                                  Features.iscurrencyformatalign?orderLinesDate[i].type == "1"?
+                                                  ((double.parse(orderLinesDate[i].price!)*
+                                                      double.parse(orderLinesDate[i]
+                                                          .weight!))
+                                                      .toString()+
+                                                      " " + IConstants.currencyFormat):
+                                                  ((double.parse(orderLinesDate[i].price!)*
+                                                      int.parse(orderLinesDate[i]
+                                                          .quantity!))
+                                                      .toString()+
+                                                      " " + IConstants.currencyFormat):
+                                                  orderLinesDate[i].type == "1"?
+                                                  (IConstants.currencyFormat +
+                                                      " " +
+                                                      (double.parse(orderLinesDate[i].price!)*
+                                                          double.parse(orderLinesDate[i]
+                                                              .weight!))
+                                                          .toString())
+                                                      :
+                                                  (IConstants.currencyFormat +
+                                                      " " +
+                                                      (double.parse(orderLinesDate[i].price!)*
+                                                          int.parse(orderLinesDate[i]
+                                                              .quantity!))
+                                                          .toString()) ,
                                                   overflow: TextOverflow
                                                       .ellipsis,
                                                   maxLines: 1,
@@ -6708,7 +7289,11 @@ if(_initialloading)
                                                     // setState(() {
                                                     //   _isAddToCart = !done;
                                                     // });
-                                                  },quantity: "0",var_id: orderLinesDate[i].varId.toString(),price: double.parse(orderLinesDate[i].price).toString());
+                                                  },quantity: "0",increament:orderLinesDate[i].increment,weight:"0",
+                                                    var_id: orderLinesDate[i].varId.toString(),price: double.parse(orderLinesDate[i].price!).toString(),
+                                                    cart_id: orderLinesDate[i].parent_id!,
+                                                    toppings: "",
+                                                    topping_id: "",);
 
                                                 },
                                               ),
@@ -6729,7 +7314,7 @@ if(_initialloading)
                       child: GestureDetector(
                         behavior: HitTestBehavior.translucent,
                         onTap: () {
-                            Navigator.of(context).pop();
+                          Navigator.of(context).pop();
                         },
                         child: CircleAvatar(
                           radius: 14.0,
@@ -6757,67 +7342,51 @@ if(_initialloading)
                     /* shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12.0)),*/
                     child: Container(
-                      width: (Vx.isWeb && !ResponsiveLayout.isSmallScreen(context))?MediaQuery.of(context).size.width*0.30:MediaQuery.of(context).size.width,
-
+                      width: (Vx.isWeb && !ResponsiveLayout.isSmallScreen(context))?MediaQuery.of(context).size.width / 2.7:MediaQuery.of(context).size.width,
                       child: Stack(
-                        overflow: Overflow.visible,
+                        // overflow: Overflow.visible,
                         children: [
                           SingleChildScrollView(
-                            child: Column(
-                              children: <Widget>[
-                                Container(
-                                  child: Column(
-                                    children: [
-                                      SizedBox(height: 10,),
-                                      Text(S.of(context).shipment+ " "+count.toString()+": " + slot_based_delivery,
-                                        style: TextStyle(color: ColorCodes.blackColor, fontWeight: FontWeight.bold, fontSize: 16),
-                                      ),
-                                      SizedBox(height: 10,),
-                                      Text(length.toString()+" " + S.of(context).items,
-                                        style: TextStyle(color: ColorCodes.greyColor, fontWeight: FontWeight.w400, fontSize: 14),
-                                      ),
-                                      SizedBox(height: 20,),
-                                      // Divider(thickness: 2, color: ColorCodes.greyColor,),
-                                      //SizedBox(height: 10,),
-                                    ],
+                            child: Container(
+                              padding: EdgeInsets.all(15),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: <Widget>[
+                                  Text(S .of(context).shipment+ " "+ count.toString(),
+                                    style: TextStyle(color: ColorCodes.blackColor, fontWeight: FontWeight.bold, fontSize: 18),
                                   ),
-                                ),
-                                if(DefaultSlot.length>0)
-                                  SizedBox(
-                                    child: new ListView.separated(
-                                      separatorBuilder: (context, index) => Divider(
-                                        color: ColorCodes.lightGreyColor,
-                                      ),
-                                      physics: NeverScrollableScrollPhysics(),
-                                      shrinkWrap: true,
-                                      itemCount: DefaultSlot.length,
-                                      itemBuilder: (_, i) => Column(children: [
-                                        Container(
-                                          color: Colors.white,
-                                          child: Card(
-                                            /* shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(4),
-                                            side: new BorderSide(color: ColorCodes.primaryColor, width: 1.0),
-                                          ),*/
-                                            elevation: 0,
-                                            margin: EdgeInsets.all(5),
+                                  SizedBox(height: 5,),
+                                  Text(slot_based_delivery + " | " + length.toString()+" " + S .of(context).items,
+                                    style: TextStyle(color: ColorCodes.blackColor, fontWeight: FontWeight.w400, fontSize: 13),
+                                  ),
+                                  SizedBox(height: 10,),
+                                  if(DefaultSlot.length>0)
+                                    SizedBox(
+                                      child: new ListView.separated(
+                                        separatorBuilder: (context, index) => Divider(color: ColorCodes.lightGreyWebColor, thickness: 1),
+                                        physics: NeverScrollableScrollPhysics(),
+                                        shrinkWrap: true,
+                                        itemCount: DefaultSlot.length,
+                                        itemBuilder: (_, i) => Column(children: [
+                                          Container(
+                                            color: Colors.white,
                                             child: Row(
                                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                               children: <Widget>[
                                                 (cartItemList[i].mode == "1")
                                                     ? Image.asset(
                                                   Images.membershipImg,
-                                                  width: 80,
-                                                  height: 80,
+                                                  width: 70,
+                                                  height: 70,
                                                   color: Theme.of(context).primaryColor,
                                                 )
                                                     : FadeInImage(
-                                                  image: NetworkImage(DefaultSlot[i].itemImage),
+                                                  image: NetworkImage(DefaultSlot[i].itemImage!),
                                                   placeholder: AssetImage(
                                                     Images.defaultProductImg,
                                                   ),
-                                                  width: 30,
-                                                  height: 30,
+                                                  width: 70,
+                                                  height: 70,
                                                   fit: BoxFit.cover,
                                                 ),
 
@@ -6830,19 +7399,31 @@ if(_initialloading)
 
                                                           Container(
                                                             child: Text(
-                                                              DefaultSlot[i].itemName,
+                                                              DefaultSlot[i].itemName!,
                                                               overflow: TextOverflow.ellipsis,
                                                               maxLines: 2,
                                                               style: TextStyle(
                                                                   fontSize: 15,
                                                                   fontWeight: FontWeight.w600,
-                                                                  color: Colors.black54),
+                                                                  color: ColorCodes.blackColor),
                                                             ),
                                                           ),
                                                           SizedBox(height: 5,),
                                                           Container(
                                                             child: Text(
-                                                              int.parse(DefaultSlot[i].quantity).toString() +" * "+ DefaultSlot[i].varName,
+                                                              DefaultSlot[i].type == "1"?
+                                                              DefaultSlot[i]
+                                                                  .varName! +
+                                                                  " * " +
+                                                                  DefaultSlot[i]
+                                                                      .weight
+                                                                      .toString()
+                                                                  :DefaultSlot[i]
+                                                                  .varName! +
+                                                                  " * " +
+                                                                  DefaultSlot[i]
+                                                                      .quantity
+                                                                      .toString(),
                                                               overflow: TextOverflow.ellipsis,
                                                               maxLines: 1,
                                                               style: TextStyle(
@@ -6852,41 +7433,103 @@ if(_initialloading)
                                                             ),
                                                           ),
                                                         ])),
-                                                Container(
-                                                  child: Text(
-                                                    _checkmembership? (IConstants.currencyFormat+ " "+(double.parse(DefaultSlot[i].membershipPrice) * int.parse(DefaultSlot[i].quantity)).toString()):
-                                                    (IConstants.currencyFormat+ " "+(double.parse(DefaultSlot[i].price) * int.parse(DefaultSlot[i].quantity)).toString()),
-                                                    overflow: TextOverflow.ellipsis,
-                                                    maxLines: 1,
-                                                    style: TextStyle(
-                                                        fontSize: 15,
-                                                        fontWeight: FontWeight.w600,
-                                                        color: Colors.black),
-                                                  ),
-                                                ),
-                                                IconButton(
-                                                  icon: Icon(Icons.delete),
-                                                  color: Colors.grey,
-                                                  onPressed: () {
-                                                    Navigator.of(context).pop();
-                                                    _dialogforDeleting();
-                                                    cartcontroller.update((done){
-                                                      // setState(() {
-                                                      //   _isAddToCart = !done;
-                                                      // });
-                                                    },quantity: "0",var_id: DefaultSlot[i].varId.toString(),price: double.parse(DefaultSlot[i].price).toString());
-                                                  },
+                                                Column(
+                                                  children: [
+                                                    IconButton(
+                                                      icon: Icon(Icons.delete_forever, size: 18,),
+                                                      color: ColorCodes.primaryColor,
+                                                      onPressed: () {
+                                                        Navigator.of(context).pop();
+                                                        _dialogforDeleting();
+                                                        cartcontroller.update((done){
+                                                          // setState(() {
+                                                          //   _isAddToCart = !done;
+                                                          // });
+                                                        },quantity: "0",increament:DefaultSlot[i].increment,weight:"0",var_id: DefaultSlot[i].varId.toString(),
+                                                          price: double.parse(DefaultSlot[i].price!).toString(),
+                                                          cart_id: DefaultSlot[i].parent_id!,
+                                                          toppings: "",
+                                                          topping_id: "",);
+                                                      },
+                                                    ),
+                                                    SizedBox(height: 5),
+                                                    Container(
+                                                      child: Text(
+                                                        _checkmembership ?
+                                                        Features.iscurrencyformatalign?DefaultSlot[i].type == "1"?
+                                                        ((double.parse(DefaultSlot[i]
+                                                            .membershipPrice!) *
+                                                            double.parse(DefaultSlot[i]
+                                                                .weight!))
+                                                            .toString() + " " + IConstants
+                                                            .currencyFormat):
+                                                        ((double.parse(DefaultSlot[i]
+                                                            .membershipPrice!) *
+                                                            int.parse(DefaultSlot[i]
+                                                                .quantity!))
+                                                            .toString() + " " + IConstants
+                                                            .currencyFormat):DefaultSlot[i].type == "1"?
+                                                        (IConstants
+                                                            .currencyFormat + " " +
+                                                            (double.parse(DefaultSlot[i]
+                                                                .membershipPrice!) *
+                                                                double.parse(DefaultSlot[i]
+                                                                    .weight!))
+                                                                .toString())
+
+                                                            :(IConstants
+                                                            .currencyFormat + " " +
+                                                            (double.parse(DefaultSlot[i]
+                                                                .membershipPrice!) *
+                                                                int.parse(DefaultSlot[i]
+                                                                    .quantity!))
+                                                                .toString()) :
+                                                        Features.iscurrencyformatalign?
+                                                        DefaultSlot[i].type == "1"?
+                                                        ((double.parse(DefaultSlot[i].price!)*
+                                                            double.parse(DefaultSlot[i]
+                                                                .weight!))
+                                                            .toString()+
+                                                            " " + IConstants.currencyFormat):
+                                                        ((double.parse(DefaultSlot[i].price!)*
+                                                            int.parse(DefaultSlot[i]
+                                                                .quantity!))
+                                                            .toString()+
+                                                            " " + IConstants.currencyFormat):
+                                                        DefaultSlot[i].type == "1"?
+                                                        (IConstants.currencyFormat +
+                                                            " " +
+                                                            (double.parse(DefaultSlot[i].price!)*
+                                                                double.parse(DefaultSlot[i]
+                                                                    .weight!))
+                                                                .toString())
+                                                            :(IConstants.currencyFormat +
+                                                            " " +
+                                                            (double.parse(DefaultSlot[i].price!)*
+                                                                int.parse(DefaultSlot[i]
+                                                                    .quantity!))
+                                                                .toString()) ,
+                                                        overflow: TextOverflow.ellipsis,
+                                                        maxLines: 1,
+                                                        style: TextStyle(
+                                                            fontSize: 14,
+                                                            fontWeight: FontWeight.w600,
+                                                            color: Colors.black),
+                                                      ),
+                                                    ),
+                                                  ],
                                                 ),
 
                                               ],
                                             ),
                                           ),
-                                        )
-                                      ],
+
+                                        ],
+                                        ),
                                       ),
                                     ),
-                                  ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
                           Positioned(
@@ -6895,7 +7538,7 @@ if(_initialloading)
                             child: GestureDetector(
                               behavior: HitTestBehavior.translucent,
                               onTap: () {
-                                  Navigator.of(context).pop();
+                                Navigator.of(context).pop();
                               },
                               child: CircleAvatar(
                                 radius: 14.0,
@@ -6924,7 +7567,7 @@ if(_initialloading)
         ListView.builder(
             physics: NeverScrollableScrollPhysics(),
             shrinkWrap: true,
-            itemCount: newMap.length,
+            itemCount: newMap!.length,
             itemBuilder: (_, i) {
 
               String minOrdAmount="0.0";
@@ -6945,14 +7588,19 @@ if(_initialloading)
 
               double DefaultDateTotal=0.0;
               String note="";
-              for (int j = 0; j < newMap.values.elementAt(i).length; j++) {
+              for (int j = 0; j < newMap!.values.elementAt(i).length; j++) {
 
-                DefaultDateTotal = _checkmembership?
+                DefaultDateTotal = _checkmembership?newMap!.values.elementAt(i)[j].type =="1"?
                 DefaultDateTotal+(double.parse(
-                    (double.parse(newMap.values.elementAt(i)[j].membershipPrice) *int.parse(newMap.values.elementAt(i)[j].quantity)).toString()))
-                    :DefaultDateTotal+(double.parse(
-                    (double.parse(newMap.values.elementAt(i)[j].price) * int.parse(newMap.values.elementAt(i)[j].quantity)).toString()));
-                note= newMap.values.elementAt(i)[j].note;
+                    (double.parse(newMap!.values.elementAt(i)[j].membershipPrice!) *double.parse(newMap!.values.elementAt(i)[j].weight!)).toString())):
+                DefaultDateTotal+(double.parse(
+                    (double.parse(newMap!.values.elementAt(i)[j].membershipPrice!) *int.parse(newMap!.values.elementAt(i)[j].quantity!)).toString())):
+                newMap!.values.elementAt(i)[j].type =="1"?
+                    DefaultDateTotal+(double.parse(
+                    (double.parse(newMap!.values.elementAt(i)[j].price!) * double.parse(newMap!.values.elementAt(i)[j].weight!)).toString())):
+              DefaultDateTotal+(double.parse(
+              (double.parse(newMap!.values.elementAt(i)[j].price!) * int.parse(newMap!.values.elementAt(i)[j].quantity!)).toString()));
+                note= newMap!.values.elementAt(i)[j].note!;
               }
               if(DefaultDateTotal < double.parse(minOrdAmount)){
                 deliveryfinalslotdate = double.parse(delCharge);
@@ -6964,7 +7612,9 @@ if(_initialloading)
               if(deliveryfinalslotdate == 0){
                 deliverychargetextDate= "FREE";
               }else{
-                deliverychargetextDate = IConstants.currencyFormat + " " + double.parse(delCharge).toString();
+                deliverychargetextDate = Features.iscurrencyformatalign?
+                double.parse(delCharge).toString() + " " + IConstants.currencyFormat:
+                IConstants.currencyFormat + " " + double.parse(delCharge).toString();
               }
               if(DefaultDateTotal < double.parse(minOrdAmount)){
                 defaultamountdate = double.parse(minOrdAmount) - DefaultDateTotal;
@@ -6980,19 +7630,19 @@ if(_initialloading)
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         (newMap != null)?Text(
-                          S.of(context).shipment +" "//"Shipment "
+                          S .of(context).shipment +" "//"Shipment "
                               + (finalcount).toString(),
                           style: TextStyle(fontSize: 13,fontWeight: FontWeight.bold,color: ColorCodes.greyColor),
                         ):SizedBox.shrink(),
-                        Text(S.of(context).delivery_on +" "//"Delivery on "
-                            + newMap.keys.elementAt(i).toString(), style: TextStyle(fontSize: 13,
+                        Text(S .of(context).delivery_on +" "//"Delivery on "
+                            + newMap!.keys.elementAt(i).toString(), style: TextStyle(fontSize: 13,
                             fontWeight: FontWeight.w600,
                             color: Theme.of(context).primaryColor
                         ),),
                         GestureDetector(
                           behavior: HitTestBehavior.translucent,
                           onTap: (){
-                            dialogforViewAllDateTimeProduct(newMap.values.elementAt(i), finalcount,S.of(context).delivery_on,newMap.keys.elementAt(i),newMap.values.elementAt(i).length);
+                            dialogforViewAllDateTimeProduct(newMap!.values.elementAt(i), finalcount,S .of(context).delivery_on,newMap!.keys.elementAt(i),newMap!.values.elementAt(i).length);
                           },
                           child: Container(
                             padding: EdgeInsets.only(left: 5,right: 5),
@@ -7009,8 +7659,8 @@ if(_initialloading)
                             height: 25,
                             child: Center(
                               child: Text(
-                                S.of(context).view+" "//"View "
-                                    + newMap.values.elementAt(i).length.toString()+" "+S.of(context).items,//"Items",
+                                S .of(context).view+" "//"View "
+                                    + newMap!.values.elementAt(i).length.toString()+" "+S .of(context).items,//"Items",
                                 style: TextStyle(
                                     color: ColorCodes.darkgreen,
                                     fontSize: 14
@@ -7027,7 +7677,7 @@ if(_initialloading)
                       children: [
 
                         Text(
-                          S.of(context).delivery_charge,//"Delivery Charge: ",
+                          S .of(context).delivery_charge,//"Delivery Charge: ",
                           style: TextStyle(
                               color: ColorCodes.greyColor,
                               fontSize: 10, fontWeight: FontWeight.w400
@@ -7050,7 +7700,7 @@ if(_initialloading)
                       children: [
 
                         Text(
-                          S.of(context).note,//"Note: ",
+                          S .of(context).note,//"Note: ",
                           style: TextStyle(
                               color: ColorCodes.greyColor,
                               fontSize: 10, fontWeight: FontWeight.w400
@@ -7083,7 +7733,7 @@ if(_initialloading)
         ListView.builder(
             physics: NeverScrollableScrollPhysics(),
             shrinkWrap: true,
-            itemCount: newMap1.length,
+            itemCount: newMap1!.length,
             itemBuilder: (_, i)
             {
 
@@ -7103,13 +7753,18 @@ if(_initialloading)
 
               String note="";
               double DefaultTimeTotal =0.0;
-              for(int j = 0; j < newMap1.values.elementAt(i).length; j++) {
-                DefaultTimeTotal = _checkmembership?
+              for(int j = 0; j < newMap1!.values.elementAt(i).length; j++) {
+                DefaultTimeTotal = _checkmembership?newMap1!.values.elementAt(i)[j].type =="1"?
                 DefaultTimeTotal+(double.parse(
-                    (double.parse(newMap1.values.elementAt(i)[j].membershipPrice) * int.parse(newMap1.values.elementAt(i)[j].quantity)).toString()))
+                    (double.parse(newMap1!.values.elementAt(i)[j].membershipPrice!) * double.parse(newMap1!.values.elementAt(i)[j].weight!)).toString())):
+                DefaultTimeTotal+(double.parse(
+                    (double.parse(newMap1!.values.elementAt(i)[j].membershipPrice!) * int.parse(newMap1!.values.elementAt(i)[j].quantity!)).toString())):
+                newMap1!.values.elementAt(i)[j].type =="1"?
+                DefaultTimeTotal+(double.parse(
+                    (double.parse(newMap1!.values.elementAt(i)[j].price!) * double.parse(newMap1!.values.elementAt(i)[j].weight!)).toString()))
                     :DefaultTimeTotal+(double.parse(
-                    (double.parse(newMap1.values.elementAt(i)[j].quantity) * int.parse(newMap1.values.elementAt(i)[j].quantity)).toString()));
-                note= newMap1.values.elementAt(i)[j].note;
+                    (double.parse(newMap1!.values.elementAt(i)[j].price!) * int.parse(newMap1!.values.elementAt(i)[j].quantity!)).toString()));
+                note= newMap1!.values.elementAt(i)[j].note!;
               }
               if(DefaultTimeTotal < double.parse(minOrdAmount)){
                 deliveryfinalslotTime = double.parse(delCharge);
@@ -7122,7 +7777,9 @@ if(_initialloading)
               if(deliveryfinalslotTime == 0){
                 deliverychargetextTime= "FREE";
               }else{
-                deliverychargetextTime = IConstants.currencyFormat + " " + double.parse(delCharge).toString();
+                deliverychargetextTime = Features.iscurrencyformatalign?
+                double.parse(delCharge).toString() + " " + IConstants.currencyFormat:
+                IConstants.currencyFormat + " " + double.parse(delCharge).toString();
               }
               if(DefaultTimeTotal < double.parse(minOrdAmount)){
                 deliveryamounttext = double.parse(minOrdAmount) - DefaultTimeTotal;
@@ -7138,13 +7795,13 @@ if(_initialloading)
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         (newMap1 != null)?   Text(
-                          S.of(context).shipment//"Shipment "
+                          S .of(context).shipment//"Shipment "
                               +" " + (finalcount).toString(),
                           style: TextStyle(
                               fontSize: 13, fontWeight: FontWeight.bold,color: ColorCodes.greyColor),
                         ):SizedBox.shrink(),
-                        Text( S.of(context).delivery_in+//Delivery in " +
-                            " "  + newMap1.keys.elementAt(i).toString() + S.of(context).hours,//" Hours",
+                        Text( S .of(context).delivery_in+//Delivery in " +
+                            " "  + newMap1!.keys.elementAt(i).toString() + S .of(context).hours,//" Hours",
                             style: TextStyle(
                                 fontSize: 13, fontWeight: FontWeight.w600, color: ColorCodes.primaryColor)
                         ),
@@ -7152,7 +7809,7 @@ if(_initialloading)
                         GestureDetector(
                           behavior: HitTestBehavior.translucent,
                           onTap: () {
-                            dialogforViewAllDateTimeProduct(newMap1.values.elementAt(i), finalcount,S.of(context).delivery_in,newMap1.keys.elementAt(i),newMap1.values.elementAt(i).length);
+                            dialogforViewAllDateTimeProduct(newMap1!.values.elementAt(i), finalcount,S .of(context).delivery_in,newMap1!.keys.elementAt(i),newMap1!.values.elementAt(i).length);
                           },
                           child: Container(
                             padding: EdgeInsets.only(left: 5, right: 5),
@@ -7178,14 +7835,14 @@ if(_initialloading)
                             height: 25,
                             child: Center(
                               child: Text(
-                                S.of(context).view +//"View "
+                                S .of(context).view +//"View "
                                     " " +
-                                    newMap1.values
+                                    newMap1!.values
                                         .elementAt(i)
                                         .length
                                         .toString() +
                                     " " +
-                                    S.of(context).items,//"Items",
+                                    S .of(context).items,//"Items",
                                 style: TextStyle(
                                     color: ColorCodes.darkgreen,
                                     fontSize: 14),
@@ -7201,7 +7858,7 @@ if(_initialloading)
                     Row(
                       children: [
                         Text(
-                          S.of(context).delivery_charge,//"Delivery Charge: ",
+                          S .of(context).delivery_charge,//"Delivery Charge: ",
                           style: TextStyle(
                               color: ColorCodes.greyColor,
                               fontSize: 10,
@@ -7231,7 +7888,7 @@ if(_initialloading)
                       children: [
 
                         Text(
-                          S.of(context).note,//"Note: ",
+                          S .of(context).note,//"Note: ",
                           style: TextStyle(
                               color: ColorCodes.greyColor,
                               fontSize: 10, fontWeight: FontWeight.w400
@@ -7267,20 +7924,21 @@ if(_initialloading)
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  S.of(context).shipment +" "//"Shipment "
+                  S .of(context).shipment +" "//"Shipment "
                       +(finalcount).toString(),//Slot Based Delivery",
-                  style: TextStyle(fontSize: 13,fontWeight: FontWeight.bold,color: ColorCodes.greyColor),
+                  style: TextStyle(color: ColorCodes.blackColor,
+                      fontSize: 15, fontWeight: FontWeight.bold),
                 ),
-                Text(S.of(context).slot_based_delivery,
-                  style: TextStyle(fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: Theme.of(context).primaryColor
+                Text(S .of(context).slot_based_delivery,
+                  style: TextStyle(fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: ColorCodes.primaryColor,
                   ),
                 ),
                 GestureDetector(
                   behavior: HitTestBehavior.translucent,
                   onTap: (){
-                    dialogforViewAllProductSlotExpress(finalcount,S.of(context).slot_based_delivery,DefaultSlot.length);
+                    dialogforViewAllProductSlotExpress(finalcount,S .of(context).slot_based_delivery,DefaultSlot.length);
                   },
                   child: Container(
                     padding: EdgeInsets.only(left: 5,right: 5),
@@ -7295,9 +7953,9 @@ if(_initialloading)
                     height: 25,
                     child: Center(
                       child: Text(
-                        S.of(context).view//"View "
+                        S .of(context).view//"View "
                             + " " + DefaultSlot.length.toString()+" "+
-                            S.of(context).items,//"Items",
+                            S .of(context).items,//"Items",
                         style: TextStyle(
                             color: ColorCodes.darkgreen,
                             fontSize: 14
@@ -7313,14 +7971,14 @@ if(_initialloading)
               children: [
 
                 Text(
-                  S.of(context).delivery_charge,//"Delivery Charge: ",
+                  S .of(context).delivery_charge,//"Delivery Charge: ",
                   style: TextStyle(
                       color: ColorCodes.greyColor,
                       fontSize: 10, fontWeight: FontWeight.w400
                   ),),
                 SizedBox(width: 2,),
                 Text(
-                  deliverychargetextdefault
+                  deliverychargetextdefault!
                   ,style: TextStyle(
                   color: (deliverychargetextdefault == "FREE")? ColorCodes.greenColor:
                   ColorCodes.greyColor,
@@ -7380,10 +8038,10 @@ if(_initialloading)
             Row(
               children: [
                 Text(
-                  S.of(context).select_TimeSlot,//"Delivery Charge: ",
+                  S .of(context).select_TimeSlot,//"Delivery Charge: ",
                   style: TextStyle(
-                      color: ColorCodes.greyColor,
-                      fontSize: 13, fontWeight: FontWeight.bold
+                      color: ColorCodes.blackColor,
+                      fontSize: 15, fontWeight: FontWeight.bold
                   ),),
               ],
             ),
@@ -7406,16 +8064,17 @@ if(_initialloading)
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 (ExpressDetails.length >0)?   Text(
-                  S.of(context).shipment+ //"Shipment "
+                  S .of(context).shipment+ //"Shipment "
                       " " + (finalCount).toString() ,//Express Delivery",
-                  style: TextStyle(fontSize: 13,fontWeight: FontWeight.bold, color: ColorCodes.greyColor),
+                  style: TextStyle(color: ColorCodes.blackColor,
+                      fontSize: 15, fontWeight: FontWeight.bold),
                 ):SizedBox.shrink(),
-                Text( S.of(context).express_delivery,
-                    style: TextStyle(fontSize: 13,fontWeight: FontWeight.w600,color: ColorCodes.primaryColor)),
+                Text( S .of(context).express_delivery,
+                    style: TextStyle(fontSize: 15,fontWeight: FontWeight.bold,color: ColorCodes.primaryColor)),
                 GestureDetector(
                   behavior: HitTestBehavior.translucent,
                   onTap: (){
-                    dialogforViewAllProductExpress(finalCount,S.of(context).express_delivery,ExpressDetails.length);
+                    dialogforViewAllProductExpress(finalCount,S .of(context).express_delivery,ExpressDetails.length);
                   },
                   child: Container(
                     padding: EdgeInsets.only(left: 5,right: 5),
@@ -7431,9 +8090,9 @@ if(_initialloading)
                     height: 25,
                     child: Center(
                       child: Text(
-                        S.of(context).view//"View "
+                        S .of(context).view//"View "
                             +" " + ExpressDetails.length.toString()+" "+
-                            S.of(context).items,//"Items",
+                            S .of(context).items,//"Items",
                         style: TextStyle(
                             color: ColorCodes.darkgreen,
                             fontSize: 14
@@ -7450,14 +8109,14 @@ if(_initialloading)
               children: [
 
                 Text(
-                  S.of(context).delivery_charge//"Delivery Charge: "
+                  S .of(context).delivery_charge//"Delivery Charge: "
                   ,style: TextStyle(
                     color: ColorCodes.greyColor,
                     fontSize: 10, fontWeight: FontWeight.w400
                 ),),
                 SizedBox(width: 2,),
                 Text(
-                  (deliverychargetextExpress)
+                  (deliverychargetextExpress)!
                   ,style: TextStyle(
                   color: (deliverychargetextExpress == "FREE")? ColorCodes.greenColor:
                   ColorCodes.greyColor,
@@ -7483,18 +8142,18 @@ if(_initialloading)
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  S.of(context).shipment+
+                  S .of(context).shipment+
                       " " + (standard).toString() ,//Slot Based Delivery",
                   style: TextStyle(fontSize: 13,fontWeight: FontWeight.bold, color: ColorCodes.greyColor),
                 ),
                 Text(
-                  S.of(context).slot_based_delivery,
+                  S .of(context).slot_based_delivery,
                   style: TextStyle(fontSize: 13,fontWeight: FontWeight.w600, color: ColorCodes.primaryColor),
                 ),
                 GestureDetector(
                   behavior: HitTestBehavior.translucent,
                   onTap: (){
-                    dialogforViewAllProductSecond(standard,S.of(context).slot_based_delivery,something.length);
+                    dialogforViewAllProductSecond(standard,S .of(context).slot_based_delivery,something.length);
                   },
                   child: Container(
                     padding: EdgeInsets.only(left: 5,right: 5),
@@ -7509,9 +8168,9 @@ if(_initialloading)
                     height: 25,
                     child: Center(
                       child: Text(
-                        S.of(context).view//"View "
+                        S .of(context).view//"View "
                             + " "  + something.length.toString()+" "+
-                            S.of(context).items ,//"Items",
+                            S .of(context).items ,//"Items",
                         style: TextStyle(
                             color: ColorCodes.darkgreen,
                             fontSize: 14
@@ -7527,14 +8186,14 @@ if(_initialloading)
               children: [
 
                 Text(
-                  S.of(context).delivery_charge,//"Delivery Charge: ",
+                  S .of(context).delivery_charge,//"Delivery Charge: ",
                   style: TextStyle(
                       color: ColorCodes.greyColor,
                       fontSize: 10, fontWeight: FontWeight.w400
                   ),),
                 SizedBox(width: 2,),
                 Text(
-                  deliverychargetextSecond
+                  deliverychargetextSecond!
                   ,style: TextStyle(
                   color: (deliverychargetextSecond == "FREE")? ColorCodes.greenColor:
                   ColorCodes.greyColor,
@@ -7547,7 +8206,7 @@ if(_initialloading)
             Row(
               children: [
                 Text(
-                  S.of(context).select_TimeSlot,//"Delivery Charge: ",
+                  S .of(context).select_TimeSlot,//"Delivery Charge: ",
                   style: TextStyle(
 
                       fontSize: 13, fontWeight: FontWeight.bold,color: ColorCodes.greyColor
@@ -7568,7 +8227,7 @@ if(_initialloading)
           ListView.builder(
               physics: NeverScrollableScrollPhysics(),
               shrinkWrap: true,
-              itemCount: newMap2.length,
+              itemCount: newMap2!.length,
               itemBuilder: (ctx, i)
               {
                 String minOrdAmount="0.0";
@@ -7586,15 +8245,21 @@ if(_initialloading)
                 }
 
                 String note ="";
-                for (int j = 0; j < newMap2.values.elementAt(i).length; j++) {
-                  SecondDateTotal = _checkmembership?
+                for (int j = 0; j < newMap2!.values.elementAt(i).length; j++) {
+                  SecondDateTotal = _checkmembership?newMap2!.values.elementAt(i)[j].type =="1"?
                   SecondDateTotal + (double.parse(
-                      (double.parse(newMap2.values.elementAt(i)[j].membershipPrice) *int.parse(newMap2.values.elementAt(i)[j].quantity))
+                      (double.parse(newMap2!.values.elementAt(i)[j].membershipPrice!) *double.parse(newMap2!.values.elementAt(i)[j].weight!))
+                          .toString())):
+                  SecondDateTotal + (double.parse(
+                      (double.parse(newMap2!.values.elementAt(i)[j].membershipPrice!) *int.parse(newMap2!.values.elementAt(i)[j].quantity!))
+                          .toString())):newMap2!.values.elementAt(i)[j].type =="1"?
+                  SecondDateTotal + (double.parse(
+                      (double.parse(newMap2!.values.elementAt(i)[j].price!) *double.parse(newMap2!.values.elementAt(i)[j].weight!))
                           .toString()))
                       :SecondDateTotal + (double.parse(
-                      (double.parse(newMap2.values.elementAt(i)[j].price) *int.parse(newMap2.values.elementAt(i)[j].quantity))
+                      (double.parse(newMap2!.values.elementAt(i)[j].price!) *int.parse(newMap2!.values.elementAt(i)[j].quantity!))
                           .toString()));
-                  note= newMap2.values.elementAt(i)[j].note;
+                  note= newMap2!.values.elementAt(i)[j].note!;
                 }
                 if (SecondDateTotal < double.parse(minOrdAmount)) {
 
@@ -7608,7 +8273,9 @@ if(_initialloading)
                   deliverychargetextSecDate = "FREE";
                 } else {
                   deliverychargetextSecDate =
-                      IConstants.currencyFormat + " " + deliveryDateamount.toString();
+                  Features.iscurrencyformatalign?
+                  deliveryDateamount.toString()  + " " + IConstants.currencyFormat:
+                  IConstants.currencyFormat + " " + deliveryDateamount.toString();
                 }
                 return  Container(
                   child: Column(
@@ -7617,13 +8284,13 @@ if(_initialloading)
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            S.of(context).shipment+" "//"Shipment "
+                            S .of(context).shipment+" "//"Shipment "
                                 + (finalCount).toString() ,
                             style: TextStyle(
                                 fontSize: 13, fontWeight: FontWeight.bold,color: ColorCodes.greyColor),
                           ),
-                          Text( S.of(context).delivery_on + " "//Delivery on " +
-                              + newMap2.keys.elementAt(i).toString(),
+                          Text( S .of(context).delivery_on + " "//Delivery on " +
+                              + newMap2!.keys.elementAt(i).toString(),
                             style: TextStyle(
                                 fontSize: 13, fontWeight: FontWeight.w600,color: ColorCodes.primaryColor),
                           ),
@@ -7631,7 +8298,7 @@ if(_initialloading)
                           GestureDetector(
                             behavior: HitTestBehavior.translucent,
                             onTap: () {
-                              dialogforViewAllDateTimeProduct(newMap2.values.elementAt(i),finalCount,S.of(context).delivery_on,newMap2.keys.elementAt(i),newMap2.values.elementAt(i).length);
+                              dialogforViewAllDateTimeProduct(newMap2!.values.elementAt(i),finalCount,S .of(context).delivery_on,newMap2!.keys.elementAt(i),newMap2!.values.elementAt(i).length);
                             },
                             child: Container(
                               padding: EdgeInsets.only(left: 5, right: 5),
@@ -7658,13 +8325,13 @@ if(_initialloading)
                               height: 25,
                               child: Center(
                                 child: Text(
-                                  S.of(context).view// "View "
-                                      +" " + newMap2.values
+                                  S .of(context).view// "View "
+                                      +" " + newMap2!.values
                                       .elementAt(i)
                                       .length
                                       .toString() +
                                       " " +
-                                      S.of(context).items,//"Items",
+                                      S .of(context).items,//"Items",
                                   style: TextStyle(
                                       color: ColorCodes.darkgreen,
                                       fontSize: 14),
@@ -7680,7 +8347,7 @@ if(_initialloading)
                       Row(
                         children: [
                           Text(
-                            S.of(context).delivery_charge,//"Delivery Charge: ",
+                            S .of(context).delivery_charge,//"Delivery Charge: ",
                             style: TextStyle(
                                 color: ColorCodes.greyColor,
                                 fontSize: 10,
@@ -7690,7 +8357,7 @@ if(_initialloading)
                             width: 2,
                           ),
                           Text(
-                            deliverychargetextSecDate,
+                            deliverychargetextSecDate!,
                             style: TextStyle(
                               color: (deliverychargetextSecDate == "FREE")
                                   ? ColorCodes.greenColor
@@ -7709,7 +8376,7 @@ if(_initialloading)
                         children: [
 
                           Text(
-                            S.of(context).note,//"Note: ",
+                            S .of(context).note,//"Note: ",
                             style: TextStyle(
                                 color: ColorCodes.greyColor,
                                 fontSize: 10, fontWeight: FontWeight.w400
@@ -7745,7 +8412,7 @@ if(_initialloading)
           ListView.builder(
               physics: NeverScrollableScrollPhysics(),
               shrinkWrap: true,
-              itemCount: newMap3.length,
+              itemCount: newMap3!.length,
               itemBuilder: (_, i)
               {
 
@@ -7765,16 +8432,22 @@ if(_initialloading)
 
                 double SecondTimeTotal =0.0;
                 String note ="";
-                for (int j = 0; j < newMap3.values.elementAt(i).length; j++) {
+                for (int j = 0; j < newMap3!.values.elementAt(i).length; j++) {
 
-                  SecondTimeTotal =_checkmembership?
+                  SecondTimeTotal =_checkmembership?newMap3!.values.elementAt(i)[j].type =="1"?
                   SecondTimeTotal+(double.parse(
-                      (double.parse(newMap3.values.elementAt(i)[j].membershipPrice) * int.parse(newMap3.values.elementAt(i)[j].quantity))
+                      (double.parse(newMap3!.values.elementAt(i)[j].membershipPrice!) * double.parse(newMap3!.values.elementAt(i)[j].weight!))
+                          .toString())):
+                  SecondTimeTotal+(double.parse(
+                      (double.parse(newMap3!.values.elementAt(i)[j].membershipPrice!) * int.parse(newMap3!.values.elementAt(i)[j].quantity!))
+                          .toString())):newMap3!.values.elementAt(i)[j].type =="1"?
+                  SecondTimeTotal+(double.parse(
+                      (double.parse(newMap3!.values.elementAt(i)[j].price!) * double.parse(newMap3!.values.elementAt(i)[j].weight!))
                           .toString()))
                       :SecondTimeTotal+(double.parse(
-                      (double.parse(newMap3.values.elementAt(i)[j].price) * int.parse(newMap3.values.elementAt(i)[j].quantity))
+                      (double.parse(newMap3!.values.elementAt(i)[j].price!) * int.parse(newMap3!.values.elementAt(i)[j].quantity!))
                           .toString()));
-                  note= newMap3.values.elementAt(i)[j].note;
+                  note= newMap3!.values.elementAt(i)[j].note!;
 
                 }
                 if(SecondTimeTotal < double.parse(minOrdAmount)){
@@ -7787,7 +8460,9 @@ if(_initialloading)
                 if(deliveryTimeamount == 0){
                   deliverychargetextSecTime = "FREE";
                 }else{
-                  deliverychargetextSecTime = IConstants.currencyFormat + " " + deliveryTimeamount.toString();
+                  deliverychargetextSecTime = Features.iscurrencyformatalign?
+                  deliveryTimeamount.toString() + " " + IConstants.currencyFormat:
+                  IConstants.currencyFormat + " " + deliveryTimeamount.toString();
                 }
                 return  Container(
                   child: Column(
@@ -7796,20 +8471,20 @@ if(_initialloading)
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            S.of(context).shipment+ " "//"Shipment "
+                            S .of(context).shipment+ " "//"Shipment "
                                 + (finalCount).toString() ,
                             style: TextStyle(
                                 fontSize: 13, fontWeight: FontWeight.bold,color: ColorCodes.greyColor),
                           ),
-                          Text(S.of(context).delivery_in+ " "//Delivery in " +
-                              + newMap3.keys.elementAt(i).toString() +" Hours",
+                          Text(S .of(context).delivery_in+ " "//Delivery in " +
+                              + newMap3!.keys.elementAt(i).toString() +" Hours",
                             style: TextStyle(
                                 fontSize: 13, fontWeight: FontWeight.w600,color: ColorCodes.primaryColor),
                           ),
                           GestureDetector(
                             behavior: HitTestBehavior.translucent,
                             onTap: () {
-                              dialogforViewAllDateTimeProduct(newMap3.values.elementAt(i),finalCount,S.of(context).delivery_in,newMap3.keys.elementAt(i),newMap3.values.elementAt(i).length);
+                              dialogforViewAllDateTimeProduct(newMap3!.values.elementAt(i),finalCount,S .of(context).delivery_in,newMap3!.keys.elementAt(i),newMap3!.values.elementAt(i).length);
                             },
                             child: Container(
                               padding: EdgeInsets.only(left: 5, right: 5),
@@ -7836,13 +8511,13 @@ if(_initialloading)
                               height: 25,
                               child: Center(
                                 child: Text(
-                                  S.of(context).view//"View "
-                                      +" "  + newMap3.values
+                                  S .of(context).view//"View "
+                                      +" "  + newMap3!.values
                                       .elementAt(i)
                                       .length
                                       .toString() +
                                       " " +
-                                      S.of(context).items,//"Items",
+                                      S .of(context).items,//"Items",
                                   style: TextStyle(
                                       color: ColorCodes.darkgreen,
                                       fontSize: 14),
@@ -7858,7 +8533,7 @@ if(_initialloading)
                       Row(
                         children: [
                           Text(
-                            S.of(context).delivery_charge,//"Delivery Charge: ",
+                            S .of(context).delivery_charge,//"Delivery Charge: ",
                             style: TextStyle(
                                 color: ColorCodes.greyColor,
                                 fontSize: 10,
@@ -7868,7 +8543,7 @@ if(_initialloading)
                             width: 2,
                           ),
                           Text(
-                            deliverychargetextSecTime,
+                            deliverychargetextSecTime!,
                             style: TextStyle(
                               color: (deliverychargetextSecTime == "FREE")
                                   ? ColorCodes.greenColor
@@ -7887,7 +8562,7 @@ if(_initialloading)
                         children: [
 
                           Text(
-                            S.of(context).note//"Note: "
+                            S .of(context).note//"Note: "
                             ,style: TextStyle(
                               color: ColorCodes.greyColor,
                               fontSize: 10, fontWeight: FontWeight.w400
@@ -7921,24 +8596,20 @@ if(_initialloading)
       StandardDelivery() {
 
         return
-          Container(
-            color: ColorCodes.whiteColor,
-            padding: EdgeInsets.only(left: 20,right: 20),
-            child: Column(
-              children: [
-                SizedBox(height: 5,),
-                (newMap != null)? ShipmentfirstdateDelivery(): SizedBox.shrink(),
-                SizedBox(height: 5,),
-                (newMap1 != null)? ShipmentfirsttimeDelivery() :SizedBox.shrink(),
-                SizedBox(height: 5,),
+          Column(
+            children: [
+              SizedBox(height: 5,),
+              (newMap != null)? ShipmentfirstdateDelivery(): SizedBox.shrink(),
+              SizedBox(height: 5,),
+              (newMap1 != null)? ShipmentfirsttimeDelivery() :SizedBox.shrink(),
+              SizedBox(height: 5,),
 
-                (DefaultSlot.length > 0) ?
-                SlotBasedDeliveryShipment():
-                SizedBox.shrink(),
+              (DefaultSlot.length > 0) ?
+              SlotBasedDeliveryShipment():
+              SizedBox.shrink(),
 
 
-              ],
-            ),
+            ],
           );
       }
 
@@ -7966,40 +8637,34 @@ if(_initialloading)
 
 
       void _settingModalBottomSheet(context, String from) {
-        showModalBottomSheet(
+        showDialog(
             context: context,
             builder: (BuildContext bc) {
               return  VxBuilder(
                   mutations: {SetAddress,SetUserData},
-                  builder: (ctx,  store,VxStatus state){
-                    addressdata = store.userData;
-                    return SingleChildScrollView(
+                  builder: (ctx, store,VxStatus? state){
+                    addressdata = store!.userData;
+                    return Dialog(
                       child: Container(
-                        color: ColorCodes.whiteColor,
-                        padding: EdgeInsets.only(left: 0.0, top: 0.0, right: 0.0, bottom: iphonex ? 16.0 : 0.0),
+                        width: MediaQuery.of(context).size.width / 3,
+                          decoration: BoxDecoration(
+                              color: ColorCodes.whiteColor,
+                              borderRadius: BorderRadius.all(Radius.circular(10.0))
+                          ),
+                        padding: EdgeInsets.only(left: 20.0, top: 20.0, right: 20.0, bottom: iphonex ? 16.0 : 0.0),
                         child: new Wrap(
                           children: <Widget>[
                             Container(
-                              width: MediaQuery.of(context).size.width,
-                              height: 50.0,
-                              color: ColorCodes.lightColor,
+                              height: 30.0,
+                              //color: ColorCodes.lightColor,
                               child: Column(
                                 children: <Widget>[
-                                  Spacer(),
-                                  Row(
-                                    children: <Widget>[
-                                      SizedBox(
-                                        width: 20.0,
-                                      ),
-                                      Text(
-                                        S.of(context).choose_delivery_address,//"Choose a delivery address",
-                                        style: TextStyle(
-                                            fontSize: 16.0,
-                                            fontWeight: FontWeight.bold),
-                                      ),
-                                    ],
+                                  Text(
+                                    S .of(context).choose_delivery_address,//"Choose a delivery address",
+                                    style: TextStyle(
+                                        fontSize: 18.0,
+                                        fontWeight: FontWeight.bold),
                                   ),
-                                  Spacer(),
                                 ],
                               ),
                             ),
@@ -8010,57 +8675,80 @@ if(_initialloading)
                               child: new ListView.builder(
                                 physics: NeverScrollableScrollPhysics(),
                                 shrinkWrap: true,
-                                itemCount: /*addressitemsData.items.length*/addressdata.billingAddress.length,
+                                itemCount: /*addressitemsData.items.length*/addressdata!.billingAddress!.length,
                                 itemBuilder: (_, i) => Column(
                                   children: [
                                     GestureDetector(
                                       onTap: () {
                                         String addsId = "";
                                         setState(() {
-                                          addsId = PrefUtils.prefs.getString("addressId");
-                                          debugPrint("addsid..."+PrefUtils.prefs.getString("addressId").toString());
-
+                                          addsId = PrefUtils.prefs!.getString("addressId")!;
+                                          /* _slotsLoading = true;
+                               prefs.setString("addressId", addressitemsData.items[i].userid);
+                               addtype = addressitemsData.items[i].useraddtype;
+                               address = addressitemsData.items[i].useraddress;
+                               addressicon = addressitemsData.items[i].addressicon;
+                               calldeliverslots(addressitemsData.items[i].userid);
+                               deliveryCharge(addressitemsData.items[i].userid);*/
                                         });
                                         if (from == "selectAddress") {
-                                          debugPrint("kiki....1");
+                                          debugPrint("jhgf...");
                                           Navigator.of(context).pop();
                                           _dialogforProcessing();
 
                                           cartCheck(
-                                              PrefUtils.prefs.getString("addressId"),
-                                              addressdata.billingAddress[i].id.toString(),
-                                              addressdata.billingAddress[i].addressType,
-                                              addressdata.billingAddress[i].address,
-                                              addressdata.billingAddress[i].addressicon,
-                                              addressdata.billingAddress[i].fullName
+                                              PrefUtils.prefs!.getString("addressId")!,
+                                              addressdata!.billingAddress![i].id.toString(),
+                                              addressdata!.billingAddress![i].addressType!,
+                                              addressdata!.billingAddress![i].address!,
+                                              addressdata!.billingAddress![i].addressicon!,
+                                              addressdata!.billingAddress![i].fullName!
                                           );
-
+                                          /*setState(() {
+                                 _checkaddress = true;
+                                 addtype = addressitemsData.items[i].useraddtype;
+                                 address = addressitemsData.items[i].useraddress;
+                                 addressicon = addressitemsData.items[i].addressicon;
+                                 prefs.setString("addressId", addressitemsData.items[i].userid);
+                                 _slotsLoading = true;
+                                 _isChangeAddress = false;
+                                 calldeliverslots(addressitemsData.items[i].userid);
+                                 deliveryCharge(addressitemsData.items[i].userid);
+                               });*/
                                         } else {
-                                          debugPrint("kiki....3");
+                                          debugPrint("jhgf...1..");
                                           Navigator.of(context).pop();
-                                          if (addsId != /*addressitemsData.items[i].userid*/addressdata.billingAddress[i].id) {
+                                          if (addsId != /*addressitemsData.items[i].userid*/addressdata!.billingAddress![i].id) {
+                                            debugPrint("jhgf...2..");
+                                            /* _dialogforAvailability(
+                                   addsId,
+                                   addressitemsData.items[i].userid,
+                                   addressitemsData.items[i].useraddtype,
+                                   addressitemsData.items[i].useraddress,
+                                   addressitemsData.items[i].addressicon,
+                               );*/
                                             _dialogforProcessing();
                                             cartCheck(
-                                                PrefUtils.prefs.getString("addressId"),
-                                                addressdata.billingAddress[i].id.toString(),
-                                                addressdata.billingAddress[i].addressType,
-                                                addressdata.billingAddress[i].address,
-                                                addressdata.billingAddress[i].addressicon,
-                                                addressdata.billingAddress[i].fullName
+                                                PrefUtils.prefs!.getString("addressId")!,
+                                                addressdata!.billingAddress![i].id.toString(),
+                                                addressdata!.billingAddress![i].addressType!,
+                                                addressdata!.billingAddress![i].address!,
+                                                addressdata!.billingAddress![i].addressicon!,
+                                                addressdata!.billingAddress![i].fullName
                                             );
                                           } else {
-                                            debugPrint("add3...");
+                                            debugPrint("jhgf...3..");
                                             setState(() {
                                               _checkaddress = true;
                                               addtype =
-                                                  addressdata.billingAddress[i].addressType;
+                                                  addressdata!.billingAddress![i].addressType;
                                               address =
-                                                  addressdata.billingAddress[i].address;
-                                              name = addressdata.billingAddress[i].fullName;
+                                                  addressdata!.billingAddress![i].address;
+                                              name = addressdata!.billingAddress![i].fullName!;
                                               addressicon =
-                                                  addressdata.billingAddress[i].addressicon;
-                                              PrefUtils.prefs.setString("addressId",
-                                                  addressdata.billingAddress[i].id.toString());
+                                                  addressdata!.billingAddress![i].addressicon;
+                                              PrefUtils.prefs!.setString("addressId",
+                                                  addressdata!.billingAddress![i].id.toString());
                                               //_slotsLoading = true;
                                               _isChangeAddress = false;
                                               //calldeliverslots(addressitemsData.items[i].userid);
@@ -8071,10 +8759,7 @@ if(_initialloading)
                                       },
                                       child: Row(
                                         children: <Widget>[
-                                          SizedBox(
-                                            width: 10.0,
-                                          ),
-                                          Icon(addressdata.billingAddress[i].addressicon),
+                                          Icon(addressdata!.billingAddress![i].addressicon),
                                           SizedBox(
                                             width: 10.0,
                                           ),
@@ -8087,33 +8772,31 @@ if(_initialloading)
                                                   height: 15.0,
                                                 ),
                                                 Text(
-                                                  addressdata.billingAddress[i].addressType,
+                                                  addressdata!.billingAddress![i].addressType!,
                                                   style: TextStyle(
-                                                      color: Theme.of(context)
-                                                          .primaryColor,
+                                                      color: ColorCodes.blackColor,
                                                       fontWeight: FontWeight.bold,
-                                                      fontSize: 14.0),
+                                                      fontSize: 16.0),
                                                 ),
                                                 SizedBox(
                                                   height: 5.0,
                                                 ),
                                                 Text(
-                                                  addressdata.billingAddress[i].address,
+                                                  addressdata!.billingAddress![i].address!,
                                                   style: TextStyle(
                                                     color: Colors.grey,
-                                                    fontSize: 12.0,
+                                                    fontSize: 13.0,
                                                   ),
                                                 ),
                                                 SizedBox(
                                                   height: 10.0,
                                                 ),
                                                 Divider(
-                                                  color: Colors.grey,
+                                                  color: ColorCodes.lightgrey,
                                                 ),
                                               ],
                                             ),
                                           ),
-                                          SizedBox(width: 20.0),
                                         ],
                                       ),
                                     ),
@@ -8122,51 +8805,60 @@ if(_initialloading)
                               ),
                             ),
                             //Divider(color: Colors.black,),
-                            GestureDetector(
-                              onTap: () {
-                                // Navigator.of(context).pop();
-                                // Navigator.of(context).pop();
-                                Navigator.of(context)
-                                    .pushReplacementNamed(AddressScreen.routeName, arguments: {
-                                  'addresstype': "new",
-                                  'addressid': "",
-                                  'delieveryLocation': "",
-                                  'latitude': "",
-                                  'longitude': "",
-                                  'branch': ""
-                                });
-                              },
-                              child: Row(
-                                children: <Widget>[
-                                  SizedBox(
-                                    width: 10.0,
+                            Center(
+                              child: GestureDetector(
+                                onTap: () {
+                                  // Navigator.of(context).pop();
+                                  // Navigator.of(context).pop();
+                                  /*        Navigator.of(context)
+                                      .pushReplacementNamed(AddressScreen.routeName, arguments: {
+                                    'addresstype': "new",
+                                    'addressid': "",
+                                    'delieveryLocation': "",
+                                    'latitude': "",
+                                    'longitude': "",
+                                    'branch': ""
+                                  });*/
+                                  if(Vx.isWeb && !ResponsiveLayout.isSmallScreen(context)){
+                                  // _dialogforaddress(context);
+                                  AddressWeb(context,
+                                    addresstype: "new",
+                                    addressid: "",
+                                    delieveryLocation: "",
+                                    latitude: "",
+                                    longitude: "",
+                                    branch: "",);
+                                  }
+                                  else {
+                                    Navigation(
+                                        context, name: Routename.AddressScreen,
+                                        navigatore: NavigatoreTyp.Push,
+                                        qparms: {
+                                          'addresstype': "new",
+                                          'addressid': "",
+                                          'delieveryLocation': "",
+                                          'latitude': "",
+                                          'longitude': "",
+                                          'branch': "",
+                                        });
+                                  }
+                                },
+                                child: Container(
+                                  width: MediaQuery.of(context).size.width / 3.8,
+                                  margin: EdgeInsets.only(bottom: 20),
+                                  decoration: BoxDecoration(
+                                    color: ColorCodes.primaryColor,
+                                      borderRadius: BorderRadius.all(Radius.circular(5.0))
                                   ),
-                                  Icon(
-                                    Icons.add,
-                                    color: Colors.orange,
-                                  ),
-                                  SizedBox(
-                                    width: 10.0,
-                                  ),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: <Widget>[
-                                        SizedBox(
-                                          height: 15.0,
-                                        ),
-                                        Text(
-                                          S.of(context).add_new_address,//"Add new Address",
-                                          style: TextStyle(
-                                              color: Colors.orange, fontSize: 16.0),
-                                        ),
-                                        SizedBox(
-                                          height: 15.0,
-                                        ),
-                                      ],
+                                  padding: EdgeInsets.only(top: 13, bottom: 13),
+                                  child: Center(
+                                    child: Text(
+                                      S .of(context).add_new_address,//"Add new Address",
+                                      style: TextStyle(
+                                          color: ColorCodes.whiteColor, fontSize: 16.0),
                                     ),
                                   ),
-                                ],
+                                ),
                               ),
                             ),
                             SizedBox(
@@ -8200,7 +8892,7 @@ if(_initialloading)
                     width: 5,
                   ),
                   Text(
-                    S.of(context).delivery,//'Delivery',
+                    S .of(context).delivery,//'Delivery',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
@@ -8212,7 +8904,7 @@ if(_initialloading)
                 height: 2,
               ),
               Text(
-                S.of(context).please_select_delivery_slot,//'Please select a time slot as per your convience. Your order will be delivered during the time slot.',
+                S .of(context).please_select_delivery_slot,//'Please select a time slot as per your convience. Your order will be delivered during the time slot.',
                 style: TextStyle(
                   fontSize: 11,
                   color: ColorCodes.greyColor,
@@ -8225,8 +8917,7 @@ if(_initialloading)
           ),
         );
       }
-   debugPrint("checkslot....."+_isChangeAddress.toString()+"..."+_slotsLoading.toString()+"..."+_checkslots.toString());
-      debugPrint("yessssss"+ExpressDetails.length.toString());
+
       // (!_isChangeAddress)
       // !_slotsLoading
       // ? _checkslots
@@ -8252,7 +8943,7 @@ if(_initialloading)
 
                 Center(
                   child: Text(
-                    S.of(context).not_yet_logged_in,// " You are not Logged in, Please Login to Continue with Proceed To Checkout",
+                    S .of(context).not_yet_logged_in,// " You are not Logged in, Please Login to Continue with Proceed To Checkout",
                     style: TextStyle(
                         fontSize: 14.0,
                         color: Colors.black,
@@ -8272,15 +8963,16 @@ if(_initialloading)
               cursor: SystemMouseCursors.click,
               child: GestureDetector(
                 onTap: (){
-                  debugPrint("hel....");
-                 // _dialogforSignIn();
+                  // _dialogforSignIn();
                   LoginWeb(context,result: (sucsess){
                     if(sucsess){
                       Navigator.of(context).pop();
-                      Navigator.pushNamedAndRemoveUntil(
+                      /*Navigator.pushNamedAndRemoveUntil(
                           context,  CartScreen.routeName, (route) => false,arguments: {
-                        "after_login": ""
-                      });
+                        "afterlogin": ""
+                      });*/
+
+                      Navigation(context, name: Routename.Cart, navigatore: NavigatoreTyp.Push,qparms: {"afterlogin":""});
                     }else{
                       Navigator.of(context).pop();
                     }
@@ -8296,7 +8988,7 @@ if(_initialloading)
                     ),
                     Center(
                       child: Text(
-                        S.of(context).select_address,//'PROCEED TO CHECKOUT',
+                        S .of(context).proceed_to_pay,//'PROCEED TO CHECKOUT',
                         style: TextStyle(
                             fontSize: 12.0,
                             color: Colors.white,
@@ -8310,184 +9002,350 @@ if(_initialloading)
           ),
         ],
       ):
-     /* _Load
+      /* _Load
           ? Center(
         child:CircularProgressIndicator()
        // CheckOutShimmer(), //CircularProgressIndicator( valueColor: new AlwaysStoppedAnimation<Color>(Theme.of(context).primaryColor,),
 
       ):*/Column(
         children: [
+          if(!Features.ismultivendor)
           SizedBox(height: 20,),
           SingleChildScrollView(
               child: Container(
-                width: MediaQuery.of(context).size.width * 0.40,
+                width: Features.ismultivendor?MediaQuery.of(context).size.width:MediaQuery.of(context).size.width * 0.42,
                 //height: MediaQuery.of(context).size.height,
-               // color: ColorCodes.lightGreyColor,
+                // color: ColorCodes.lightGreyColor,
                 // padding: EdgeInsets.only(left: 10.0, top: 10.0, ),
                 child: Column(
                   children: <Widget>[
-                   // SizedBox(height: 20,),
                     !_isChangeAddress
                         ? _checkaddress
-                        ? Card(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                      child: Column(
-                        children: [
-                          Container(
-                            color: ColorCodes.whiteColor,
-                            padding: EdgeInsets.symmetric(
-                                vertical: 10, horizontal: 15),
-                            child: Row(
-                              children: <Widget>[
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                        ? Column(
+                          children: [
+                            if(!Features.ismultivendor)
+                            Container(
+                              decoration: BoxDecoration(
+                                color: ColorCodes.whiteColor,
+                                borderRadius: BorderRadius.circular(5)),
+                              padding: EdgeInsets.symmetric(
+                                  vertical: 15, horizontal: 15),
+                              child: Column(
+                                children: [
+                                  Row(
                                     children: <Widget>[
-                                      Row(
-                                        children: [
-                                          (addtype == "home")? Image.asset(Images.homeConfirm,
-                                            height: 30,
-                                            width: 30,
-                                            color: ColorCodes.greenColor,
-                                          ):(addtype == "Work")?Image.asset(Images.workConfirm,
-                                            height: 30,
-                                            width: 30,
-                                            color: ColorCodes.greenColor,
-                                          ):Image.asset(Images.otherConfirm,
-                                            height: 30,
-                                            width: 30,
-                                            color: ColorCodes.greenColor,
-                                          ),
-                                          SizedBox(width: 10,),
-                                          Text(
-                                            S.of(context).select_delivery_address,//"Select delivery address",
-                                            style: TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 16.0,
-                                                color: ColorCodes.cartgreenColor),
-                                          ),
-                                        ],
-                                      ),
-                                      SizedBox(
-                                        height: 10.0,
-                                      ),
-                                      Column(
-                                        children: [
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: <Widget>[
+                                            Text(
+                                              S .of(context).select_delivery_address,//"Select delivery address",
+                                              style: TextStyle(
+                                                  fontWeight: (Vx.isWeb&&!ResponsiveLayout.isSmallScreen(context))? FontWeight.w900 : FontWeight.bold,
+                                                  fontSize: (Vx.isWeb&&!ResponsiveLayout.isSmallScreen(context))? 18 : 16.0,
+                                                  color: (Vx.isWeb&&!ResponsiveLayout.isSmallScreen(context))? ColorCodes.blackColor : ColorCodes.cartgreenColor),
+                                            ),
+                                            SizedBox(
+                                              height: 10.0,
+                                            ),
+                                            Column(
+                                              children: [
 
-                                          Row(
-                                            mainAxisAlignment: MainAxisAlignment.start,
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              SizedBox(width: 40,),
-                                              Text(
-                                                name,
-                                                style: TextStyle(
-                                                  color: ColorCodes.blackColor,
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 16.0,
+                                                Row(
+                                                  mainAxisAlignment: MainAxisAlignment.start,
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    (addtype == "home")? Image.asset(Images.homeConfirm,
+                                                      height: 22,
+                                                      width: 22,
+                                                      color: ColorCodes.blackColor,
+                                                    ):(addtype == "Work")?Image.asset(Images.workConfirm,
+                                                      height: 22,
+                                                      width: 22,
+                                                      color: ColorCodes.blackColor,
+                                                    ):Image.asset(Images.otherConfirm,
+                                                      height: 25,
+                                                      width: 25,
+                                                      color: ColorCodes.blackColor,
+                                                    ),
+                                                    SizedBox(width: 10,),
+                                                    Text(
+                                                      name,
+                                                      style: TextStyle(
+                                                        color: ColorCodes.blackColor,
+                                                        fontWeight: FontWeight.bold,
+                                                        fontSize: 15.0,
+                                                      ),
+                                                    ),
+                                                    Spacer(),
+                                                    GestureDetector(
+                                                        behavior: HitTestBehavior.translucent,
+                                                        onTap: () {
+                                                          _settingModalBottomSheet(context, "change");
+                                                        },
+                                                        child: Container(
+
+                                                          child: Text(
+                                                            S .of(context).change_caps,//"CHANGE",
+                                                            style: TextStyle(
+                                                              //decoration: TextDecoration.underline,
+                                                                decorationStyle:
+                                                                TextDecorationStyle.dashed,
+                                                                fontWeight: FontWeight.bold,
+                                                                color: ColorCodes.blackColor,
+                                                                fontSize: 15.0),
+                                                          ),
+                                                        )),
+                                                    SizedBox(
+                                                      width: 10.0,
+                                                    ),
+                                                  ],
                                                 ),
-                                              ),
-                                              Spacer(),
-                                              GestureDetector(
-                                                  behavior: HitTestBehavior.translucent,
-                                                  onTap: () {
-                                                    _settingModalBottomSheet(context, "change");
-                                                  },
-                                                  child: Container(
+                                              ],
+                                            ),
+                                            SizedBox(height: 5,),
+                                            Container(
+                                            height: 40,
+                                              child: Row(
+                                                children: [
+                                                  SizedBox(width: 40,),
+                                                  Flexible(
 
                                                     child: Text(
-                                                      S.of(context).change_caps,//"CHANGE",
+                                                      address,
+                                                      maxLines: 2,
                                                       style: TextStyle(
-                                                        //decoration: TextDecoration.underline,
-                                                          decorationStyle:
-                                                          TextDecorationStyle.dashed,
-                                                          color: ColorCodes.mediumBlueColor,
-                                                          fontSize: 13.0),
+                                                        letterSpacing: 1,
+                                                        color: Colors.grey,
+                                                        fontSize: 14.0,
+                                                      ),
                                                     ),
-                                                  )),
+                                                  ),
+
+                                                  SizedBox(
+                                                    width: 60.0,
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+
+                                    ],
+                                  ),
+                                  ((double.parse(_minimumOrderAmountNoraml) > CartCalculations.total) && (double.parse(_minimumOrderAmountPrime) > CartCalculations.totalMember)) ?
+                                  SizedBox(height: 83,) : SizedBox(height: 43,),
+                                  ListTile(
+                                    dense:true,
+                                    contentPadding: EdgeInsets.only(left: 10.0),
+                                    leading: Image.asset(Images.request,
+                                      height: 30,
+                                      width: 30,
+                                        color: ColorCodes.blackColor,
+                                    ),
+                                    title: Transform(
+                                      transform: Matrix4.translationValues(-16, 0.0, 0.0),
+                                      child: TextField(
+                                        controller: _message,
+                                        decoration: InputDecoration.collapsed(
+                                            hintText: !Features.ismultivendor?S .of(context).any_request:S.of(context).any_instruct_multivendor,//"Any request? We promise to pass it on",
+                                            hintStyle: TextStyle(fontSize: 15.0, color: ColorCodes.blackColor, fontWeight: FontWeight.bold , letterSpacing: 1,),
+                                            //contentPadding: EdgeInsets.all(16),
+                                            //border: OutlineInputBorder(),
+                                            fillColor: ColorCodes.lightGreyColor),
+                                        //minLines: 3,
+                                        maxLines: 1,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            if(Features.ismultivendor)
+                            SizedBox(
+                              height:10,
+                            ),
+                            if(Features.ismultivendor)
+                              paymentDetails(),
+                            if(Features.ismultivendor)
+                              Container(
+                                decoration: BoxDecoration(
+                                    color: ColorCodes.whiteColor,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: ColorCodes.grey.withOpacity(0.3),
+                                        spreadRadius: 4,
+                                        blurRadius: 5,
+                                        offset: Offset(0, 3),
+                                      )
+                                    ]
+                                ),
+                                padding: EdgeInsets.symmetric(
+                                    vertical: 10, horizontal: 15),
+                                child: Row(
+                                  children: <Widget>[
+                                    if(Features.ismultivendor)
+                                      Image.asset(Images.addressmultivendor,
+                                        height: 35,
+                                        width: 30,
+                                        color: ColorCodes.greenColor,
+                                      ),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: <Widget>[
+
+                                          Row(
+                                            children: [
+
+                                              if(!Features.ismultivendor)
+                                              (addtype == "home")? Image.asset(Images.homeConfirm,
+                                                height: 30,
+                                                width: 30,
+                                                color: ColorCodes.blackColor,
+                                              ):(addtype == "Work")?Image.asset(Images.workConfirm,
+                                                height: 30,
+                                                width: 30,
+                                                color: ColorCodes.blackColor,
+                                              ):Image.asset(Images.otherConfirm,
+                                                height: 30,
+                                                width: 30,
+                                                color: ColorCodes.blackColor,
+                                              ),
+                                              SizedBox(width: 10,),
+
+                                            ],
+                                          ),
+                                          SizedBox(
+                                            height: 1.0,
+                                          ),
+                                          Column(
+                                            children: [
+
+                                              Row(
+                                                mainAxisAlignment: MainAxisAlignment.start,
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Features.ismultivendor?SizedBox(width: 10,):SizedBox(width: 40,),
+                                                  Text(
+                                                    Features.ismultivendor?addtype:S .of(context).select_delivery_address,//"Select delivery address",
+                                                    style: TextStyle(
+                                                        fontWeight: FontWeight.bold,
+                                                        fontSize: 16.0,
+                                                        color: ColorCodes.blackColor),
+                                                  ),
+                                                  // Text(
+                                                  //   name,
+                                                  //   style: TextStyle(
+                                                  //     color: ColorCodes.blackColor,
+                                                  //     fontWeight: FontWeight.bold,
+                                                  //     fontSize: 16.0,
+                                                  //   ),
+                                                  // ),
+                                                  Spacer(),
+                                                  GestureDetector(
+                                                      behavior: HitTestBehavior.translucent,
+                                                      onTap: () {
+                                                        _settingModalBottomSheet(context, "change");
+                                                      },
+                                                      child: Container(
+
+                                                        child: Text(
+                                                          S .of(context).change_caps,//"CHANGE",
+                                                          style: TextStyle(
+                                                            //decoration: TextDecoration.underline,
+                                                              decorationStyle:
+                                                              TextDecorationStyle.dashed,
+                                                              color: Features.ismultivendor?ColorCodes.greenColor:ColorCodes.mediumBlueColor,
+                                                              fontSize: 13.0),
+                                                        ),
+                                                      )),
+                                                  SizedBox(
+                                                    width: 10.0,
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
+                                          ),
+                                          SizedBox(height: 5,),
+                                          Row(
+                                            children: [
+                                              Features.ismultivendor?SizedBox(width: 10,):SizedBox(width: 40,),
+                                              Flexible(
+
+                                                child: Text(
+                                                  address,
+                                                  style: TextStyle(
+                                                    color: Colors.grey,
+                                                    fontSize: 12.0,
+                                                  ),
+                                                ),
+                                              ),
+
                                               SizedBox(
-                                                width: 10.0,
+                                                width: 60.0,
                                               ),
                                             ],
                                           ),
                                         ],
                                       ),
-                                      SizedBox(height: 5,),
-                                      Row(
-                                        children: [
-                                          SizedBox(width: 40,),
-                                          Flexible(
+                                    ),
 
-                                            child: Text(
-                                              address,
-                                              style: TextStyle(
-                                                color: Colors.grey,
-                                                fontSize: 12.0,
-                                              ),
-                                            ),
-                                          ),
-
-                                          SizedBox(
-                                            width: 60.0,
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
+                                  ],
                                 ),
+                              ),
 
-                              ],
-                            ),
-                          ),
-                          SizedBox(height: 10,),
-                          ListTile(
-                            dense:true,
-                            contentPadding: EdgeInsets.only(left: 10.0),
-                            leading: Image.asset(Images.request,
-                              height: 30,
-                              width: 30,
-                            ),
-                            title: Transform(
-                              transform: Matrix4.translationValues(-16, 0.0, 0.0),
-                              child: TextField(
-                                controller: _message,
-                                decoration: InputDecoration.collapsed(
-                                    hintText: S.of(context).any_request,//"Any request? We promise to pass it on",
-                                    hintStyle: TextStyle(fontSize: 12.0),
-                                    //contentPadding: EdgeInsets.all(16),
-                                    //border: OutlineInputBorder(),
-                                    fillColor: ColorCodes.lightGreyColor),
-                                //minLines: 3,
-                                maxLines: 1,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
-                        : Card(
-                      elevation: 5,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                      child: Column(
-                        children: [
-                          Row(
-                            children: <Widget>[
-                              SizedBox(
-                                width: 5.0,
-                              ),
-                              Spacer(),
-                              FlatButton(
-                                color: Theme.of(context).primaryColor,
-                                textColor: Theme.of(context).buttonColor,
-                                shape: new RoundedRectangleBorder(
-                                  borderRadius: new BorderRadius.circular(3.0),
+                          ],
+                        )
+                        : Column(
+                      children: [
+                        SizedBox(
+                          height:10,
+                        ),
+                        if(Features.ismultivendor)
+                          paymentDetails(),
+                        if(!Features.ismultivendor)
+                        Container(
+                          width: Features.ismultivendor?MediaQuery.of(context).size.width:MediaQuery.of(context).size.width * 0.40,
+                          height: 50,
+                          child: Container(
+                            // color: Theme.of(context).primaryColor,
+                            width: MediaQuery.of(context).size.width,
+                            height: 50,
+                            margin: Features.ismultivendor?EdgeInsets.only(left:10,right:10):EdgeInsets.only(left:0,right:0),
+                            child: Column(children: <Widget>[
+
+                              Center(
+                                child: Text(
+                                  "You are not yet added delivery address, Please add address to continue.",
+                                  style: TextStyle(
+                                      fontSize: 14.0,
+                                      color: Colors.black,
+                                      fontWeight: FontWeight.bold),
                                 ),
-                                onPressed: () => {
-                                  Navigator.of(context).pushReplacementNamed(
+                              )
+                            ]),
+                          ),
+                        ),
+                        if(!Features.ismultivendor)
+                        SizedBox(
+                          height: 17,
+                        ),
+
+                        if(!Features.ismultivendor)
+                        Container(
+                          width: MediaQuery.of(context).size.width * 0.40,
+                          height: 50,
+                          child: FlatButton(
+
+                            color: Theme.of(context).primaryColor,
+                            textColor: Theme.of(context).buttonColor,
+                            shape: new RoundedRectangleBorder(
+                              borderRadius: new BorderRadius.circular(3.0),
+                            ),
+                            onPressed: ()  {
+                              /*       Navigator.of(context).pushReplacementNamed(
                                       AddressScreen.routeName,
                                       arguments: {
                                         'addresstype': "new",
@@ -8496,44 +9354,65 @@ if(_initialloading)
                                         'latitude': "",
                                         'longitude': "",
                                         'branch': ""
-                                      })
-                                },
-                                child: Text(
-                                  S.of(context).add_address,//'Add Address',
-                                  style: TextStyle(fontSize: 12.0),
-                                ),
-                              ),
-                              SizedBox(
-                                width: 5.0,
-                              ),
-                            ],
-                          ),
-                          SizedBox(height: 20,),
-                          SizedBox(height: 20,),
-                          ListTile(
-                            dense:true,
-                            contentPadding: EdgeInsets.only(left: 10.0),
-                            leading: Image.asset(Images.request,
-                              height: 30,
-                              width: 30,
-                            ),
-                            title: Transform(
-                              transform: Matrix4.translationValues(-16, 0.0, 0.0),
-                              child: TextField(
-                                controller: _message,
-                                decoration: InputDecoration.collapsed(
-                                    hintText: S.of(context).any_request,//"Any request? We promise to pass it on",
-                                    hintStyle: TextStyle(fontSize: 12.0),
-                                    //contentPadding: EdgeInsets.all(16),
-                                    //border: OutlineInputBorder(),
-                                    fillColor: ColorCodes.lightGreyColor),
-                                //minLines: 3,
-                                maxLines: 1,
-                              ),
+                                      })*/
+
+                              if(Vx.isWeb && !ResponsiveLayout.isSmallScreen(context)){
+                              // _dialogforaddress(context);
+                              AddressWeb(context,
+                                addresstype: "new",
+                                addressid: "",
+                                delieveryLocation: "",
+                                latitude: "",
+                                longitude: "",
+                                branch: "",);
+                              }
+                              else {
+                              Navigation(context, name: Routename.AddressScreen, navigatore: NavigatoreTyp.Push,
+                                  qparms: {
+                                    'addresstype': "new",
+                                    'addressid': "",
+                                    'delieveryLocation': "",
+                                    'latitude': "",
+                                    'longitude': "",
+                                    'branch': "",
+                                  });
+                              }
+                            },
+                            child: Text(
+                              S .of(context).add_address,//'Add Address',
+                              style: TextStyle(fontSize: 14.0,fontWeight: FontWeight.bold),
                             ),
                           ),
-                        ],
-                      ),
+                        ),
+                        SizedBox(
+                          width: 5.0,
+                        ),
+                        if(!Features.ismultivendor)
+                        SizedBox(height: 20,),
+                        // SizedBox(height: 20,),
+                        // ListTile(
+                        //   dense:true,
+                        //   contentPadding: EdgeInsets.only(left: 10.0),
+                        //   leading: Image.asset(Images.request,
+                        //     height: 30,
+                        //     width: 30,
+                        //   ),
+                        //   title: Transform(
+                        //     transform: Matrix4.translationValues(-16, 0.0, 0.0),
+                        //     child: TextField(
+                        //       controller: _message,
+                        //       decoration: InputDecoration.collapsed(
+                        //           hintText: S .of(context).any_request,//"Any request? We promise to pass it on",
+                        //           hintStyle: TextStyle(fontSize: 12.0),
+                        //           //contentPadding: EdgeInsets.all(16),
+                        //           //border: OutlineInputBorder(),
+                        //           fillColor: ColorCodes.lightGreyColor),
+                        //       //minLines: 3,
+                        //       maxLines: 1,
+                        //     ),
+                        //   ),
+                        // ),
+                      ],
                     )
                         : Card(
                       elevation: 5,
@@ -8565,7 +9444,7 @@ if(_initialloading)
                                             height: 15.0,
                                           ),
                                           Text(
-                                            S.of(context).your_in_new_location,//"You are in a new location!",
+                                            S .of(context).your_in_new_location,//"You are in a new location!",
                                             style: TextStyle(
                                                 fontWeight: FontWeight.bold,
                                                 fontSize: 14.0),
@@ -8628,7 +9507,7 @@ if(_initialloading)
                                         height: 40.0,
                                         child: Center(
                                           child: Text(
-                                            S.of(context).select_address,//'Select Address',
+                                            S .of(context).select_address,//'Select Address',
                                             style: TextStyle(
                                               fontSize: 14.0,
                                               color:
@@ -8643,7 +9522,7 @@ if(_initialloading)
                                     GestureDetector(
                                       onTap: () {
                                         Navigator.of(context).pop();
-                                        Navigator.of(context).pushNamed(
+                                        /*       Navigator.of(context).pushNamed(
                                             AddressScreen.routeName,
                                             arguments: {
                                               'addresstype': "new",
@@ -8652,7 +9531,29 @@ if(_initialloading)
                                               'latitude': "",
                                               'longitude': "",
                                               'branch': ""
-                                            });
+                                            });*/
+                                        if(Vx.isWeb && !ResponsiveLayout.isSmallScreen(context)){
+                                        // _dialogforaddress(context);
+                                        AddressWeb(context,
+                                          addresstype: "new",
+                                          addressid: "",
+                                          delieveryLocation: "",
+                                          latitude: "",
+                                          longitude: "",
+                                          branch: "",);
+                                        }
+                                        else {
+                                          Navigation(context, name: Routename.AddressScreen,
+                                              navigatore: NavigatoreTyp.Push,
+                                              qparms: {
+                                                'addresstype': "new",
+                                                'addressid': "",
+                                                'delieveryLocation': "",
+                                                'latitude': "",
+                                                'longitude': "",
+                                                'branch': "",
+                                              });
+                                        }
                                       },
                                       child: Container(
                                         width: MediaQuery
@@ -8698,7 +9599,7 @@ if(_initialloading)
                                         height: 40.0,
                                         child: Center(
                                           child: Text(
-                                            S.of(context).add_address,//'Add Address',
+                                            S .of(context).add_address,//'Add Address',
                                             style: TextStyle(
                                               fontSize: 14.0,
                                               color: Colors.white,
@@ -8726,7 +9627,7 @@ if(_initialloading)
                               child: TextField(
                                 controller: _message,
                                 decoration: InputDecoration.collapsed(
-                                    hintText: S.of(context).any_request,//"Any request? We promise to pass it on",
+                                    hintText: S .of(context).any_request,//"Any request? We promise to pass it on",
                                     hintStyle: TextStyle(fontSize: 12.0),
                                     //contentPadding: EdgeInsets.all(16),
                                     //border: OutlineInputBorder(),
@@ -8740,159 +9641,171 @@ if(_initialloading)
                       ),
                     ),
                     SizedBox(
-                      height: 10.0,
+                      height: 20.0,
                     ),
 
                     // Delivery time slot banner with text
-                   // _deliveryTimeSlotText(),
+                    // _deliveryTimeSlotText(),
 
+                    if(!Features.ismultivendor)
                     if (!_isChangeAddress )
                       !_slotsLoading
                           ? _checkslots ?
                       /*(addressitemsData.items.length > 0)?*/
-                    VxBuilder(
-                  mutations: {SetCartItem},
-                 builder: (context, store, index) {
-                  return Card(
-                     elevation: 5,
-                     child:
-                     Column(
-                       children: [
-                         SizedBox(height: 20,),
-                         (ExpressDetails.length <= 0) ? SizedBox.shrink() :
-                         Row(
-                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                           crossAxisAlignment: CrossAxisAlignment.start,
-                           children: [
-                             SizedBox(width: 5,),
-                             GestureDetector(
-                               onTap: () {
-                                 setState(() {
-                                   visiblestand = true;
-                                   visibleexpress = false;
-                                   dividerSlot = ColorCodes.darkthemeColor;
-                                   dividerExpress = ColorCodes.whiteColor;
-                                   ContainerSlot = ColorCodes.mediumgren;
-                                   ContainerExpress = ColorCodes.whiteColor;
-                                   _groupValue = 1;
-                                 });
-                               },
-                               child: Card(
-                                 child: Container(
-                                   height: 160,
-                                   width: 160,
-                                   decoration: BoxDecoration(
-                                       color: ContainerSlot,
-                                       border: Border(
-                                         bottom: BorderSide(
-                                             width: 3.0, color: dividerSlot),
-                                       )),
+                      (CartCalculations.totalMember <= 0.00 && CartCalculations.total <= 0.00 && CartCalculations.totalMember <= 0 && CartCalculations.total <= 0)?
+                      SizedBox.shrink():
+                      VxBuilder(
+                          mutations: {SetCartItem},
+                          builder: (context,store, index) {
+                            return Container(
+                              padding: EdgeInsets.all(15),
+                              decoration: BoxDecoration(
+                                  color: ColorCodes.whiteColor,
+                                  borderRadius: BorderRadius.circular(5)
+                              ),
 
-                                   child: Column(
-                                     mainAxisAlignment: MainAxisAlignment
-                                         .center,
-                                     crossAxisAlignment: CrossAxisAlignment
-                                         .center,
-                                     children: [
-                                       Image.asset(Images.Standard,
-                                         height: 40,
-                                         width: 40,
-                                         color: ColorCodes.greenColor,
-                                       ),
-                                       SizedBox(height: 10,),
-                                       Text(S
-                                           .of(context)
-                                           .slot_based_delivery,
-                                         style: TextStyle(fontSize: 15,
-                                             fontWeight: FontWeight.bold,
-                                             color: ColorCodes.cartgreenColor),
-                                       ),
-                                       SizedBox(height: 5,),
-                                       Text(" \n ", textAlign: TextAlign.center,
-                                         style: TextStyle(fontSize: 15,
-                                             fontWeight: FontWeight.w400,
-                                             color: ColorCodes.greyColor),),
+                              child: Column(
+                                children: [
+                                  (ExpressDetails.length <= 0) ? SizedBox.shrink() :
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      GestureDetector(
+                                        onTap: () {
+                                          setState(() {
+                                            visiblestand = true;
+                                            visibleexpress = false;
+                                            dividerSlot = ColorCodes.primaryColor;
+                                            dividerExpress = ColorCodes.whiteColor;
+                                            ContainerSlot = ColorCodes.varcolor;
+                                            ContainerExpress = ColorCodes.whiteColor;
+                                            _groupValueAdvance = 1;
+                                          });
+                                        },
+                                        child: Container(
+                                          height: 130,
+                                          width: MediaQuery.of(context).size.width*0.19,
+                                          decoration: BoxDecoration(
+                                              color: ContainerSlot,
+                                              border: Border(
+                                                  top: BorderSide(
+                                                      width: 1.0, color: ColorCodes.varcolor),
+                                                left: BorderSide(
+                                                    width: 1.0, color: ColorCodes.varcolor),
+                                                right: BorderSide(
+                                                    width: 1.0, color: ColorCodes.varcolor),
+                                                bottom: BorderSide(
+                                                    width: visiblestand ? 8.0 : 1.0, color: visiblestand ? dividerSlot : ColorCodes.varcolor),
+                                              ),
+                                          ),
 
-                                     ],
-                                   ),
-                                 ),
-                               ),
-                             ),
-                             //Spacer(),
-                             GestureDetector(
-                               onTap: () {
-                                 setState(() {
-                                   visibleexpress = true;
-                                   visiblestand = false;
-                                   dividerSlot = ColorCodes.whiteColor;
-                                   dividerExpress = ColorCodes.darkthemeColor;
-                                   ContainerSlot = ColorCodes.whiteColor;
-                                   ContainerExpress = ColorCodes.mediumgren;
-                                   _groupValue = 2;
-                                 });
-                               },
-                               child: Card(
-                                 child: Container(
-                                   height: 160,
-                                   width: 160,
-                                   decoration: BoxDecoration(
-                                       color: ContainerExpress,
-                                       border: Border(
-                                         bottom: BorderSide(
-                                             width: 3.0, color: dividerExpress),
-                                       )),
+                                          child: Column(
+                                            mainAxisAlignment: MainAxisAlignment
+                                                .center,
+                                            crossAxisAlignment: CrossAxisAlignment
+                                                .center,
+                                            children: [
+                                              Image.asset(Images.Standard,
+                                                height: 60,
+                                                width: 60,
+                                                color: ColorCodes.greenColor,
+                                              ),
+                                              SizedBox(height: 10,),
+                                              Text(S
+                                                  .of(context)
+                                                  .slot_based_delivery,
+                                                style: TextStyle(fontSize: 16,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: ColorCodes.cartgreenColor),
+                                              ),
+                                              SizedBox(height: 5,),
+                                              Text(" \n ", textAlign: TextAlign.center,
+                                                style: TextStyle(fontSize: 13,
+                                                    fontWeight: FontWeight.w400,
+                                                    color: ColorCodes.greyColor),),
 
-                                   child: Column(
-                                     mainAxisAlignment: MainAxisAlignment
-                                         .center,
-                                     crossAxisAlignment: CrossAxisAlignment
-                                         .center,
-                                     children: [
-                                       Image.asset(Images.express,
-                                         height: 40,
-                                         width: 40,
-                                         color: ColorCodes.greenColor,
-                                       ),
-                                       SizedBox(height: 10,),
-                                       Text(S
-                                           .of(context)
-                                           .express_delivery,
-                                         style: TextStyle(fontSize: 15,
-                                             fontWeight: FontWeight.bold,
-                                             color: ColorCodes.cartgreenColor),
-                                       ),
-                                       SizedBox(height: 5,),
-                                       Text(S
-                                           .of(context)
-                                           .delivery_in + " " +
-                                           _deliveryDurationExpress,
-                                         textAlign: TextAlign.center,
-                                         style: TextStyle(fontSize: 15,
-                                             fontWeight: FontWeight.w400,
-                                             color: ColorCodes.greyColor),),
-                                     ],
-                                   ),
-                                 ),
-                               ),
-                             ),
-                             SizedBox(width: 5,),
-                           ],
-                         ),
-                         //SizedBox(width: 20,),
-                         Visibility(
-                           visible: visiblestand,
-                           child: StandardDelivery(),
-                         ),
-                         (Features.isSplit) ? Visibility(
-                           visible: visibleexpress,
-                           child: ExpressDelivery(),
-                         ) : SizedBox.shrink(),
-                         SizedBox(height: 20,),
-                       ],
-                     ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                      //Spacer(),
+                                      GestureDetector(
+                                        onTap: () {
+                                          setState(() {
+                                            visibleexpress = true;
+                                            visiblestand = false;
+                                            dividerSlot = ColorCodes.whiteColor;
+                                            dividerExpress = ColorCodes.primaryColor;
+                                            ContainerSlot = ColorCodes.whiteColor;
+                                            ContainerExpress = ColorCodes.varcolor;
+                                            _groupValueAdvance = 2;
+                                          });
+                                        },
+                                        child: Container(
+                                          height: 130,
+                                          width: MediaQuery.of(context).size.width*0.19,
+                                          decoration: BoxDecoration(
+                                              color: ContainerExpress,
+                                              border: Border(
+                                                top: BorderSide(
+                                                    width: 1.0, color: ColorCodes.varcolor),
+                                                left: BorderSide(
+                                                    width: 1.0, color: ColorCodes.varcolor),
+                                                right: BorderSide(
+                                                    width: 1.0, color: ColorCodes.varcolor),
+                                                bottom: BorderSide(
+                                                    width: visibleexpress ? 8.0 : 1.0 , color: visibleexpress ? dividerExpress : ColorCodes.varcolor),
+                                              )),
 
-                   );
-                 })
+                                          child: Column(
+                                            mainAxisAlignment: MainAxisAlignment
+                                                .center,
+                                            crossAxisAlignment: CrossAxisAlignment
+                                                .center,
+                                            children: [
+                                              Image.asset(Images.express,
+                                                height: 60,
+                                                width: 60,
+                                                color: ColorCodes.greenColor,
+                                              ),
+                                              SizedBox(height: 10,),
+                                              Text(S
+                                                  .of(context)
+                                                  .express_delivery,
+                                                style: TextStyle(fontSize: 16,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: ColorCodes.cartgreenColor),
+                                              ),
+                                              SizedBox(height: 5,),
+                                              Text(S
+                                                  .of(context)
+                                                  .delivery_in + " " +
+                                                  _deliveryDurationExpress,
+                                                textAlign: TextAlign.center,
+                                                style: TextStyle(fontSize: 13,
+                                                    fontWeight: FontWeight.w400,
+                                                    color: ColorCodes.greyColor),),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  //SizedBox(width: 20,),
+                                  Visibility(
+                                    visible: visiblestand,
+                                    child: StandardDelivery(),
+                                  ),
+                                  (Features.isSplit) ? Visibility(
+                                    visible: visibleexpress,
+                                    child: ExpressDelivery(),
+                                  ) : SizedBox.shrink(),
+                                  SizedBox(height: 20,),
+                                ],
+                              ),
+                            );
+                          })
                           :  Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.center,
@@ -8902,7 +9815,7 @@ if(_initialloading)
                           ),
                           if(_checkaddress)
                             Text(
-                              S.of(context).currently_no_slot,//"Currently there is no slots available",
+                              S .of(context).currently_no_slot,//"Currently there is no slots available",
                               style: TextStyle(
                                   fontSize: 16.0,
                                   fontWeight: FontWeight.bold),
@@ -8913,327 +9826,2077 @@ if(_initialloading)
                         child: CircularProgressIndicator(),
                       ),
 
-                    /*(addressitemsData.items.length > 0)?*/_checkaddress? VxBuilder(
-                        builder: (context,  boxes, index) {
-                        final box = boxes.CartItemList;
-                        isEmpty=CartCalculations.itemCount<=0;
-                          if (box.isEmpty) return SizedBox.shrink();
-                          if(slots==true) return MouseRegion(
-                            child: InkWell(
-                              onTap: () {
-                                if (_isChangeAddress) {
-                                  Fluttertoast.showToast(
-                                      msg: S.of(context).please_select_delivery_address,//"Please select delivery address!",
-                                      fontSize: MediaQuery.of(context).textScaleFactor *13,
-                                      backgroundColor: Colors.black87,
-                                      textColor: Colors.white);
-                                } else {
-                                  if (!_checkaddress) {
-                                    Fluttertoast.showToast(
-                                      msg: S.of(context).please_provide_address,//"Please provide a address",
-                                      fontSize: MediaQuery.of(context).textScaleFactor *13,);
-                                  } else if(store.userData.mobileNumber.toString() == "" || store.userData.mobileNumber.toString() == "null"){
-                                    _dialogforMobileNumber();
-                                  }else if((_groupValueAdvance == 1 ) || _groupValueAdvance == 2) {
-                                    PrefUtils.prefs.setString("isPickup", "no");
-                                    finalSlotDelivery= deliveryamount + deliveryDateamount1 + deliveryTimeamount1;
-                                    finalExpressDelivery= deliveryExpressamount + deliverySlotamount + deliveryfinalexpressdate + deliveryfinalexpressTime;
+                    if(!Features.ismultivendor)
+                    /*(addressitemsData.items.length > 0)?*/_checkaddress?
+                    (CartCalculations.totalMember <= 0.00 && CartCalculations.total <= 0.00 && CartCalculations.totalMember <= 0 && CartCalculations.total <= 0)?
+                    SizedBox.shrink():
+                    VxBuilder(
+                      mutations: {ProductMutation},
+                      builder: (context, boxes, index) {
 
-                                    for(int i=0;i<cartItemList.length;i++)
-                                      if(cartItemList.length == 1 && cartItemList[0].mode == 1){
-                                        _deliveryChargeNormal="0";
-                                        _deliveryChargeExpress="0";
-                                        _deliveryChargePrime="0";
-                                      }
-                               if(Features.isOffers) {
-                                 Navigator.of(context).pushReplacementNamed(
-                                     OfferScreen.routeName,
-                                     arguments: {
-                                       'minimumOrderAmountNoraml': _minimumOrderAmountNoraml,
-                                       'deliveryChargeNormal': _deliveryChargeNormal,
-                                       'minimumOrderAmountPrime': _minimumOrderAmountPrime,
-                                       'deliveryChargePrime': _deliveryChargePrime,
-                                       'minimumOrderAmountExpress': _minimumOrderAmountExpress,
-                                       'deliveryChargeExpress': _deliveryChargeExpress,
-                                       'deliveryType': (_groupValueAdvance == 1)
-                                           ? "Default"
-                                           : "OptionTwo",
-                                       'note': _message.text,
-                                       'addressId': PrefUtils.prefs.getString(
-                                           "addressId").toString(),
-                                       'deliveryCharge': (_groupValueAdvance ==
-                                           1)
-                                           ? finalSlotDelivery.toString()
-                                           : finalExpressDelivery.toString(),
-                                       // 'finalExpressDelivery':finalExpressDelivery.toString(),
-                                       'deliveryDurationExpress': _deliveryDurationExpress,
-                                       '_groupValue': _groupValue,
-                                     });
-                               }else{
-                                 debugPrint("payment noa....4..."+_deliveryChargeNormal+"  "+_minimumOrderAmountNoraml);
-                                   Navigator.of(context)
-                                        .pushNamed(PaymentScreen.routeName, arguments: {
-                                      'minimumOrderAmountNoraml': _minimumOrderAmountNoraml,
-                                      'deliveryChargeNormal': _deliveryChargeNormal,
-                                      'minimumOrderAmountPrime': _minimumOrderAmountPrime,
-                                      'deliveryChargePrime': _deliveryChargePrime,
-                                      'minimumOrderAmountExpress': _minimumOrderAmountExpress,
-                                      'deliveryChargeExpress': _deliveryChargeExpress,
-                                      'deliveryType': (_groupValueAdvance == 1) ? "Default" : "OptionTwo",
-                                      'note': _message.text,
-                                      'deliveryCharge': (_groupValueAdvance == 1)? finalSlotDelivery.toString():finalExpressDelivery.toString(),
-                                      'deliveryDurationExpress' : _deliveryDurationExpress,
-                                     'fromScreen':'',
-                                     'responsejson':"",
-                                    });
-                               }
-                                  }
-                                }
-                              },
-                              child: Container(
-                                width: MediaQuery.of(context).size.width,
-                                color: _isChangeAddress
-                                    ? ColorCodes.greyColor
-                                    : Theme.of(context).primaryColor,
-                                height: 50.0,
-                                padding: EdgeInsets.symmetric(horizontal: 20),
-                                child:
-                               /* (addressitemsData.items.length > 0)?*/_checkaddress?
-                                    Container(
-                                      child: Center(
-                                        child: Row(
-                                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                          children: [
-                                            _checkmembership ? Text('Total: '+IConstants.currencyFormat +(CartCalculations.totalMember)
-                                                .toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),   style: TextStyle(
-                                                color: Colors.white,
-                                                fontWeight: FontWeight.bold),):
-                                            Text('Total: '+IConstants.currencyFormat +(CartCalculations.total)
-                                                .toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),   style: TextStyle(
-                                                color: Colors.white,
-                                                fontWeight: FontWeight.bold),),
-                                            Text(
-                                              S.of(context).confirm_order,//'CONFIRM ORDER',
-                                              style: TextStyle(
-                                                  color: Colors.white,
-                                                  fontWeight: FontWeight.bold),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                ):  SizedBox.shrink(),
-                              ),
-                            ),
-                          );
-                          return    !_checkslots
-                              ? _checkaddress ?
-                          MouseRegion(
-                            child: InkWell(
-                              onTap: () => {
+                        final box = boxes.CartItemList;
+                        for(int i=0;i<cartItemList.length;i++) {
+                          if (cartItemList.length <= 1 && cartItemList[i].mode == "1") {
+                            slots = true;
+                          } else if (cartItemList[i].mode == 1) {
+                            slots = true;
+                          }
+                        }
+                        for (int i = 0; i < box.length; i++) {
+                          if (box[i].mode == "1") {
+                            _checkmembership = true;
+                          }
+                        }
+                        print("check membership ....web..."+_checkmembership.toString());
+                        isEmpty=CartCalculations.itemCount<=0;
+                        if (box.isEmpty) return SizedBox.shrink();
+                        if(slots==true) return MouseRegion(
+                          child: InkWell(
+                            onTap: () {
+                              if (_isChangeAddress) {
                                 Fluttertoast.showToast(
-                                  msg:
-                                  S.of(context).currently_no_slot,//"currently there are no slots available",
-                                  fontSize: MediaQuery.of(context).textScaleFactor *13,),
-                              },
-                              child: Container(
-                                width:
-                                MediaQuery.of(context).size.width * 0.40,
-                                color: Colors.grey,
-                                height: 50.0,
-                                padding: EdgeInsets.symmetric(horizontal: 20),
-                                child: Container(
-                                  child: Center(
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                    msg: S .of(context).please_select_delivery_address,//"Please select delivery address!",
+                                    fontSize: MediaQuery.of(context).textScaleFactor *13,
+                                    backgroundColor: Colors.black87,
+                                    textColor: Colors.white);
+                              }
+                              else if(PrefUtils.prefs!.getString('fixtime')! == "" && ((_groupValueAdvance==2 && something.length > 0 && Features.isSplit) || (_groupValueAdvance==1 && DefaultSlot.length > 0))){
+                                debugPrint("Please select Time slot express..." );
+                                Fluttertoast.showToast(
+                                    msg:  S.of(context).pleasse_select_time_slot,//"Please select Time slot",
+                                    fontSize: MediaQuery
+                                        .of(context)
+                                        .textScaleFactor * 13,
+                                    backgroundColor: Colors.black87,
+                                    textColor: Colors.white);
+                              }else {
+                                if (!_checkaddress) {
+                                  Fluttertoast.showToast(
+                                    msg: S .of(context).please_provide_address,//"Please provide a address",
+                                    fontSize: MediaQuery.of(context).textScaleFactor *13,);
+                                } else if(store.userData.mobileNumber.toString() == " " || store.userData.mobileNumber.toString() == "null"){
+                                  _dialogforMobileNumber();
+                                }else if((_groupValueAdvance == 1 ) || _groupValueAdvance == 2) {
+                                  PrefUtils.prefs!.setString("isPickup", "no");
+                                  finalSlotDelivery= deliveryamount + deliveryDateamount1 + deliveryTimeamount1;
+                                  finalExpressDelivery= deliveryExpressamount + deliverySlotamount + deliveryfinalexpressdate + deliveryfinalexpressTime;
+
+                                  for(int i=0;i<cartItemList.length;i++)
+                                    if(cartItemList.length == 1 && cartItemList[0].mode == 1){
+                                      _deliveryChargeNormal="0";
+                                      _deliveryChargeExpress="0";
+                                      _deliveryChargePrime="0";
+                                    }
+                                  if(Features.isOffers && !slots) {
+                                    if (store.userData.mobileNumber !=
+                                        "null" && store.userData.mobileNumber
+                                        .toString() != "") {
+                                      /* Navigator.of(context).pushReplacementNamed(
+                                        OfferScreen.routeName,
+                                        arguments: {
+                                          'minimumOrderAmountNoraml': _minimumOrderAmountNoraml,
+                                          'deliveryChargeNormal': _deliveryChargeNormal,
+                                          'minimumOrderAmountPrime': _minimumOrderAmountPrime,
+                                          'deliveryChargePrime': _deliveryChargePrime,
+                                          'minimumOrderAmountExpress': _minimumOrderAmountExpress,
+                                          'deliveryChargeExpress': _deliveryChargeExpress,
+                                          'deliveryType': (_groupValueAdvance == 1)
+                                              ? "Default"
+                                              : "OptionTwo",
+                                          'note': _message.text,
+                                          'addressId': PrefUtils.prefs!.getString(
+                                              "addressId").toString(),
+                                          'deliveryCharge': (_groupValueAdvance ==
+                                              1)
+                                              ? finalSlotDelivery.toString()
+                                              : finalExpressDelivery.toString(),
+                                          // 'finalExpressDelivery':finalExpressDelivery.toString(),
+                                          'deliveryDurationExpress': _deliveryDurationExpress,
+                                          '_groupValue': _groupValue,
+                                        });*/
+                                      Navigation(context, name:Routename.OfferScreen,navigatore: NavigatoreTyp.Push,
+                                          qparms: {
+                                            'minimumOrderAmountNoraml': _minimumOrderAmountNoraml,
+                                            'deliveryChargeNormal': _deliveryChargeNormal,
+                                            'minimumOrderAmountPrime': _minimumOrderAmountPrime,
+                                            'deliveryChargePrime': _deliveryChargePrime,
+                                            'minimumOrderAmountExpress': _minimumOrderAmountExpress,
+                                            'deliveryChargeExpress': _deliveryChargeExpress,
+                                            'deliveryType': (_groupValueAdvance == 1)
+                                                ? "Default"
+                                                : "OptionTwo",
+                                            'note': _message.text,
+                                            'addressId': PrefUtils.prefs!.getString(
+                                                "addressId").toString(),
+                                            'deliveryCharge': (_groupValueAdvance ==
+                                                1)
+                                                ? finalSlotDelivery.toString()
+                                                : finalExpressDelivery.toString(),
+                                            // 'finalExpressDelivery':finalExpressDelivery.toString(),
+                                            'deliveryDurationExpress': _deliveryDurationExpress,
+                                            '_groupValue': _groupValue,
+                                          });
+                                    }else if(VxState.store.userData.customerEngagementFlag! =="1"){
+                                      Navigation(context, name: Routename.OfferScreen,
+                                          navigatore: NavigatoreTyp.Push,
+                                          qparms: {
+                                            'minimumOrderAmountNoraml': _minimumOrderAmountNoraml,
+                                            'deliveryChargeNormal': _deliveryChargeNormal,
+                                            'minimumOrderAmountPrime': _minimumOrderAmountPrime,
+                                            'deliveryChargePrime': _deliveryChargePrime,
+                                            'minimumOrderAmountExpress': _minimumOrderAmountExpress,
+                                            'deliveryChargeExpress': _deliveryChargeExpress,
+                                            'deliveryType': (_groupValueAdvance == 1)
+                                                ? "Default"
+                                                : "OptionTwo",
+                                            'note': _message.text,
+                                            'addressId': PrefUtils.prefs!.getString(
+                                                "addressId").toString(),
+                                            'deliveryCharge': (_groupValueAdvance ==
+                                                1)
+                                                ? finalSlotDelivery.toString()
+                                                : finalExpressDelivery.toString(),
+                                            // 'finalExpressDelivery':finalExpressDelivery.toString(),
+                                            'deliveryDurationExpress': _deliveryDurationExpress,
+                                            '_groupValue': _groupValue,
+                                          });
+                                    }
+                                    else{
+                                      _dialogforMobileNumber();
+                                    }
+                                  }else {
+                                    if (store.userData.mobileNumber !=
+                                        "null" && store.userData.mobileNumber
+                                        .toString() != "") {
+                                      /*       Navigator.of(context)
+                                       .pushNamed(
+                                       PaymentScreen.routeName, arguments: {
+                                     'minimumOrderAmountNoraml': _minimumOrderAmountNoraml,
+                                     'deliveryChargeNormal': _deliveryChargeNormal,
+                                     'minimumOrderAmountPrime': _minimumOrderAmountPrime,
+                                     'deliveryChargePrime': _deliveryChargePrime,
+                                     'minimumOrderAmountExpress': _minimumOrderAmountExpress,
+                                     'deliveryChargeExpress': _deliveryChargeExpress,
+                                     'addressId': PrefUtils.prefs!.getString(
+                                         "addressId"),
+                                     'deliveryType': (_groupValueAdvance == 1)
+                                         ? "Default"
+                                         : "OptionTwo",
+                                     'note': _message.text,
+                                     'deliveryCharge': (_groupValueAdvance == 1)
+                                         ? finalSlotDelivery.toString()
+                                         : finalExpressDelivery.toString(),
+                                     'deliveryDurationExpress': _deliveryDurationExpress,
+                                   });*/
+                                      Navigation(context, name: Routename.PaymentScreen, navigatore: NavigatoreTyp.Push,
+                                          qparms: {
+                                            'minimumOrderAmountNoraml': _minimumOrderAmountNoraml,
+                                            'deliveryChargeNormal': _deliveryChargeNormal,
+                                            'minimumOrderAmountPrime': _minimumOrderAmountPrime,
+                                            'deliveryChargePrime': _deliveryChargePrime,
+                                            'minimumOrderAmountExpress': _minimumOrderAmountExpress,
+                                            'deliveryChargeExpress': _deliveryChargeExpress,
+                                            'addressId': PrefUtils.prefs!.getString(
+                                                "addressId"),
+                                            'deliveryType': (_groupValueAdvance == 1)
+                                                ? "Default"
+                                                : "OptionTwo",
+                                            'note': _message.text,
+                                            'deliveryCharge': (_groupValueAdvance == 1)
+                                                ? finalSlotDelivery.toString()
+                                                : finalExpressDelivery.toString(),
+                                            'deliveryDurationExpress': _deliveryDurationExpress,
+                                            'fromScreen':'',
+                                            'responsejson':"",
+                                          });
+                                    }
+                                    else{
+                                      _dialogforMobileNumber();
+                                    }
+                                  }
+
+                                }
+                              }
+                            },
+                            // child: Container(
+                            //   width: MediaQuery.of(context).size.width,
+                            //   color: _isChangeAddress
+                            //       ? ColorCodes.greyColor
+                            //       : Theme.of(context).primaryColor,
+                            //   height: 50.0,
+                            //   padding: EdgeInsets.symmetric(horizontal: 20),
+                            //   child:
+                            //   /* (addressitemsData.items.length > 0)?*/_checkaddress?
+                            //   Container(
+                            //     child: Center(
+                            //       child: Row(
+                            //         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            //         children: [
+                            //           VxState.store.userData.membership! == "1" ||_checkmembership?
+                            //           Features.iscurrencyformatalign?
+                            //           Text('Total: ' +(CartCalculations.totalMember)
+                            //               .toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit)+IConstants.currencyFormat,   style: TextStyle(
+                            //               color: Colors.white,
+                            //               fontWeight: FontWeight.bold),):
+                            //           Text('Total: '+IConstants.currencyFormat +(CartCalculations.totalMember)
+                            //               .toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),   style: TextStyle(
+                            //               color: Colors.white,
+                            //               fontWeight: FontWeight.bold),):
+                            //           Features.iscurrencyformatalign?
+                            //           Text('Total: ' +(CartCalculations.total)
+                            //               .toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit)+IConstants.currencyFormat,   style: TextStyle(
+                            //               color: Colors.white,
+                            //               fontWeight: FontWeight.bold),):
+                            //           Text('Total: '+IConstants.currencyFormat +(CartCalculations.total)
+                            //               .toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),   style: TextStyle(
+                            //               color: Colors.white,
+                            //               fontWeight: FontWeight.bold),),
+                            //           Text(
+                            //             S .of(context).confirm_order,//'CONFIRM ORDER',
+                            //             style: TextStyle(
+                            //                 color: Colors.white,
+                            //                 fontWeight: FontWeight.bold),
+                            //           ),
+                            //         ],
+                            //       ),
+                            //     ),
+                            //   ):  SizedBox.shrink(),
+                            // ),
+                           child: Container(
+                              width: MediaQuery.of(context).size.width,
+                              decoration: BoxDecoration(
+                                  color: _isChangeAddress
+                                      ? ColorCodes.greyColor
+                                      : Theme.of(context).primaryColor,
+                                  borderRadius: BorderRadius.circular(5)
+                              ),
+                              padding: EdgeInsets.only(top: 10, bottom: 10),
+                              margin: EdgeInsets.only(top: 15),
+                              child: Column(children: <Widget>[
+                                Row(
+                                  children: [
+                                    SizedBox(width: 20),
+                                    Image.asset(
+                                      Images.bag, height: 30, width: 30, color: ColorCodes.whiteColor,
+                                    ),
+                                    SizedBox(width: 5,),
+                                    Column(
                                       children: [
-                                        _checkmembership ? Text('Total: '+IConstants.currencyFormat +(CartCalculations.totalMember)
-                                            .toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),style: TextStyle(
+                                        Text((CartCalculations.itemCount).toString() + " " + S
+                                            .of(context)
+                                            .items,
+                                            style: TextStyle( color: Colors.white,
+                                                fontWeight: FontWeight.bold)),
+                                        SizedBox(height:5),
+                                        VxState.store.userData.membership! == "1" ||_checkmembership ?
+                                        Features.iscurrencyformatalign?
+                                        Text('Total: ' +(CartCalculations.totalMember)
+                                            .toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit) +IConstants.currencyFormat,   style: TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold),):
+                                        Text('Total: '+IConstants.currencyFormat +(CartCalculations.totalMember)
+                                            .toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),   style: TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold),):
+                                        Features.iscurrencyformatalign?
+                                        Text('Total: ' +(CartCalculations.total)
+                                            .toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit)+IConstants.currencyFormat,   style: TextStyle(
                                             color: Colors.white,
                                             fontWeight: FontWeight.bold),):
                                         Text('Total: '+IConstants.currencyFormat +(CartCalculations.total)
-                                            .toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),style: TextStyle(
+                                            .toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),   style: TextStyle(
                                             color: Colors.white,
                                             fontWeight: FontWeight.bold),),
-                                        Text(
-                                          S.of(context).confirm_order,//'CONFIRM ORDER',
-                                          style: TextStyle(
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.bold),
-                                        ),
                                       ],
                                     ),
-                                  ),
-                                ),
-                              ),
+                                    Spacer(),
+                                    Text(
+                                      S .of(context).confirm_order,//'CONFIRM ORDER',
+                                      style: TextStyle(
+                                          fontSize: 16.0,
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold),
+                                    ),
+                                    SizedBox(width: 20),
+                                  ],
+                                )
+                              ]),
                             ),
-                          ):SizedBox.shrink()
-                              :
-                          (_checkmembership
-                              ?
-                          (double.parse((CartCalculations.totalMember).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit)) < double.parse(IConstants.minimumOrderAmount) || double.parse((CartCalculations.totalMember).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit)) > double.parse(IConstants.maximumOrderAmount))
-                              :
-                          (double.parse((CartCalculations.total).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit)) < double.parse(IConstants.minimumOrderAmount) || double.parse((CartCalculations.total).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit)) > double.parse(IConstants.maximumOrderAmount)))
-                              ? GestureDetector(
+                          ),
+                        );
+                        return    !_checkslots
+                            ? _checkaddress ?
+                        MouseRegion(
+                          child: InkWell(
                             onTap: () => {
-                              if(_checkmembership) {
-                                if(double.parse((CartCalculations.totalMember).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit)) < double.parse(IConstants.minimumOrderAmount)) {
-                                  Fluttertoast.showToast(msg: S.of(context).min_order_amount/*"Minimum order amount is "*/ + IConstants.currencyFormat + double.parse(IConstants.minimumOrderAmount).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit), backgroundColor: Colors.black87, textColor: Colors.white,
-                                    fontSize: MediaQuery.of(context).textScaleFactor *13,),
-                                } else {
-                                  Fluttertoast.showToast(msg: S.of(context).max_order_amount/*"Maximum order amount is "*/ + IConstants.currencyFormat + IConstants.maximumOrderAmount, backgroundColor: Colors.black87, textColor: Colors.white,
-                                    fontSize:MediaQuery.of(context).textScaleFactor *13,),
-                                }
-                              } else {
-                                if(double.parse((CartCalculations.total).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit)) < double.parse(IConstants.minimumOrderAmount)) {
-                                  Fluttertoast.showToast(msg: S.of(context).min_order_amount/*"Minimum order amount is "*/ + IConstants.currencyFormat + double.parse(IConstants.minimumOrderAmount).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit), backgroundColor: Colors.black87, textColor: Colors.white,
-                                    fontSize:MediaQuery.of(context).textScaleFactor *13,),
-                                } else {
-                                  Fluttertoast.showToast(msg: S.of(context).max_order_amount/*"Maximum order amount is "*/ + IConstants.currencyFormat + IConstants.maximumOrderAmount, backgroundColor: Colors.black87, textColor: Colors.white,
-                                    fontSize:MediaQuery.of(context).textScaleFactor *13,),
-                                }
-                              },
+                              Fluttertoast.showToast(
+                                msg:
+                                S .of(context).currently_no_slot,//"currently there are no slots available",
+                                fontSize: MediaQuery.of(context).textScaleFactor *13,),
                             },
                             child: Container(
-                              color: Theme.of(context).primaryColor,
                               width: MediaQuery.of(context).size.width,
-                              height: 50,
+                              decoration: BoxDecoration(
+                                  color: ColorCodes.grey,
+                                  borderRadius: BorderRadius.circular(5)
+                              ),
+                              padding: EdgeInsets.only(top: 10, bottom: 10),
+                              margin: EdgeInsets.only(top: 15),
                               child: Column(children: <Widget>[
-                                SizedBox(
-                                  height: 17,
-                                ),
-                                Center(
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                Row(
+                                  children: [
+                                    SizedBox(width: 20),
+                                    Image.asset(
+                                      Images.bag, height: 30, width: 30, color: ColorCodes.whiteColor,
+                                    ),
+                                    SizedBox(width: 5,),
+                                    Column(
+                                      children: [
+                                        Text((CartCalculations.itemCount).toString() + " " + S
+                                            .of(context)
+                                            .items,
+                                            style: TextStyle( color: Colors.white,
+                                                fontWeight: FontWeight.bold)),
+                                        SizedBox(height:5),
+                                        VxState.store.userData.membership! == "1" ||_checkmembership ?
+                                        Features.iscurrencyformatalign?
+                                        Text('Total: ' +(CartCalculations.totalMember)
+                                            .toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit) +IConstants.currencyFormat,   style: TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold),):
+                                        Text('Total: '+IConstants.currencyFormat +(CartCalculations.totalMember)
+                                            .toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),   style: TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold),):
+                                        Features.iscurrencyformatalign?
+                                        Text('Total: ' +(CartCalculations.total)
+                                            .toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit)+IConstants.currencyFormat,   style: TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold),):
+                                        Text('Total: '+IConstants.currencyFormat +(CartCalculations.total)
+                                            .toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),   style: TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold),),
+                                      ],
+                                    ),
+                                    Spacer(),
+                                    Text(
+                                      S .of(context).confirm_order,//'CONFIRM ORDER',
+                                      style: TextStyle(
+                                          fontSize: 16.0,
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold),
+                                    ),
+                                    SizedBox(width: 20),
+                                  ],
+                                )
+                              ]),
+                            ),
+                          ),
+                        ):SizedBox.shrink()
+                            :
+                        (VxState.store.userData.membership! == "1" ||_checkmembership
+                            ?
+                        (double.parse((CartCalculations.totalMember).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit)) < double.parse(IConstants.minimumOrderAmount) || double.parse((CartCalculations.totalMember).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit)) > double.parse(IConstants.maximumOrderAmount))
+                            :
+                        (double.parse((CartCalculations.total).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit)) < double.parse(IConstants.minimumOrderAmount) || double.parse((CartCalculations.total).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit)) > double.parse(IConstants.maximumOrderAmount)))
+                            ? GestureDetector(
+                          onTap: () => {
+
+                            if(VxState.store.userData.membership! == "1" ||_checkmembership) {
+                              if(double.parse((CartCalculations.totalMember).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit)) < double.parse(IConstants.minimumOrderAmount)) {
+                                Features.iscurrencyformatalign?
+                                Fluttertoast.showToast(msg: S .of(context).min_order_amount/*"Minimum order amount is "*/  + double.parse(IConstants.minimumOrderAmount).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit)+ IConstants.currencyFormat, backgroundColor: Colors.black87, textColor: Colors.white,
+                                  fontSize: MediaQuery.of(context).textScaleFactor *13,):
+                                Fluttertoast.showToast(msg: S .of(context).min_order_amount/*"Minimum order amount is "*/ + IConstants.currencyFormat + double.parse(IConstants.minimumOrderAmount).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit), backgroundColor: Colors.black87, textColor: Colors.white,
+                                  fontSize: MediaQuery.of(context).textScaleFactor *13,),
+                              } else {
+                                Features.iscurrencyformatalign?
+                                Fluttertoast.showToast(msg: S .of(context).max_order_amount/*"Maximum order amount is "*/  + IConstants.maximumOrderAmount + IConstants.currencyFormat, backgroundColor: Colors.black87, textColor: Colors.white,
+                                  fontSize:MediaQuery.of(context).textScaleFactor *13,):
+                                Fluttertoast.showToast(msg: S .of(context).max_order_amount/*"Maximum order amount is "*/ + IConstants.currencyFormat + IConstants.maximumOrderAmount, backgroundColor: Colors.black87, textColor: Colors.white,
+                                  fontSize:MediaQuery.of(context).textScaleFactor *13,),
+                              }
+                            } else {
+                              if(double.parse((CartCalculations.total).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit)) < double.parse(IConstants.minimumOrderAmount)) {
+                                Features.iscurrencyformatalign?
+                                Fluttertoast.showToast(msg: S .of(context).min_order_amount/*"Minimum order amount is "*/  + double.parse(IConstants.minimumOrderAmount).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit) + IConstants.currencyFormat, backgroundColor: Colors.black87, textColor: Colors.white,
+                                  fontSize:MediaQuery.of(context).textScaleFactor *13,):
+                                Fluttertoast.showToast(msg: S .of(context).min_order_amount/*"Minimum order amount is "*/ + IConstants.currencyFormat + double.parse(IConstants.minimumOrderAmount).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit), backgroundColor: Colors.black87, textColor: Colors.white,
+                                  fontSize:MediaQuery.of(context).textScaleFactor *13,),
+                              } else {
+                                Features.iscurrencyformatalign?
+                                Fluttertoast.showToast(msg: S .of(context).max_order_amount/*"Maximum order amount is "*/  + IConstants.maximumOrderAmount+ IConstants.currencyFormat, backgroundColor: Colors.black87, textColor: Colors.white,
+                                  fontSize:MediaQuery.of(context).textScaleFactor *13,):
+                                Fluttertoast.showToast(msg: S .of(context).max_order_amount/*"Maximum order amount is "*/ + IConstants.currencyFormat + IConstants.maximumOrderAmount, backgroundColor: Colors.black87, textColor: Colors.white,
+                                  fontSize:MediaQuery.of(context).textScaleFactor *13,),
+                              }
+                            },
+
+                          },
+                          child: Container(
+                            width: MediaQuery.of(context).size.width,
+                            decoration: BoxDecoration(
+                                color: ColorCodes.primaryColor,
+                                borderRadius: BorderRadius.circular(5)
+                            ),
+                            padding: EdgeInsets.only(top: 10, bottom: 10),
+                            margin: EdgeInsets.only(top: 15),
+                            child: Column(children: <Widget>[
+                              Row(
+                                children: [
+                                  SizedBox(width: 20),
+                                  Image.asset(
+                                    Images.bag, height: 30, width: 30, color: ColorCodes.whiteColor,
+                                  ),
+                                  SizedBox(width: 5,),
+                                  Column(
                                     children: [
-                                      _checkmembership ? Text('Total: '+IConstants.currencyFormat +(CartCalculations.totalMember)
+                                      Text((CartCalculations.itemCount).toString() + " " + S
+                                          .of(context)
+                                          .items,
+                                      style: TextStyle( color: Colors.white,
+                                          fontWeight: FontWeight.bold)),
+                                      SizedBox(height:5),
+                                      VxState.store.userData.membership! == "1" ||_checkmembership ?
+                                      Features.iscurrencyformatalign?
+                                      Text('Total: ' +(CartCalculations.totalMember)
+                                          .toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit) +IConstants.currencyFormat,   style: TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold),):
+                                      Text('Total: '+IConstants.currencyFormat +(CartCalculations.totalMember)
                                           .toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),   style: TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold),):
+                                      Features.iscurrencyformatalign?
+                                      Text('Total: ' +(CartCalculations.total)
+                                          .toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit)+IConstants.currencyFormat,   style: TextStyle(
                                           color: Colors.white,
                                           fontWeight: FontWeight.bold),):
                                       Text('Total: '+IConstants.currencyFormat +(CartCalculations.total)
                                           .toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),   style: TextStyle(
                                           color: Colors.white,
                                           fontWeight: FontWeight.bold),),
-                                      Text(
-                                        S.of(context).confirm_order,//'CONFIRM ORDER',
-                                        style: TextStyle(
-                                            fontSize: 13.0,
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.bold),
-                                      ),
                                     ],
                                   ),
-                                )
-                              ]),
-                            ),
-                          ) :
-                          _checkaddress?
-                          MouseRegion(
-                            child: InkWell(
-                              onTap: () {
-                                if (_isChangeAddress) {
+                                  Spacer(),
+                                  Text(
+                                    S .of(context).confirm_order,//'CONFIRM ORDER',
+                                    style: TextStyle(
+                                        fontSize: 16.0,
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold),
+                                  ),
+                                  SizedBox(width: 20),
+                                ],
+                              )
+                            ]),
+                          ),
+                        ) :
+                        _checkaddress?
+                        MouseRegion(
+                          child: InkWell(
+                            onTap: () {
+                              debugPrint("isSelected..."+PrefUtils.prefs!.getString('fixtime')!+"  "+PrefUtils.prefs!.getString("fixdate")!+"  "+something.length.toString()+"  "+_groupValueAdvance.toString());
+                              if (_isChangeAddress) {
+                                Fluttertoast.showToast(
+                                    msg: S .of(context).please_select_delivery_address,//"Please select delivery address!",
+                                    fontSize: MediaQuery.of(context).textScaleFactor *13,
+                                    backgroundColor: Colors.black87,
+                                    textColor: Colors.white);
+                              } else if(PrefUtils.prefs!.getString('fixtime')! == "" && ((_groupValueAdvance==2 && something.length > 0 && Features.isSplit) || (_groupValueAdvance==1 && DefaultSlot.length > 0))){
+                                debugPrint("Please select Time slot express..." );
+                                Fluttertoast.showToast(
+                                    msg: S.of(context).pleasse_select_time_slot,//"Please select Time slot",
+                                    fontSize: MediaQuery
+                                        .of(context)
+                                        .textScaleFactor * 13,
+                                    backgroundColor: Colors.black87,
+                                    textColor: Colors.white);
+                              }
+                              else {
+                                if (!_checkaddress) {
                                   Fluttertoast.showToast(
-                                      msg: S.of(context).please_select_delivery_address,//"Please select delivery address!",
-                                      fontSize: MediaQuery.of(context).textScaleFactor *13,
-                                      backgroundColor: Colors.black87,
-                                      textColor: Colors.white);
-                                } else {
-                                  if (!_checkaddress) {
-                                    Fluttertoast.showToast(
-                                      msg: S.of(context).please_provide_address,//"Please provide a address",
-                                      fontSize: MediaQuery.of(context).textScaleFactor *13,);
-                                  }else if(store.userData.mobileNumber.toString() == "" || store.userData.mobileNumber.toString() == "null"){
-                                    _dialogforMobileNumber();
-                                  } else if((_groupValueAdvance == 1 ) || _groupValueAdvance == 2) {
-                                    PrefUtils.prefs.setString("isPickup", "no");
-                                    finalSlotDelivery= deliveryamount + deliveryDateamount1 + deliveryTimeamount1;
-                                    finalExpressDelivery= deliveryExpressamount + deliverySlotamount + deliveryfinalexpressdate + deliveryfinalexpressTime;
+                                    msg: S .of(context).please_provide_address,//"Please provide a address",
+                                    fontSize: MediaQuery.of(context).textScaleFactor *13,);
+                                }else if(store.userData.mobileNumber.toString() == "" || store.userData.mobileNumber.toString() == "null"){
+                                  _dialogforMobileNumber();
+                                } else if((_groupValueAdvance == 1 ) || _groupValueAdvance == 2) {
+                                  PrefUtils.prefs!.setString("isPickup", "no");
+                                  finalSlotDelivery= deliveryamount + deliveryDateamount1 + deliveryTimeamount1;
+                                  finalExpressDelivery= deliveryExpressamount + deliverySlotamount + deliveryfinalexpressdate + deliveryfinalexpressTime;
 
-                                    final cartItemsData = Provider.of<CartItems>(context,listen: false);
-                                    for(int i=0;i<cartItemList.length;i++)
-                                      if(cartItemList.length == 1 && cartItemList[0].mode == 1){
-                                        _deliveryChargeNormal="0";
-                                        _deliveryChargeExpress="0";
-                                        _deliveryChargePrime="0";
-                                      }
-                                 if(Features.isOffers) {
-                                    Navigator.of(context).pushReplacementNamed(
-                                        OfferScreen.routeName,
-                                        arguments: {'minimumOrderAmountNoraml': _minimumOrderAmountNoraml,
-                                          'deliveryChargeNormal': _deliveryChargeNormal,
-                                          'minimumOrderAmountPrime': _minimumOrderAmountPrime,
-                                          'deliveryChargePrime': _deliveryChargePrime,
-                                          'minimumOrderAmountExpress': _minimumOrderAmountExpress,
-                                          'deliveryChargeExpress': _deliveryChargeExpress,
-                                           'deliveryType': (_groupValueAdvance==1)? "Default" : "OptionTwo",
-                                          'note': _message.text,
-                                          'addressId': PrefUtils.prefs.getString("addressId").toString(),
-                                          'deliveryCharge': (_groupValueAdvance == 1)? finalSlotDelivery.toString():finalExpressDelivery.toString(),
-                                         // 'finalExpressDelivery':finalExpressDelivery.toString(),
-                                          'deliveryDurationExpress' : _deliveryDurationExpress,
-                                          '_groupValue': _groupValue,
-                                        });
+                                  final cartItemsData = Provider.of<CartItems>(context,listen: false);
+                                  for(int i=0;i<cartItemList.length;i++)
+                                    if(cartItemList.length == 1 && cartItemList[0].mode == 1){
+                                      _deliveryChargeNormal="0";
+                                      _deliveryChargeExpress="0";
+                                      _deliveryChargePrime="0";
+                                    }
+
+                                  if(Features.isOffers && !slots) {
+                                    if (store.userData.mobileNumber !=
+                                        "null" && store.userData.mobileNumber
+                                        .toString() != "") {
+                                      /*  Navigator.of(context).pushReplacementNamed(
+                                         OfferScreen.routeName,
+                                         arguments: {
+                                           'minimumOrderAmountNoraml': _minimumOrderAmountNoraml,
+                                           'deliveryChargeNormal': _deliveryChargeNormal,
+                                           'minimumOrderAmountPrime': _minimumOrderAmountPrime,
+                                           'deliveryChargePrime': _deliveryChargePrime,
+                                           'minimumOrderAmountExpress': _minimumOrderAmountExpress,
+                                           'deliveryChargeExpress': _deliveryChargeExpress,
+                                           'deliveryType': (_groupValueAdvance ==
+                                               1) ? "Default" : "OptionTwo",
+                                           'note': _message.text,
+                                           'addressId': PrefUtils.prefs!
+                                               .getString("addressId")
+                                               .toString(),
+                                           'deliveryCharge': (_groupValueAdvance ==
+                                               1)
+                                               ? finalSlotDelivery.toString()
+                                               : finalExpressDelivery
+                                               .toString(),
+                                           // 'finalExpressDelivery':finalExpressDelivery.toString(),
+                                           'deliveryDurationExpress': _deliveryDurationExpress,
+                                           '_groupValue': _groupValue,
+                                         });*/
+                                      Navigation(context, name:Routename.OfferScreen,navigatore: NavigatoreTyp.Push,
+                                          qparms: {
+                                            'minimumOrderAmountNoraml': _minimumOrderAmountNoraml,
+                                            'deliveryChargeNormal': _deliveryChargeNormal,
+                                            'minimumOrderAmountPrime': _minimumOrderAmountPrime,
+                                            'deliveryChargePrime': _deliveryChargePrime,
+                                            'minimumOrderAmountExpress': _minimumOrderAmountExpress,
+                                            'deliveryChargeExpress': _deliveryChargeExpress,
+                                            'deliveryType': (_groupValueAdvance ==
+                                                1) ? "Default" : "OptionTwo",
+                                            'note': _message.text,
+                                            'addressId': PrefUtils.prefs!
+                                                .getString("addressId")
+                                                .toString(),
+                                            'deliveryCharge': (_groupValueAdvance ==
+                                                1)
+                                                ? finalSlotDelivery.toString()
+                                                : finalExpressDelivery
+                                                .toString(),
+                                            // 'finalExpressDelivery':finalExpressDelivery.toString(),
+                                            'deliveryDurationExpress': _deliveryDurationExpress,
+                                            '_groupValue': _groupValue,
+                                          });
+                                    }else if(VxState.store.userData.customerEngagementFlag! =="1"){
+                                      Navigation(context, name: Routename.OfferScreen,
+                                          navigatore: NavigatoreTyp.Push,
+                                          qparms: {
+                                            'minimumOrderAmountNoraml': _minimumOrderAmountNoraml,
+                                            'deliveryChargeNormal': _deliveryChargeNormal,
+                                            'minimumOrderAmountPrime': _minimumOrderAmountPrime,
+                                            'deliveryChargePrime': _deliveryChargePrime,
+                                            'minimumOrderAmountExpress': _minimumOrderAmountExpress,
+                                            'deliveryChargeExpress': _deliveryChargeExpress,
+                                            'deliveryType': (_groupValueAdvance ==
+                                                1) ? "Default" : "OptionTwo",
+                                            'note': _message.text,
+                                            'addressId': PrefUtils.prefs!
+                                                .getString("addressId")
+                                                .toString(),
+                                            'deliveryCharge': (_groupValueAdvance ==
+                                                1)
+                                                ? finalSlotDelivery.toString()
+                                                : finalExpressDelivery
+                                                .toString(),
+                                            // 'finalExpressDelivery':finalExpressDelivery.toString(),
+                                            'deliveryDurationExpress': _deliveryDurationExpress,
+                                            '_groupValue': _groupValue,
+                                          });
+                                    }
+                                    else{
+                                      _dialogforMobileNumber();
+                                    }
                                   }else{
-                                   debugPrint("payment noa....5.."+_deliveryChargeNormal+"  "+_minimumOrderAmountNoraml);
-                                      Navigator.of(context)
-                                        .pushNamed(PaymentScreen.routeName, arguments: {
-                                      'minimumOrderAmountNoraml': _minimumOrderAmountNoraml,
-                                      'deliveryChargeNormal': _deliveryChargeNormal,
-                                      'minimumOrderAmountPrime': _minimumOrderAmountPrime,
-                                      'deliveryChargePrime': _deliveryChargePrime,
-                                      'minimumOrderAmountExpress': _minimumOrderAmountExpress,
-                                      'deliveryChargeExpress': _deliveryChargeExpress,
-                                      'deliveryType': (_groupValueAdvance == 1) ? "Default" : "OptionTwo",
-                                      'note': _message.text,
-                                      'deliveryCharge': (_groupValueAdvance == 1)? finalSlotDelivery.toString():finalExpressDelivery.toString(),
-                                      'deliveryDurationExpress' : _deliveryDurationExpress,
-                                        'fromScreen':'',
-                                        'responsejson':"",
-                                    });
-                                 }
+
+                                    if (store.userData.mobileNumber !=
+                                        "null" && store.userData.mobileNumber
+                                        .toString() != "") {
+
+                                      /*        Navigator.of(context)
+                                         .pushNamed(
+                                         PaymentScreen.routeName, arguments: {
+                                       'minimumOrderAmountNoraml': _minimumOrderAmountNoraml,
+                                       'deliveryChargeNormal': _deliveryChargeNormal,
+                                       'minimumOrderAmountPrime': _minimumOrderAmountPrime,
+                                       'deliveryChargePrime': _deliveryChargePrime,
+                                       'minimumOrderAmountExpress': _minimumOrderAmountExpress,
+                                       'deliveryChargeExpress': _deliveryChargeExpress,
+                                       'addressId': PrefUtils.prefs!.getString(
+                                           "addressId"),
+                                       'deliveryType': (_groupValueAdvance == 1)
+                                           ? "Default"
+                                           : "OptionTwo",
+                                       'note': _message.text,
+                                       'deliveryCharge': (_groupValueAdvance ==
+                                           1)
+                                           ? finalSlotDelivery.toString()
+                                           : finalExpressDelivery.toString(),
+                                       'deliveryDurationExpress': _deliveryDurationExpress,
+                                     });*/
+                                      Navigation(context, name: Routename.PaymentScreen, navigatore: NavigatoreTyp.Push,
+                                          qparms: {
+                                            'minimumOrderAmountNoraml': _minimumOrderAmountNoraml,
+                                            'deliveryChargeNormal': _deliveryChargeNormal,
+                                            'minimumOrderAmountPrime': _minimumOrderAmountPrime,
+                                            'deliveryChargePrime': _deliveryChargePrime,
+                                            'minimumOrderAmountExpress': _minimumOrderAmountExpress,
+                                            'deliveryChargeExpress': _deliveryChargeExpress,
+                                            'addressId': PrefUtils.prefs!.getString(
+                                                "addressId"),
+                                            'deliveryType': (_groupValueAdvance == 1)
+                                                ? "Default"
+                                                : "OptionTwo",
+                                            'note': _message.text,
+                                            'deliveryCharge': (_groupValueAdvance ==
+                                                1)
+                                                ? finalSlotDelivery.toString()
+                                                : finalExpressDelivery.toString(),
+                                            'deliveryDurationExpress': _deliveryDurationExpress,
+                                            'fromScreen':'',
+                                            'responsejson':"",
+                                          });
+                                    }
+                                    else{
+                                      _dialogforMobileNumber();
+                                    }
+                                  }
                                 }
-                                 }
-                              },
-                              child: Container(
-                                width: MediaQuery.of(context).size.width,
-                                color: _isChangeAddress
-                                    ? ColorCodes.greyColor
-                                    : Theme.of(context).primaryColor,
-                                height: 50.0,
-                                padding: EdgeInsets.symmetric(horizontal: 20),
-                                child: Container(
-                                  child: Center(
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              }
+                            },
+                            child: Container(
+                              width: MediaQuery.of(context).size.width,
+                              decoration: BoxDecoration(
+                                  color: _isChangeAddress
+                                      ? ColorCodes.greyColor
+                                      : ColorCodes.primaryColor,
+                                  borderRadius: BorderRadius.circular(5)
+                              ),
+                              padding: EdgeInsets.only(top: 10, bottom: 10),
+                              margin: EdgeInsets.only(top: 15),
+                              child: Column(children: <Widget>[
+                                Row(
+                                  children: [
+                                    SizedBox(width: 20),
+                                    Image.asset(
+                                      Images.bag, height: 30, width: 30, color: ColorCodes.whiteColor,
+                                    ),
+                                    SizedBox(width: 5,),
+                                    Column(
                                       children: [
-                                        _checkmembership ? Text('Total: '+IConstants.currencyFormat +(CartCalculations.totalMember)
+                                        Text((CartCalculations.itemCount).toString() + " " + S
+                                            .of(context)
+                                            .items,
+                                            style: TextStyle( color: Colors.white,
+                                                fontWeight: FontWeight.bold)),
+                                        SizedBox(height:5),
+                                        VxState.store.userData.membership! == "1" ||_checkmembership ?
+                                        Features.iscurrencyformatalign?
+                                        Text('Total: ' +(CartCalculations.totalMember)
+                                            .toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit) +IConstants.currencyFormat,   style: TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold),):
+                                        Text('Total: '+IConstants.currencyFormat +(CartCalculations.totalMember)
                                             .toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),   style: TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold),):
+                                        Features.iscurrencyformatalign?
+                                        Text('Total: ' +(CartCalculations.total)
+                                            .toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit)+IConstants.currencyFormat,   style: TextStyle(
                                             color: Colors.white,
                                             fontWeight: FontWeight.bold),):
                                         Text('Total: '+IConstants.currencyFormat +(CartCalculations.total)
                                             .toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),   style: TextStyle(
                                             color: Colors.white,
                                             fontWeight: FontWeight.bold),),
-                                        Text(
-                                          S.of(context).confirm_order,//'CONFIRM ORDER',
-                                          style: TextStyle(
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.bold),
-                                        ),
                                       ],
                                     ),
-                                  ),
-                                ),
-                              ),
+                                    Spacer(),
+                                    Text(
+                                      S .of(context).confirm_order,//'CONFIRM ORDER',
+                                      style: TextStyle(
+                                          fontSize: 16.0,
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold),
+                                    ),
+                                    SizedBox(width: 20),
+                                  ],
+                                )
+                              ]),
                             ),
-                          ):SizedBox.shrink();
-                        }, mutations: {SetCartItem},):SizedBox.shrink(),
+                          ),
+                        ):SizedBox.shrink();
+                      }, /*mutations: {SetCartItem},*/
+                    ):
+                    SizedBox.shrink(),
+
+
+
+
+
                   ],
                 ),
               )),
         ],
       );
     }
+
+
+
+    updateCart(int qty,double weight,CartStatus cart,String varid,String increment){
+      debugPrint("widget.snapshot.parent_id.toString()...."+cartItemList.where((element) => element.mode! == "1").first.parent_id.toString());
+      switch(cart){
+        case CartStatus.remove:
+          cartcontroller.update((done){
+            setState(() {
+              _isAddToCart = !done;
+            });
+          },price: cartItemList.where((element) => element.mode! == "1").first.price!.toString(),quantity:"0",
+            type: cartItemList.where((element) => element.mode! == "1").first.type!,
+            weight:"0",var_id: varid,increament: increment,cart_id: cartItemList.where((element) => element.mode! == "1").first.parent_id!.toString(),toppings: "",
+            topping_id: "", item_id: '',);
+          // TODO: Handle this case.
+          break;
+
+      }
+    }
+    Widget cartScreen() {
+      print("cart empty......");
+if(_initialloading)
+    return ItemListShimmer();
+    return Column(
+      children: [
+        VxBuilder(mutations: {SetCartItem},builder: (context, store,state){
+          final snapshot = store.CartItemList;
+          switch(state){
+
+            case VxStatus.none:
+              // TODO: Handle this case.
+              break;
+            case VxStatus.loading:
+
+              // TODO: Handle this case.
+              break;
+            case VxStatus.success:
+
+              // TODO: Handle this case.
+              break;
+            case VxStatus.error:
+
+              // TODO: Handle this case.
+              break;
+          }
+          if(snapshot!=null){
+            for(int i=0;i<snapshot.length;i++)
+              if (snapshot.length<1) {
+                if (snapshot[i].mode =="1") {
+                  _slots = false;
+                }
+              } else {
+                _slots = true;
+              }
+            print("cart empty......1");
+            if(snapshot.length <= 0){
+              if(Vx.isWeb && (!ResponsiveLayout.isLargeScreen(context)||!ResponsiveLayout.isMediumScreen(context)))
+                return Container(
+                  width: MediaQuery.of(context).size.width,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: <Widget>[
+                      Image.asset(
+                        Images.cartEmptyImg,
+                        height: 200.0,
+                      ),
+                      Text(
+                        S .of(context).cart_empty,//"Your cart is empty!",
+                        style: TextStyle(fontSize: 18.0),
+                      ),
+                      SizedBox(
+                        height: 20.0,
+                      ),
+                      GestureDetector(
+                        onTap: () {
+                          /*Navigator.of(context).popUntil(ModalRoute.withName(
+                            HomeScreen.routeName,
+                          ));*/
+                          Navigation(context, navigatore: NavigatoreTyp.homenav);
+                        },
+                        child: Container(
+                            width: MediaQuery.of(context).size.width * 0.7,
+                            padding: EdgeInsets.all(5),
+                            height: 40.0,
+                            decoration: BoxDecoration(
+                                color: Theme.of(context).primaryColor,
+                                borderRadius: BorderRadius.circular(3.0),
+                                border: Border(
+                                  top: BorderSide(
+                                      width: 1.0,
+                                      color: Theme.of(context).primaryColor),
+                                  bottom: BorderSide(
+                                      width: 1.0,
+                                      color: Theme.of(context).primaryColor),
+                                  left: BorderSide(
+                                      width: 1.0,
+                                      color: Theme.of(context).primaryColor),
+                                  right: BorderSide(
+                                    width: 1.0,
+                                    color: Theme.of(context).primaryColor,
+                                  ),
+                                )),
+                            child: Center(
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    new Padding(
+                                      padding: const EdgeInsets.fromLTRB(
+                                          15.0, 0.0, 10.0, 0.0),
+                                      child: new Icon(
+                                        Icons.shopping_cart_outlined,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                    Text(
+                                      S .of(context).start_shopping,//'START SHOPPING',
+                                      //textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.bold),
+                                    ),
+                                  ],
+                                ))),
+                      ),
+                      SizedBox(
+                        height: 10,
+                      ),
+                     // if (Vx.isWeb && (!ResponsiveLayout.isLargeScreen(context)||!ResponsiveLayout.isMediumScreen(context))) Footer(address: _address),
+                    ],
+                  ),
+                );
+              else
+                return Container(
+                  width: MediaQuery.of(context).size.width,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: <Widget>[
+                      Image.asset(
+                        Images.cartEmptyImg,
+                        height: 200.0,
+                      ),
+                      Text(
+                        S .of(context).cart_empty,//"Your cart is empty!",
+                        style: TextStyle(fontSize: 18.0),
+                      ),
+                      SizedBox(
+                        height: 20.0,
+                      ),
+                      GestureDetector(
+                        onTap: () {
+                          /*Navigator.of(context).popUntil(ModalRoute.withName(
+                            HomeScreen.routeName,
+                          ));*/
+                          Navigation(context, navigatore: NavigatoreTyp.homenav);
+                        },
+                        child: Container(
+                            width: MediaQuery.of(context).size.width * 0.7,
+                            padding: EdgeInsets.all(5),
+                            height: 40.0,
+                            decoration: BoxDecoration(
+                                color: Theme.of(context).primaryColor,
+                                borderRadius: BorderRadius.circular(3.0),
+                                border: Border(
+                                  top: BorderSide(
+                                      width: 1.0,
+                                      color: Theme.of(context).primaryColor),
+                                  bottom: BorderSide(
+                                      width: 1.0,
+                                      color: Theme.of(context).primaryColor),
+                                  left: BorderSide(
+                                      width: 1.0,
+                                      color: Theme.of(context).primaryColor),
+                                  right: BorderSide(
+                                    width: 1.0,
+                                    color: Theme.of(context).primaryColor,
+                                  ),
+                                )),
+                            child: Center(
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    new Padding(
+                                      padding: const EdgeInsets.fromLTRB(
+                                          15.0, 0.0, 10.0, 0.0),
+                                      child: new Icon(
+                                        Icons.shopping_cart_outlined,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                    Text(
+                                      S .of(context).start_shopping,//'START SHOPPING',
+                                      //textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.bold),
+                                    ),
+                                  ],
+                                ))),
+                      ),
+                      SizedBox(
+                        height: 10,
+                      ),
+                      VxBuilder(
+                        mutations: {HomeScreenController},
+                        builder: (ctx, store, VxStatus? state) {
+
+                          if(VxStatus.success==state) {
+                            if (Vx.isWeb&&(!ResponsiveLayout.isLargeScreen(context)||!ResponsiveLayout.isMediumScreen(context))) return Footer(address: _address);
+                            /*if (Vx.isWeb) return Footer(address: PrefUtils.prefs!
+                          .getString("restaurant_address")!);*/
+                          }
+                          else if(state==VxStatus.none){
+                            print("error loading screen");
+                            if((VxState.store as GroceStore).homescreen.toJson().isEmpty) {
+                              HomeScreenController(user: PrefUtils.prefs!.getString("apikey") ?? PrefUtils.prefs!.getString("ftokenid"), branch: PrefUtils.prefs!.getString("branch") ?? "999", rows: "0",);
+                              return SizedBox.shrink();
+                            }else{
+                              if (Vx.isWeb&&(!ResponsiveLayout.isLargeScreen(context)||!ResponsiveLayout.isMediumScreen(context))) return Footer(address: _address);
+                            }
+                          }
+                          return SizedBox.shrink();
+                        },
+                      )
+                      //if (Vx.isWeb&&(!ResponsiveLayout.isLargeScreen(context)||!ResponsiveLayout.isMediumScreen(context))) Footer(address: _address),
+                    ],
+                  ),
+                );
+            }
+            else  {
+              // for (int i = 0; i < snapshot.length; i++)
+                // if (snapshot[i].status == "1" || snapshot[i].quantity == "0") {
+                //   Future.delayed(Duration.zero, () async {
+                //     _isUnavailable = true;
+                //   });
+                // }
+              print("cart empty......2");
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if(_isUnavailable)
+                    Container(
+                      padding: EdgeInsets.only(
+                          left: 10, right: 10, top: 15, bottom: 15),
+                      child: Text(
+                        S .of(context).product_unavailable,//"Products unavailable",
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 18),
+                      ),
+                    ),
+                  // if((double.parse(_minimumOrderAmountNoraml) > CartCalculations.total) && (double.parse(_minimumOrderAmountPrime) > CartCalculations.totalMember))
+                    (Vx.isWeb&&!ResponsiveLayout.isSmallScreen(context))?SizedBox(height:20):SizedBox.shrink(),
+                  if((double.parse(_minimumOrderAmountNoraml) > CartCalculations.total) && (double.parse(_minimumOrderAmountPrime) > CartCalculations.totalMember))
+                    (! _slots || (cartItemList.length == 1 && cartItemList.first.mode == "1")) ?SizedBox.shrink():
+                    Container(
+                      padding: EdgeInsets.only(left: 18,top: 10,right: 8, bottom: 10),
+                      color: Colors.white,
+                      height: 50,
+                      width: (Vx.isWeb&&!ResponsiveLayout.isSmallScreen(context))?MediaQuery.of(context).size.width*0.43:MediaQuery.of(context).size.width,
+                      child:Row(
+                        children: [
+                          Container(
+                            height:40,
+                            width:100,
+                            decoration: BoxDecoration(
+                              color: ColorCodes.varcolor,
+                              borderRadius: BorderRadius.circular(3),
+                            ),
+                            child: Center(child:Text('FREE DELIVERY',style: TextStyle(fontSize: 12,fontWeight: FontWeight.bold,color: ColorCodes.primaryColor),)),
+                          ),
+                          SizedBox(width:5),
+                          (_checkmembership)?
+                              Features.iscurrencyformatalign?
+                              Text(S .of(context).Shop//'Shop '
+                                  +" "+(double.parse(_minimumOrderAmountPrime) - CartCalculations.totalMember).toStringAsFixed((IConstants.numberFormat == "1")
+                                  ?0:IConstants.decimaldigit)+" "+IConstants.currencyFormat+" "+S .of(context).more_to_get//' more to get free delivery',
+                                ,maxLines:2,style: TextStyle(fontWeight: FontWeight.bold,fontSize: 12),
+                              ):
+                              Expanded(child:  Text(S .of(context).Shop//'Shop '
+                                /* +" "+IConstants.currencyFormat+" "+(double.parse(_minimumOrderAmountPrime) - CartCalculations.totalMember).toStringAsFixed((IConstants.numberFormat == "1")
+                              ?0:IConstants.decimaldigit)+" "+S .of(context).more_to_get*///' more to get free delivery',
+                                ,maxLines:2,style: TextStyle(fontWeight: FontWeight.bold,fontSize: 12),
+                              ))
+
+                              :
+                              Features.iscurrencyformatalign?
+                              Text(S .of(context).Shop+" "+(double.parse(_minimumOrderAmountNoraml) - CartCalculations.total).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit)+" "+IConstants.currencyFormat+" "/*+S .of(context).more_to_get*///' more to get free delivery'
+                                ,maxLines:2,style: TextStyle(fontWeight: FontWeight.bold,fontSize: 12),):
+                          Text(S .of(context).Shop+" "+IConstants.currencyFormat+" "+(double.parse(_minimumOrderAmountNoraml) - CartCalculations.total).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit)+" "/*+S .of(context).more_to_get*///' more to get free delivery'
+                            ,maxLines:2,style: TextStyle(fontWeight: FontWeight.bold,fontSize: 12),)
+                        ],
+                      ),
+                    ),     //:SizedBox.shrink(),
+                    if (Features.isPickupfromStore)
+                      /*(Vx.isWeb && checkskip) ? SizedBox.shrink() : */(_slots)
+                          ?
+                      Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(5),
+                          ),
+                          width:(Vx.isWeb&&!ResponsiveLayout.isSmallScreen(context))?MediaQuery.of(context).size.width*0.43:MediaQuery.of(context).size.width,
+                          padding: (Features.ismultivendor)? EdgeInsets.only(top:0, bottom: 15, right: 15, left: 15) : EdgeInsets.all(15),
+                          child:Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                S .of(context).select_delivery_type,//'Select Delivery Type',
+                                style: TextStyle(
+                                    fontSize: (Vx.isWeb&&!ResponsiveLayout.isSmallScreen(context))? 18 : 16,
+                                    color: !Features.ismultivendor? ColorCodes.blackColor: ColorCodes.blackColor,
+                                    fontWeight: (Vx.isWeb&&!ResponsiveLayout.isSmallScreen(context))? FontWeight.w900 : FontWeight.bold),
+                              ),
+                              if(!Vx.isWeb&&ResponsiveLayout.isSmallScreen(context))
+                              Text(
+                                S .of(context).tap_to_select_one_delivery_mode,// 'Tap to select one of the delivery modes',
+                                style: TextStyle(
+                                  //color: Color(0xff949292),
+                                    color: ColorCodes.primaryColor,
+                                    fontWeight: FontWeight.w400,
+                                    fontSize: 14),
+                              ),
+                              SizedBox(height: 10),
+                              SizedBox(
+                                height: 150,
+                                child: ListView(
+                                  scrollDirection: Axis.horizontal,
+                                  physics: NeverScrollableScrollPhysics(),
+                                  // padding: EdgeInsets.all(5),
+                                  children: [
+                                    GestureDetector(
+                                        onTap:(){
+                                          setState(() {
+                                            Check=0;
+                                            _groupCart = 1;
+                                          });
+                                        },
+                                        child: Container(
+                                            height:130,
+                                            width:(Vx.isWeb&&!ResponsiveLayout.isSmallScreen(context))?MediaQuery.of(context).size.width*0.20:MediaQuery.of(context).size.width/2.25,
+                                            margin: EdgeInsets.only(right: 10),
+                                            padding: EdgeInsets.all(6),
+                                            decoration: BoxDecoration(
+                                              color:Check==0?ColorCodes.varcolor:ColorCodes.whiteColor,
+                                              borderRadius: BorderRadius.circular(10),
+                                              border: Border.all(color:ColorCodes.varcolor),
+                                            ),
+                                            child:Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              mainAxisAlignment: MainAxisAlignment.center,
+                                              children: [
+                                                Row(
+                                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                  children: [
+                                                    Row(
+                                                      children: [
+                                                        Image.asset(
+                                                            Images.homeImg,
+                                                            width: (Vx.isWeb&&!ResponsiveLayout.isSmallScreen(context))? 22 : 18.0,
+                                                            height: (Vx.isWeb&&!ResponsiveLayout.isSmallScreen(context))? 22 : 18.0,
+                                                            color: IConstants.isEnterprise? ColorCodes.primaryColor:ColorCodes.liteColor
+                                                        ),
+                                                        SizedBox(width: 5,),
+                                                        Text(
+                                                          S .of(context).home_delivery,// 'HOME DELIVERY',
+                                                          style: TextStyle(
+                                                            color: IConstants.isEnterprise? ColorCodes.primaryColor:ColorCodes.liteColor,
+                                                            fontWeight: FontWeight.bold,
+                                                            fontSize: (Vx.isWeb&&!ResponsiveLayout.isSmallScreen(context))? 16 : 12,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                    Check==0? Container(
+                                                      width: 18.0,
+                                                      height: 18.0,
+                                                      decoration: BoxDecoration(
+                                                        color: ColorCodes.whiteColor,
+                                                        border: Border.all(
+                                                          color: IConstants.isEnterprise? ColorCodes.primaryColor:ColorCodes.liteColor,
+                                                        ),
+                                                        shape: BoxShape.circle,
+                                                      ),
+                                                      child: Container(
+                                                        margin: EdgeInsets.all(1.5),
+                                                        decoration: BoxDecoration(
+                                                          color: ColorCodes.whiteColor,
+                                                          shape: BoxShape.circle,
+                                                        ),
+                                                        child: Icon(Icons.check,
+                                                            color: IConstants.isEnterprise? ColorCodes.primaryColor:ColorCodes.liteColor,
+                                                            size: 12.0),
+                                                      ),
+                                                    ):
+                                                    Icon(
+                                                      Icons.radio_button_off_outlined,
+                                                      color: ColorCodes.greenColor,size: 18,),
+                                                  ],
+                                                ),
+                                                SizedBox(height:10),
+                                                SizedBox(
+                                                  height: 50,
+                                                  child: Text( S .of(context).also_address/*+" "+S .of(context).address_of_your_choice*/,
+                                                    style: TextStyle(
+                                                      color: IConstants.isEnterprise? ColorCodes.primaryColor:ColorCodes.liteColor,
+                                                      fontSize: (Vx.isWeb&&!ResponsiveLayout.isSmallScreen(context))? 15 : 13,
+                                                    ),
+                                                  ),
+                                                ),
+                                                SizedBox(height:25),
+                                                // Text(
+                                                //   S .of(context).delivery_charge_extra,//'DELIVERY CHARGES EXTRA',
+                                                //   style: TextStyle(
+                                                //     color:ColorCodes.primaryColor,
+                                                //     fontWeight: FontWeight.bold,
+                                                //     fontSize:12,
+                                                //   ),
+                                                // ),
+                                              ],
+                                            )
+                                        )),
+
+                                        (Features.isMembership &&((snapshot.where((element) => element.mode! == "1").count() >= 1 ) && snapshot.length == 1))?
+                                      SizedBox.shrink():
+                                      GestureDetector(
+                                          onTap:(){
+                                            setState(() {
+                                              Check=1;
+                                              _groupCart = 2;
+                                            });
+                                          },
+                                          child:Container(
+                                              height:130,
+                                              width:(Vx.isWeb&&!ResponsiveLayout.isSmallScreen(context))?MediaQuery.of(context).size.width*0.20:MediaQuery.of(context).size.width/2.25,
+                                              margin: EdgeInsets.only(right: 10),
+                                              padding: EdgeInsets.all(6),
+                                              decoration: BoxDecoration(
+                                                color: Check==1?ColorCodes.varcolor:ColorCodes.whiteColor,
+                                                borderRadius: BorderRadius.circular(10),
+                                                border: Border.all(color:ColorCodes.varcolor),
+                                              ),
+                                              child:Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                mainAxisAlignment: MainAxisAlignment.center,
+                                                children: [
+                                                  Row(
+                                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                    children: [
+                                                      Row(
+                                                        children: [
+                                                          Image.asset(
+                                                              Images.Person,
+                                                              width: (Vx.isWeb&&!ResponsiveLayout.isSmallScreen(context))? 20 : 18.0,
+                                                              height: (Vx.isWeb&&!ResponsiveLayout.isSmallScreen(context))? 20: 18.0,
+                                                              color: IConstants.isEnterprise? ColorCodes.primaryColor:ColorCodes.liteColor
+                                                          ),
+                                                          SizedBox(width: 5,),
+                                                          Text(
+                                                            S .of(context).self_pickup,//'SELF PICK UP',
+                                                            style: TextStyle(
+                                                              color: IConstants.isEnterprise? ColorCodes.primaryColor:ColorCodes.liteColor,
+                                                              fontWeight: FontWeight.bold,
+                                                              fontSize: (Vx.isWeb&&!ResponsiveLayout.isSmallScreen(context))? 16 : 12,
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                      SizedBox(width: 5,),
+                                                      Check==1?Container(
+                                                        width: 18.0,
+                                                        height: 18.0,
+                                                        decoration: BoxDecoration(
+                                                          color: ColorCodes.whiteColor,
+                                                          border: Border.all(
+                                                            color: IConstants.isEnterprise? ColorCodes.primaryColor:ColorCodes.liteColor,
+                                                          ),
+                                                          shape: BoxShape.circle,
+                                                        ),
+                                                        child: Container(
+                                                          margin: EdgeInsets.all(1.5),
+                                                          decoration: BoxDecoration(
+                                                            color: ColorCodes.whiteColor,
+                                                            shape: BoxShape.circle,
+                                                          ),
+                                                          child: Icon(Icons.check,
+                                                              color: IConstants.isEnterprise? ColorCodes.primaryColor:ColorCodes.liteColor,
+                                                              size: 12.0),
+                                                        ),
+                                                      ): Icon(
+                                                          Icons.radio_button_off_outlined,
+                                                          color: ColorCodes.greenColor,size: 18),
+                                                    ],
+                                                  ),
+                                                  SizedBox(height:10),
+                                                  SizedBox(
+                                                    height: 65,
+                                                    child: Text( S .of(context).select_self_pickup_point/*+" "+ S .of(context).your_order_doorstep*/,
+                                                      style: TextStyle(
+                                                        color: IConstants.isEnterprise? ColorCodes.primaryColor:ColorCodes.liteColor,
+                                                        fontSize: (Vx.isWeb&&!ResponsiveLayout.isSmallScreen(context))? 15 : 13,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  SizedBox(height:8),
+                                                  // Text(
+                                                  //   S .of(context).free_delivery,//'DELIVERY FREE',
+                                                  //   style: TextStyle(
+                                                  //     color:ColorCodes.primaryColor,
+                                                  //     fontWeight: FontWeight.bold,
+                                                  //     fontSize:12,
+                                                  //   ),
+                                                  // ),
+                                                ],
+                                              )
+                                          ))
+                                  ],
+                                ),
+                              )
+                            ],
+                          )
+                      ):SizedBox.shrink(),
+                  Container(
+                    width: (Vx.isWeb&&!ResponsiveLayout.isSmallScreen(context))?MediaQuery.of(context).size.width * 43 :MediaQuery.of(context).size.width,
+                    color:  (Vx.isWeb&&!ResponsiveLayout.isSmallScreen(context))? ColorCodes.greyColord : ColorCodes.whiteColor,
+                    height: (Vx.isWeb&&!ResponsiveLayout.isSmallScreen(context))? 20 : 5,
+                  ),
+                    if(Features.isMembership)
+                      (snapshot.where((element) => element.mode! == "1").count() >= 1 )?
+                      Container(
+                          height:100,
+                          width:(Vx.isWeb&&!ResponsiveLayout.isSmallScreen(context))?MediaQuery.of(context).size.width * 43:MediaQuery.of(context).size.width,
+                          margin: EdgeInsets.only(right: 15,left:15),
+                          padding: EdgeInsets.only(left:10,right:0,top:10,bottom:10),
+                          decoration: BoxDecoration(
+                            color:ColorCodes.varcolor,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color:ColorCodes.varcolor),
+                          ),
+                          child:Row(
+                            children: [
+                              Container(
+                                width:MediaQuery.of(context).size.width/1.6,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisAlignment: MainAxisAlignment.start,
+                                  children: [
+                                    RichText(
+                                        text: new TextSpan(
+                                          children: <TextSpan>[
+                                            new TextSpan(
+                                              text:S.of(context).membership_applied + " ",// 'HOME DELIVERY',
+                                              style: TextStyle(
+                                                color: ColorCodes.primaryColor,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize:18,
+                                              ),
+                                            ),
+                                            /*new TextSpan(
+                                              text: *//*"Save"*//*" "+S.of(context).membership_applied,// 'HOME DELIVERY',
+                                              style: TextStyle(
+                                                color: ColorCodes.blackColor,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize:12,
+                                              ),
+                                            ),*/
+
+                                          ],
+                                        )),
+                                    SizedBox(height:10),
+                                    Row(
+                                      children: [
+                                      (snapshot.where((element) => element.mode! == "1" ).first.price == (snapshot.where((element) => element.mode! == "1" ).first.varMrp) || double.parse((snapshot.where((element) => element.mode! == "1" ).first.price!)) <= 0)?
+                                        new RichText(
+                                          text: new TextSpan(
+                                            style: new TextStyle(
+
+                                            ),
+                                            children: <TextSpan>[
+                                              // new TextSpan(text: IConstants.APP_NAME + " ", style: TextStyle(color:ColorCodes.primaryColor,
+                                              //   fontWeight: FontWeight.bold,
+                                              //   fontSize:13,)),
+                                              new TextSpan(text: "(" + (snapshot.where((element) => element.mode! == "1" ).first.varName!) +") ", style: TextStyle(color:ColorCodes.primaryColor,
+                                                fontWeight: FontWeight.w500,
+                                                fontSize:12,)),
+                                              new TextSpan(text: Features.iscurrencyformatalign?
+                                              IConstants.numberFormat == "1"?' ' + (snapshot.where((element) => element.mode! == "1" ).first.price.toString()) + ' ' + IConstants.currencyFormat:' ' + (snapshot.where((element) => element.mode! == "1" ).first.price.toString()) + ' ' +  IConstants.currencyFormat:
+                                              IConstants.numberFormat == "1"?IConstants.currencyFormat + ' ' +(snapshot.where((element) => element.mode! == "1" ).first.price.toString()):IConstants.currencyFormat + ' ' +(snapshot.where((element) => element.mode! == "1" ).first.price.toString()), style: TextStyle(color:ColorCodes.primaryColor,
+                                                fontWeight: FontWeight.w500,
+                                                fontSize:12,)),
+                                            // new TextSpan(text: Features.iscurrencyformatalign?
+                                            // IConstants.numberFormat == "1"?' ' + (snapshot.where((element) => element.mode! == "1" ).first.varMrp.toString()) + ' ' + IConstants.currencyFormat:' ' + (snapshot.where((element) => element.mode! == "1" ).first.varMrp.toString()) + ' ' +  IConstants.currencyFormat:
+                                            // IConstants.numberFormat == "1"?" "+IConstants.currencyFormat + ' ' +(snapshot.where((element) => element.mode! == "1" ).first.varMrp.toString()):" "+IConstants.currencyFormat + ' ' +(snapshot.where((element) => element.mode! == "1" ).first.varMrp.toString()), style: TextStyle(color:ColorCodes.greylight,
+                                            // fontWeight: FontWeight.w500,
+                                            //   decoration:TextDecoration.lineThrough,
+                                            // fontSize:9,)),
+
+                                            ],
+                                          ),
+                                        ):
+                                        new RichText(
+                                          text: new TextSpan(
+                                            style: new TextStyle(
+                                            ),
+                                        children: <TextSpan>[
+                                        // new TextSpan(text: IConstants.APP_NAME + " ", style: TextStyle(color:ColorCodes.primaryColor,
+                                        //   fontWeight: FontWeight.bold,
+                                        //   fontSize:13,)),
+                                          new TextSpan(text: "(" + (snapshot.where((element) => element.mode! == "1" ).first.varName!) +") ", style: TextStyle(color:ColorCodes.primaryColor,
+                                              fontWeight: FontWeight.w500,
+                                              fontSize:12,)),
+                                          new TextSpan(text: Features.iscurrencyformatalign?
+                                          IConstants.numberFormat == "1"?' ' + (snapshot.where((element) => element.mode! == "1" ).first.price.toString()) + ' ' + IConstants.currencyFormat:' ' + (snapshot.where((element) => element.mode! == "1" ).first.price.toString()) + ' ' +  IConstants.currencyFormat:
+                                          IConstants.numberFormat == "1"?" "+IConstants.currencyFormat + ' ' +(snapshot.where((element) => element.mode! == "1" ).first.price.toString()):" "+IConstants.currencyFormat + ' ' +(snapshot.where((element) => element.mode! == "1" ).first.price.toString()), style: TextStyle(color:ColorCodes.primaryColor,
+                                            fontWeight: FontWeight.w500,
+                                            fontSize:12,)),
+
+                                        new TextSpan(text: Features.iscurrencyformatalign?
+                                              IConstants.numberFormat == "1"?' ' + (snapshot.where((element) => element.mode! == "1" ).first.varMrp.toString()) + ' ' + IConstants.currencyFormat:' ' + (snapshot.where((element) => element.mode! == "1" ).first.varMrp.toString()) + ' ' +  IConstants.currencyFormat:
+                                              IConstants.numberFormat == "1"?IConstants.currencyFormat + ' ' +(snapshot.where((element) => element.mode! == "1" ).first.varMrp.toString()):IConstants.currencyFormat + ' ' +(snapshot.where((element) => element.mode! == "1" ).first.varMrp.toString()), style: TextStyle(color:ColorCodes.greylight,
+                                          fontWeight: FontWeight.w500,
+                                          decoration:TextDecoration.lineThrough,
+                                          fontSize:9,)),
+
+                                            ],
+                                          ),
+                                        ),
+                                        SizedBox(width:10),
+                                        GestureDetector(
+                                          behavior: HitTestBehavior.translucent,
+                                          onTap: () {
+                                            updateCart(int.parse(snapshot.where((element) => element.mode! == "1").first.quantity!),double.parse(snapshot.where((element) => element.mode! == "1").first.weight!), CartStatus.remove, snapshot.where((element) => element.mode! == "1").first.varId!.toString(),snapshot.where((element) => element.mode! == "1").first.increment!.toString());
+                                            if(snapshot.where((element) => element.mode! == "1") == "1"){
+                                              PrefUtils.prefs!.setString("memberback", "no");
+                                            }else{
+                                              PrefUtils.prefs!.setString("memberback", "");
+                                            }
+                                            Navigation(context, name: Routename.Cart, navigatore: NavigatoreTyp.Push,qparms: {"afterlogin":null});
+                                          },
+                                          child: Container(
+                                            width:50,
+                                            height:20,
+                                            padding:EdgeInsets.only(left:5,right:5,top:3,bottom:3),
+                                            decoration: BoxDecoration(
+                                                color:ColorCodes.whiteColor,
+                                                borderRadius: BorderRadius.circular(5),
+                                                border:Border.all(
+                                                  color: ColorCodes.whiteColor,
+                                                )
+                                            ),
+                                            child:  Text(S.of(context).remove, style: TextStyle(
+                                              color: ColorCodes.primaryColor,
+                                              fontSize:10,
+                                              fontWeight:FontWeight.bold
+                                            ),),
+                                          ),
+                                        )
+                                      ],
+                                    ),
+                                    SizedBox(height:10),
+                                    GestureDetector(
+                                      behavior: HitTestBehavior.translucent,
+                                      onTap: () {
+                                        !PrefUtils.prefs!.containsKey("apikey")
+                                            ?
+                                        Navigation(context, name: Routename.SignUpScreen, navigatore: NavigatoreTyp.Push)
+                                            :
+                                           (Vx.isWeb &&
+                                          !ResponsiveLayout.isSmallScreen(context)) ?
+                                          MembershipInfo(context):
+                                        Navigation(context, name: Routename.Membership, navigatore: NavigatoreTyp.Push);
+                                      },
+                                      child: Row(
+                                        children: [
+                                          Text(
+                                            S .of(context).change_plan ,
+                                            style: TextStyle(
+                                              color:ColorCodes.blackColor,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize:11,
+                                            ),
+                                          ),
+                                          Icon(Icons.arrow_forward_ios_outlined, size: 13, color: ColorCodes.primaryColor,),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Image.asset(Images.cartmembershipImage,
+                                width:80,
+                                height:90
+                              ),
+                            ],
+                          )
+                      )
+                  :
+                      (double.parse(CartCalculations.totalMembersPrice.toString())).toStringAsFixed(0) != "0" ? Container(
+                          height:130,
+                          width:(Vx.isWeb&&!ResponsiveLayout.isSmallScreen(context))?MediaQuery.of(context).size.width * 43 : MediaQuery.of(context).size.width,
+                          margin: (Vx.isWeb&&!ResponsiveLayout.isSmallScreen(context))? EdgeInsets.only(left: 0, right: 20) : EdgeInsets.only(right: 15,left:15),
+                          padding: EdgeInsets.only(left:10,right:0,top:10,bottom:10),
+                          decoration: BoxDecoration(
+                            color:ColorCodes.varcolor,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color:ColorCodes.varcolor),
+                          ),
+                          child:Row(
+                            children: [
+                              Container(
+                                width: (Vx.isWeb&&!ResponsiveLayout.isSmallScreen(context))? MediaQuery.of(context).size.width * 0.35 :MediaQuery.of(context).size.width/1.5,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    RichText(
+                                        text: new TextSpan(
+                                          children: <TextSpan>[
+                                            /*new TextSpan(
+                                              text:IConstants.APP_NAME + " ",// 'HOME DELIVERY',
+                                              style: TextStyle(
+                                                color: ColorCodes.primaryColor,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize:15,
+                                              ),
+                                            ),*/
+                                            new TextSpan(
+                                              text: /*"Save"*/S.of(context).save_member,// 'HOME DELIVERY',
+                                              style: TextStyle(
+                                                color: IConstants.isEnterprise? ColorCodes.primaryColor:ColorCodes.liteColor,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize:17,
+                                              ),
+                                            ),
+                                            new TextSpan(
+                                              text: /*"Save"*/Features.iscurrencyformatalign?
+                                              IConstants.numberFormat == "1"?' ' + (double.parse(CartCalculations.totalMembersPrice.toString())).toStringAsFixed(0) + '' + IConstants.currencyFormat:' ' + (double.parse(CartCalculations.totalMembersPrice.toString())).toStringAsFixed(IConstants.decimaldigit)  + '' +  IConstants.currencyFormat:
+                                              IConstants.numberFormat == "1"?" "+ IConstants.currencyFormat + '' +(double.parse(CartCalculations.totalMembersPrice.toString())).toStringAsFixed(0):" "+ IConstants.currencyFormat + ''+ (double.parse(CartCalculations.totalMembersPrice.toString())).toStringAsFixed(IConstants.decimaldigit),// 'HOME DELIVERY',
+                                              style: TextStyle(
+                                                color: IConstants.isEnterprise? ColorCodes.primaryColor:ColorCodes.liteColor,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize:17,
+                                              ),
+                                            ),
+                                            new TextSpan(
+                                              text: " "+S .of(context).extra_order,// 'HOME DELIVERY',
+                                              style: TextStyle(
+                                                color: IConstants.isEnterprise? ColorCodes.primaryColor:ColorCodes.liteColor,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize:17,
+                                              ),
+                                            ),
+                                            new TextSpan(
+                                              text: S.of(context).on_order,
+                                              style: TextStyle(
+                                                color: ColorCodes.blackColor,
+                                                fontWeight:  FontWeight.w600,
+                                                fontSize:15,
+                                              ),
+                                            )
+                                          ],
+                                        )),
+                                    /* Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      IConstants.APP_NAME + S .of(context).extra_order,// 'HOME DELIVERY',
+                                      style: TextStyle(
+                                        color: ColorCodes.primaryColor,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize:18,
+                                      ),
+                                    ),
+
+                                  ],
+                                ),*/
+                                    SizedBox(height:10),
+                                    Text( S .of(context).savings_better/*+" "+S .of(context).address_of_your_choice*/,
+                                      style: TextStyle(
+                                        color: ColorCodes.blackColor,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                    SizedBox(height:10),
+
+
+                                    Row(
+                                      children: [
+                                        new RichText(
+                                          text: new TextSpan(
+                                            style: new TextStyle(
+
+                                            ),
+                                            children: <TextSpan>[
+                                              new TextSpan(text: S .of(context).browse_plan + " ", style: TextStyle(color:IConstants.isEnterprise? ColorCodes.primaryColor:ColorCodes.liteColor,
+                                                fontWeight: FontWeight.w500,
+                                                fontSize:13,)),
+                                              new TextSpan(text: Features.iscurrencyformatalign?
+                                                  IConstants.numberFormat == "1"?' ' + (PrefUtils.prefs!.getString("membershipplansdiscount").toString()) + ' ' + IConstants.currencyFormat:' ' + PrefUtils.prefs!.getString("membershipplansdiscount").toString() + ' ' +  IConstants.currencyFormat:
+                                                  IConstants.numberFormat == "1"?IConstants.currencyFormat + ' ' +PrefUtils.prefs!.getString("membershipplansdiscount").toString():IConstants.currencyFormat + ' ' +PrefUtils.prefs!.getString("membershipplansdiscount").toString(), style: TextStyle(color:IConstants.isEnterprise? ColorCodes.primaryColor:ColorCodes.liteColor,
+                                                fontWeight: FontWeight.w500,
+                                                fontSize:12,)),
+                                              new TextSpan(text: "/" + "month", style: TextStyle(color:IConstants.isEnterprise? ColorCodes.primaryColor:ColorCodes.liteColor,
+                                                fontWeight: FontWeight.w500,
+                                                fontSize:12,)),
+                                            ],
+                                          ),
+                                        ),
+                                        SizedBox(width:5),
+
+                                      ],
+                                    ),
+                                    // Text(
+                                    //   S .of(context).browse_plan + PrefUtils.prefs!.getString("membershipplansdiscount").toString(),//'DELIVERY CHARGES EXTRA',
+                                    //   style: TextStyle(
+                                    //     color:ColorCodes.primaryColor,
+                                    //     fontWeight: FontWeight.bold,
+                                    //     fontSize:13,
+                                    //   ),
+                                    // ),
+                                    SizedBox(height:10),
+                                    GestureDetector(
+                                      behavior: HitTestBehavior.translucent,
+                                      onTap: () {
+                                        !PrefUtils.prefs!.containsKey("apikey")
+                                            ?
+                                        Navigation(context, name: Routename.SignUpScreen, navigatore: NavigatoreTyp.Push)
+                                            :
+                                         (Vx.isWeb &&
+                                        !ResponsiveLayout.isSmallScreen(context)) ?
+                                        MembershipInfo(context):
+
+                                        Navigation(context, name: Routename.Membership, navigatore: NavigatoreTyp.Push);
+                                      },
+                                      child: Container(
+                                        width:35,
+                                        height:25,
+                                        decoration: BoxDecoration(
+                                            color:ColorCodes.whiteColor,
+                                            borderRadius: BorderRadius.circular(5),
+                                            border:Border.all(
+                                              color: ColorCodes.whiteColor,
+                                            )
+                                        ),
+                                        child:  Icon(Icons.arrow_forward, size: 18, color: IConstants.isEnterprise? ColorCodes.primaryColor:ColorCodes.liteColor,),
+                                      ),
+                                    )
+                                  ],
+                                ),
+                              ),
+                              Image.asset(Images.cartmembershipImage,
+                                  width:70,
+                                  height:90
+                              ),
+                            ],
+                          )
+                      ):SizedBox.shrink(),
+
+
+                  if(Features.isMembership)
+                    (Vx.isWeb&&!ResponsiveLayout.isSmallScreen(context))? SizedBox(height: 20) : SizedBox(height:10),
+                  if(_isunavailablepopup)
+                  if(snapshot.length > 0)
+                   snapshot.where((element) => double.parse(element.varStock!) == 0 || element.status == "1").count() >= 1 ?
+                  Container(
+                    height:30,
+                    margin:EdgeInsets.only(right:15,left:15,bottom:10),
+                    width:(Vx.isWeb&&!ResponsiveLayout.isSmallScreen(context))?MediaQuery.of(context).size.width*0.40:MediaQuery.of(context).size.width,
+                    padding: (Features.ismultivendor)? EdgeInsets.only(top:0, bottom: 0, right: 15, left: 15) : EdgeInsets.only(right:5,left:5,top:5,bottom: 5),
+                    decoration:BoxDecoration(
+                      border: Border.all(
+                        color: ColorCodes.light_red,
+                      ),
+                      borderRadius: BorderRadius.circular(5),
+                      color: ColorCodes.light_red,
+                    ),
+                    child: Center(
+                      child: Text(S.of(context).remove_outofstock,
+                        style: TextStyle(fontSize: 11,color: ColorCodes.redColor,
+
+                        ),),
+                    ),
+                  ):SizedBox.shrink(),
+
+                  for(int i = 0; i < snapshot.length; i++)if(/*snapshot
+                      [i].status == "0" &&*/
+                      int.parse(snapshot[i].quantity??"0") > 0) //available products
+                    Container(
+                      width: (Vx.isWeb &&
+                          !ResponsiveLayout.isSmallScreen(context))
+                          ? MediaQuery
+                          .of(context)
+                          .size
+                          .width * 0.43
+                          : MediaQuery
+                          .of(context)
+                          .size
+                          .width,
+                      decoration: new BoxDecoration(
+                        color: ColorCodes.appdrawerColor,
+                      ),
+                      child: SingleChildScrollView(
+                        child: Container(
+                          // elevation: 1,
+                          // shape: RoundedRectangleBorder(
+                          //   borderRadius: BorderRadius.circular(12),
+                          // ),
+                          margin: EdgeInsets.only(
+                              left: 0, right: 0, bottom: 2),
+                          child: CartitemsDisplay(snapshot[i],),
+                        ),
+                      ),
+                    ),
+                  SizedBox(height: 10),
+                  FutureBuilder<CartFetch>(
+                    future: _futureitem, // async work
+                    builder: (BuildContext context, AsyncSnapshot<CartFetch> snapshot) {
+                      switch (snapshot.connectionState) {
+                        case ConnectionState.waiting:
+
+                          return SingelItemOfList();
+                          // TODO: Handle this case.
+                          break;
+                        default:
+                        // TODO: Handle this case.
+                          if (snapshot.hasError)
+                            return SizedBox.shrink();
+                          else {
+                            _isLoading = false;
+                            return snapshot.data!.data!.length>0?
+                            Container(
+                              width: (Vx.isWeb &&
+                                  !ResponsiveLayout.isSmallScreen(context))
+                                  ? MediaQuery
+                                  .of(context)
+                                  .size
+                                  .width * 0.43
+                                  : MediaQuery
+                                  .of(context)
+                                  .size
+                                  .width,
+                              //padding: EdgeInsets.only(top: 15.0, bottom: 10.0),
+                              padding: EdgeInsets.only(top: 15.0,
+                                  bottom: 10.0,
+                                  left: (Vx.isWeb &&
+                                      !ResponsiveLayout.isSmallScreen(context))
+                                      ? 20
+                                      : 0,
+                                  right: (Vx.isWeb &&
+                                      !ResponsiveLayout.isSmallScreen(context))
+                                      ? 20
+                                      : 0),
+                              decoration: BoxDecoration(
+                                color: /*Color(0xFFFFE8E8).withOpacity(0.7)*/ColorCodes
+                                    .whiteColor,
+                                borderRadius: BorderRadius.circular(5),
+                              ),
+
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: <Widget>[
+                                  new Row(
+                                    children: <Widget>[
+                                      if(!Vx.isWeb&&ResponsiveLayout.isSmallScreen(context))
+                                      SizedBox(
+                                        width: 15.0,
+                                      ),
+                                      Text(
+                                        snapshot.data!.label!,
+                                        style: TextStyle(
+                                            fontSize: 18,
+                                            color: (Vx.isWeb&&!ResponsiveLayout.isSmallScreen(context))? ColorCodes.blackColor : Theme
+                                                .of(context)
+                                                .primaryColor,
+                                            fontWeight: (Vx.isWeb&&!ResponsiveLayout.isSmallScreen(context))? FontWeight.w900 : FontWeight.bold),
+                                      ),
+                                      Spacer(),
+                                      MouseRegion(
+                                        cursor: SystemMouseCursors.click,
+                                        child: GestureDetector(
+                                          onTap: () {
+                                            /*      Navigator.of(context)
+                    .pushNamed(
+                    SellingitemScreen.routeName,
+                    arguments: {
+                      'seeallpress': "forget",
+                      'title': snapshot.data!.label,
+                    });*/
+                                            Navigation(context, name: Routename.SellingItem, navigatore: NavigatoreTyp.Push,
+                                                parms: {'seeallpress': "forget",
+                                                   'title': snapshot.data!.label.toString()});
+                                          },
+                                          child: Text(
+                                            S.of(context).view_all,// 'View All',
+                                            textAlign: TextAlign.center,
+                                            style: TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 14,
+                                                color: Theme
+                                                    .of(context)
+                                                    .primaryColor),
+                                          ),
+                                        ),
+                                      ),
+                                      SizedBox(
+                                        width: 25,
+                                      ),
+                                    ],
+                                  ),
+                                  SizedBox(height: 8.0),
+                                  SizedBox(
+                                      height: ResponsiveLayout.isSmallScreen(
+                                          context) ?
+                                      (Features.isSubscription) ? 260 : 254 :
+                                      ResponsiveLayout.isMediumScreen(context)
+                                          ?
+                                      (Features.isSubscription) ? 260 : 260
+                                          : (Features.isSubscription)
+                                          ? 292
+                                          : 292,
+
+                                      // height: (Vx.isWeb)?380:360,
+                                      child: new ListView.builder(
+                                        shrinkWrap: true,
+                                        scrollDirection: Axis.horizontal,
+                                        itemCount: snapshot.data!.data!.length,
+                                        itemBuilder: (_, i) =>
+                                            Column(
+                                              children: [
+                                                Itemsv2(
+                                                  "Forget",
+                                                  snapshot.data!.data![i],
+                                                  userdata,
+                                                  //sellingitemData.items[i].brand,
+                                                ),
+                                              ],
+                                            ),
+                                      )),
+                                ],
+                              ),
+                            ):SizedBox.shrink();
+                          }
+                          break;
+                      }
+                    },
+                  ),
+
+                  if(Features.ismultivendor)
+                    confirmOrder()
+                ],
+              );
+            }
+          }
+          else{
+            return SizedBox.shrink();
+          }
+        },),
+
+        //SizedBox(height: 10),
+        // (Vx.isWeb && !ResponsiveLayout.isSmallScreen(context))
+        //     ? Container(
+        //   width: MediaQuery
+        //       .of(context)
+        //       .size
+        //       .width,
+        //   height: 50,
+        //   child: Row(
+        //     children: <Widget>[
+        //       (_checkmembership
+        //           ?
+        //       (double.parse(
+        //           (CartCalculations.totalMember).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit)) <
+        //           double.parse(IConstants.minimumOrderAmount) || double.parse(
+        //           (CartCalculations.totalMember).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit)) >
+        //           double.parse(IConstants.maximumOrderAmount))
+        //           :
+        //       (double.parse((CartCalculations.total).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit)) <
+        //           double.parse(IConstants.minimumOrderAmount) || double.parse(
+        //           (CartCalculations.total).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit)) > double.parse(IConstants.maximumOrderAmount)))
+        //           ? GestureDetector(
+        //         onTap: () =>
+        //         {
+        //           if(_checkmembership) {
+        //             if(double.parse(
+        //                 (CartCalculations.totalMember).toStringAsFixed(
+        //                     IConstants.numberFormat == "1"?0:IConstants.decimaldigit)) < double.parse(IConstants.minimumOrderAmount)) {
+        //               Features.iscurrencyformatalign?
+        //               Fluttertoast.showToast(msg: S .of(context).min_order_amount/*"Minimum order amount is " */+ double.parse(IConstants.minimumOrderAmount).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit)+  IConstants.currencyFormat , backgroundColor: Colors.black87, textColor: Colors.white,
+        //                 fontSize: MediaQuery.of(context).textScaleFactor *13,):
+        //               Fluttertoast.showToast(msg: S .of(context).min_order_amount/*"Minimum order amount is " */+  IConstants.currencyFormat + double.parse(IConstants.minimumOrderAmount).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit), backgroundColor: Colors.black87, textColor: Colors.white,
+        //                 fontSize: MediaQuery.of(context).textScaleFactor *13,),
+        //               /*_customToast("Minimum order amount is " +
+        //                             IConstants.currencyFormat +
+        //                             minimumOrderAmount.toStringAsFixed(IConstants.decimaldigit)),*/
+        //             } else
+        //               {
+        //                 Features.iscurrencyformatalign?
+        //                 Fluttertoast.showToast(msg: S .of(context).max_order_amount/*"Maximum order amount is "*/ + IConstants.maximumOrderAmount +  IConstants.currencyFormat , backgroundColor: Colors.black87, textColor: Colors.white,
+        //                   fontSize:MediaQuery.of(context).textScaleFactor *13,):
+        //                 Fluttertoast.showToast(msg: S .of(context).max_order_amount/*"Maximum order amount is "*/ +  IConstants.currencyFormat + IConstants.maximumOrderAmount, backgroundColor: Colors.black87, textColor: Colors.white,
+        //                   fontSize:MediaQuery.of(context).textScaleFactor *13,),
+        //                 /* _customToast("Maximum order amount is " +
+        //                               IConstants.currencyFormat +
+        //                               IConstants.maximumOrderAmount),*/
+        //               }
+        //           } else
+        //             {
+        //               if(double.parse(
+        //                   (CartCalculations.total).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit)) <
+        //                   double.parse(IConstants.minimumOrderAmount)) {
+        //                 Features.iscurrencyformatalign?
+        //                 Fluttertoast.showToast(msg: S .of(context).min_order_amount/*"Minimum order amount is "*/ + double.parse(IConstants.minimumOrderAmount).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit) +  IConstants.currencyFormat , backgroundColor: Colors.black87, textColor: Colors.white,
+        //                   fontSize:MediaQuery.of(context).textScaleFactor *13,):
+        //                 Fluttertoast.showToast(msg: S .of(context).min_order_amount/*"Minimum order amount is "*/ +  IConstants.currencyFormat + double.parse(IConstants.minimumOrderAmount).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit), backgroundColor: Colors.black87, textColor: Colors.white,
+        //                   fontSize:MediaQuery.of(context).textScaleFactor *13,),
+        //                 /*_customToast("Minimum order amount is " +
+        //                               IConstants.currencyFormat +
+        //                               minimumOrderAmount.toStringAsFixed(IConstants.decimaldigit)),*/
+        //               } else
+        //                 {
+        //                   Features.iscurrencyformatalign?
+        //                   Fluttertoast.showToast(msg: S .of(context).max_order_amount/*"Maximum order amount is "*/ + IConstants.maximumOrderAmount +  IConstants.currencyFormat , backgroundColor: Colors.black87, textColor: Colors.white,
+        //                     fontSize:MediaQuery.of(context).textScaleFactor *13,):
+        //                   Fluttertoast.showToast(msg: S .of(context).max_order_amount/*"Maximum order amount is "*/ +  IConstants.currencyFormat + IConstants.maximumOrderAmount, backgroundColor: Colors.black87, textColor: Colors.white,
+        //                     fontSize:MediaQuery.of(context).textScaleFactor *13,),
+        //                   /*_customToast("Maximum order amount is " +
+        //                                 IConstants.currencyFormat +
+        //                                 IConstants.maximumOrderAmount),*/
+        //                 }
+        //             },
+        //         },
+        //         child: Container(
+        //           color: Theme
+        //               .of(context)
+        //               .primaryColor,
+        //           width: MediaQuery
+        //               .of(context)
+        //               .size
+        //               .width,
+        //           height: 50,
+        //           child: Column(children: <Widget>[
+        //             SizedBox(
+        //               height: 17,
+        //             ),
+        //             Center(
+        //               child: Row(
+        //                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        //                 children: [
+        //                   _checkmembership ?
+        //                       Features.iscurrencyformatalign?
+        //                       Text('Total: ' +(CartCalculations.totalMember)
+        //                           .toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit) +IConstants.currencyFormat,   style: TextStyle(
+        //                           color: Colors.white,
+        //                           fontWeight: FontWeight.bold),):
+        //                   Text('Total: '+IConstants.currencyFormat +(CartCalculations.totalMember)
+        //                       .toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),   style: TextStyle(
+        //                       color: Colors.white,
+        //                       fontWeight: FontWeight.bold),):
+        //                       Features.iscurrencyformatalign?
+        //                       Text('Total: ' +(CartCalculations.total)
+        //                           .toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit) +IConstants.currencyFormat,   style: TextStyle(
+        //                           color: Colors.white,
+        //                           fontWeight: FontWeight.bold),):
+        //                   Text('Total: '+IConstants.currencyFormat +(CartCalculations.total)
+        //                       .toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),   style: TextStyle(
+        //                       color: Colors.white,
+        //                       fontWeight: FontWeight.bold),),
+        //                   Text(
+        //                     S .of(context).proceed_to_pay,//'PROCEED TO CHECKOUT',
+        //                     style: TextStyle(
+        //                         fontSize: 13.0,
+        //                         color: Colors.white,
+        //                         fontWeight: FontWeight.bold),
+        //                   ),
+        //                 ],
+        //               ),
+        //             )
+        //           ]),
+        //         ),
+        //       )
+        //           : _isDiscounted
+        //           ? GestureDetector(
+        //         child: Container(
+        //           color: Colors.grey,
+        //           width: MediaQuery
+        //               .of(context)
+        //               .size
+        //               .width,
+        //           height: 50,
+        //           child: Column(children: <Widget>[
+        //             SizedBox(
+        //               height: 17,
+        //             ),
+        //             Center(
+        //               child: Row(
+        //                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        //                 children: [
+        //                   _checkmembership ?
+        //                       Features.iscurrencyformatalign?
+        //                       Text('Total: '+(CartCalculations.totalMember)
+        //                           .toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit) +IConstants.currencyFormat ,   style: TextStyle(
+        //                           color: Colors.white,
+        //                           fontWeight: FontWeight.bold),):
+        //                   Text('Total: '+IConstants.currencyFormat +(CartCalculations.totalMember)
+        //                       .toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),   style: TextStyle(
+        //                       color: Colors.white,
+        //                       fontWeight: FontWeight.bold),):
+        //                       Features.iscurrencyformatalign?
+        //                       Text('Total: ' +(CartCalculations.total)
+        //                           .toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit) +IConstants.currencyFormat,   style: TextStyle(
+        //                           color: Colors.white,
+        //                           fontWeight: FontWeight.bold),):
+        //                   Text('Total: '+IConstants.currencyFormat +(CartCalculations.total)
+        //                       .toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),   style: TextStyle(
+        //                       color: Colors.white,
+        //                       fontWeight: FontWeight.bold),),
+        //                   Text(
+        //                     S .of(context).proceed_to_pay,//'PROCEED TO CHECKOUT',
+        //                     style: TextStyle(
+        //                         fontSize: 12.0,
+        //                         color: Colors.white,
+        //                         fontWeight: FontWeight.bold),
+        //                   ),
+        //                 ],
+        //               ),
+        //             )
+        //           ]),
+        //         ),
+        //       )
+        //           : GestureDetector(
+        //         onTap: () =>
+        //         {
+        //           setState(() {
+        //             if  (!PrefUtils.prefs!.containsKey("apikey")) {
+        //               PrefUtils.prefs!.setString(
+        //                   "fromcart", "cart_screen");
+        //              /* Navigator.of(context)
+        //                   .pushReplacementNamed(
+        //                   SignupSelectionScreen
+        //                       .routeName);*/
+        //               Navigation(context, name: Routename.SignUpScreen, navigatore: NavigatoreTyp.Push);
+        //             } else {
+        //               if (_groupCart == 2) {
+        //                /* Navigator.of(context).pushNamed(
+        //                     PickupScreen.routeName);*/
+        //                 Navigation(context, name: Routename.PickupScreen, navigatore: NavigatoreTyp.Push);
+        //               } else {
+        //                 //PrefUtils.prefs!.setString('totalamount', totalAmount);
+        //                 /*if (addressitemsData.items.length > 0) {*/
+        //               /*  Navigator.of(context).pushNamed(
+        //                     ConfirmorderScreen.routeName,
+        //                     arguments: {
+        //                       "prev": "cart_screen"
+        //                     });*/
+        //                 Navigation(context, name:Routename.ConfirmOrder,navigatore: NavigatoreTyp.Push,
+        //                     parms:{"prev": "cart_screen"});
+        //                 /*} else {
+        //                       Navigator.of(context).pushNamed(
+        //                           AddressScreen.routeName,
+        //                           arguments: {
+        //                             'addresstype': "new",
+        //                             'addressid': "",
+        //                             'delieveryLocation': "",
+        //                             'latitude': "",
+        //                             'longitude': "",
+        //                             'branch': ""
+        //                           });
+        //                     }*/
+        //               }
+        //             }
+        //           })
+        //         },
+        //         child: Container(
+        //           color: Theme
+        //               .of(context)
+        //               .primaryColor,
+        //           width: MediaQuery
+        //               .of(context)
+        //               .size
+        //               .width,
+        //           height: 50,
+        //           child: Column(children: <Widget>[
+        //             SizedBox(
+        //               height: 17,
+        //             ),
+        //             Center(
+        //               child: Row(
+        //                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        //                 children: [
+        //                   _checkmembership ?
+        //                       Features.iscurrencyformatalign?
+        //                       Text('Total: ' +(CartCalculations.totalMember)
+        //                           .toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit)+IConstants.currencyFormat,   style: TextStyle(
+        //                           color: Colors.white,
+        //                           fontWeight: FontWeight.bold),):
+        //                   Text('Total: '+IConstants.currencyFormat +(CartCalculations.totalMember)
+        //                       .toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),   style: TextStyle(
+        //                       color: Colors.white,
+        //                       fontWeight: FontWeight.bold),):
+        //                       Features.iscurrencyformatalign?
+        //                       Text('Total: ' +(CartCalculations.total)
+        //                           .toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit) +IConstants.currencyFormat,   style: TextStyle(
+        //                           color: Colors.white,
+        //                           fontWeight: FontWeight.bold),):
+        //                   Text('Total: '+IConstants.currencyFormat +(CartCalculations.total)
+        //                       .toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),   style: TextStyle(
+        //                       color: Colors.white,
+        //                       fontWeight: FontWeight.bold),),
+        //                   Text(
+        //                     S .of(context).proceed_to_pay,//'PROCEED TO CHECKOUT',
+        //                     style: TextStyle(
+        //                         fontSize: 12.0,
+        //                         color: Colors.white,
+        //                         fontWeight: FontWeight.bold),
+        //                   ),
+        //                 ],
+        //               ),
+        //             )
+        //           ]),
+        //         ),
+        //       ),
+        //     ],
+        //   ),
+        // )
+        //     : SizedBox.shrink(),
+
+      ],
+    );
+
+    }
+
+
     Widget pickUp() {
+      double deviceWidth = MediaQuery.of(context).size.width;
+      int widgetsInRow = 2;
+      MediaQueryData queryData;
+      queryData = MediaQuery.of(context);
+      if (deviceWidth > 1200) {
+        widgetsInRow = 2;
+      } else if (deviceWidth > 768) {
+        widgetsInRow = 2;
+      }
+      double aspectRatio =   (Vx.isWeb && !ResponsiveLayout.isSmallScreen(context))?
+      (deviceWidth - (20 + ((widgetsInRow - 1) * 10))) / widgetsInRow / 120
+          : (deviceWidth - (20 + ((widgetsInRow - 1) * 10))) / widgetsInRow / 120;
       Widget handler(bool isSelected) {
         return (isSelected == true)  ?
         Container(
@@ -9264,13 +11927,22 @@ if(_initialloading)
 
 
       }
+
       SelecttimeSlot(int index) {
         pickupTime = Provider.of<DeliveryslotitemsList>(context, listen: false);
 
-        return  ListView.separated(
-          separatorBuilder: (context, index) => SizedBox(height: 10,),
+        return  GridView.builder(
+          // separatorBuilder: (context, index) => SizedBox(height: 10,),
           physics:new NeverScrollableScrollPhysics(),
           shrinkWrap: true,
+          gridDelegate:
+          new SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: widgetsInRow,
+            crossAxisSpacing: 10,
+            childAspectRatio: aspectRatio,
+            mainAxisSpacing: 10,
+          ),
+          // separatorBuilder: (context, index) => SizedBox(height: 10,),
           itemCount: pickupTime.itemsPickup.length,
           itemBuilder: (_, j) => GestureDetector(
             onTap: () async {
@@ -9282,7 +11954,7 @@ if(_initialloading)
                 time = pickupTime.itemsPickup[j].time;
                 final timeData = Provider.of<DeliveryslotitemsList>(context, listen: false);
 
-                //PrefUtils.prefs.setString("fixdate", pickupTime.itemsPickup[0].date);
+                //PrefUtils.prefs!.setString("fixdate", pickupTime.itemsPickup[0].date);
 
                 //_index = (i == 0 && j == 0) ? 0 : _index + 1;
                 for(int i = 0; i < timeData.itemsPickup.length; i++) {
@@ -9294,8 +11966,8 @@ if(_initialloading)
                       timeData.itemsPickup[i].selectedColor = ColorCodes.primaryColor;
                       timeData.itemsPickup[i].isSelect = true;
                       pickupTime.itemsPickup[j].isSelect = true;
-                      PrefUtils.prefs.setString('fixtime', timeData.itemsPickup[i].time);
-                      selectTime = timeData.itemsPickup[i].time;
+                      PrefUtils.prefs!.setString('fixtime', timeData.itemsPickup[i].time!);
+                      selectTime = timeData.itemsPickup[i].time!;
                     });
                     break;
                   } else{
@@ -9314,15 +11986,15 @@ if(_initialloading)
             child: Container(
               height: 60,
               decoration: BoxDecoration(
-                color:  pickupTime.itemsPickup[j].isSelect ? ColorCodes.mediumgren:ColorCodes.whiteColor,
+                color:  pickupTime.itemsPickup[j].isSelect ? ColorCodes.varcolor:ColorCodes.whiteColor,
                 border: Border.all(
-                  color: ColorCodes.lightgreen,
+                  color: pickupTime.itemsPickup[j].isSelect ? ColorCodes.primaryColor : ColorCodes.varcolor,
                 ),
                 borderRadius: BorderRadius.circular(3),
               ),
               // margin: EdgeInsets.only(left: 5.0, right: 5.0),
               //child: Container(
-              width: MediaQuery.of(context).size.width,
+              width: MediaQuery.of(context).size.width*0.18,
               //  padding: EdgeInsets.symmetric(horizontal: 40),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.start,
@@ -9370,7 +12042,6 @@ if(_initialloading)
         );
       }
 
-
       return /*_ispicLoading
           ? Center(
         child: CircularProgressIndicator(),
@@ -9397,7 +12068,7 @@ if(_initialloading)
                     ]
                 ),
                 child: Text(
-                  S.of(context).currently_no_store ,//"Currently there is no store address available",
+                  S .of(context).currently_no_store ,//"Currently there is no store address available",
                   style: TextStyle(
                       fontWeight: FontWeight.bold, fontSize: 16),
                 ),
@@ -9442,7 +12113,7 @@ if(_initialloading)
                         },
                         child: Container(
                           decoration: BoxDecoration(
-                            color: _groupPick == i ? ColorCodes.mediumgren : ColorCodes.whiteColor,
+                            color: _groupPick == i ? ColorCodes.varcolor : ColorCodes.whiteColor,
                             borderRadius: BorderRadius.circular(8.0),
                             border: Border.all(
                               color: ColorCodes.greenColor,
@@ -9613,7 +12284,7 @@ if(_initialloading)
                         child: TextField(
                           controller: _message,
                           decoration: InputDecoration.collapsed(
-                              hintText: S.of(context).any_request ,//"Any request? We promise to pass it on",
+                              hintText: S .of(context).any_request ,//"Any request? We promise to pass it on",
                               hintStyle: TextStyle(fontSize: 12.0),
                               //contentPadding: EdgeInsets.all(16),
                               //border: OutlineInputBorder(),
@@ -9645,7 +12316,7 @@ if(_initialloading)
                   ]
               ),
               child: Text(
-                S.of(context).select_your_timeslot ,//"Select Your Time Slot",
+                S .of(context).select_your_timeslot ,//"Select Your Time Slot",
                 style: TextStyle(
                     fontSize: 18,
                     fontWeight:
@@ -9680,7 +12351,7 @@ if(_initialloading)
                       // Container(
                       //   margin: EdgeInsets.only(left: 10.0),
                       //   child: Text(
-                      //     S.of(context).date ,//'Date: ',
+                      //     S .of(context).date ,//'Date: ',
                       //     style: TextStyle(
                       //       fontWeight: FontWeight.w300,
                       //       fontSize: 15.0,
@@ -9688,7 +12359,47 @@ if(_initialloading)
                       //     ),
                       //   ),
                       // ),
-                      Container(
+                      Column(
+                        children: [
+                          Container(
+                            height: 60,
+                            width: 50,
+
+                            decoration: BoxDecoration(
+                              color: ColorCodes.varcolor,
+                              border: Border.all(
+                                color: ColorCodes.varcolor,
+                              ),
+                              borderRadius: BorderRadius.circular(3),
+                            ),
+                            child: Center(
+                              child: Text(
+                                  pickSplit![0].toUpperCase(),
+                                  // pickupTime.itemsPickup[0].date,
+                                  /*deliveryslotData.items[i].date,*/
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                      color: ColorCodes.darkgreen)),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.only(top:2.0,left: 2,right:2),
+                            child: Center(
+                              child: Text(
+                                  pickSplit![1].toUpperCase(),
+                                  /* value2.toUpperCase(),*//*deliveryslotData.items[i].date,*/
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 15,
+                                      color: ColorCodes.darkgreen)),
+                            ),
+                          ),
+                        ],
+                      ),
+                      /*Container(
                         height: 70,
                         width: 100,
                         decoration: BoxDecoration(
@@ -9707,7 +12418,7 @@ if(_initialloading)
                                 color: ColorCodes.darkgreen),
                           ),
                         ),
-                      ),
+                      ),*/
                       // Spacer(),
                       // SizedBox(
                       //   width: 10.0,
@@ -9737,7 +12448,7 @@ if(_initialloading)
                 margin: EdgeInsets.only(
                     left: 15.0, top: 30.0, bottom: 10.0, right: 10),
                 child: Text(
-                  S.of(context).currently_no_time_address ,//"Currently there is no slots available for this address",
+                  S .of(context).currently_no_time_address ,//"Currently there is no slots available for this address",
                   style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16),
@@ -9746,193 +12457,91 @@ if(_initialloading)
             )
                 : Container(),
             if(Vx.isWeb&&!ResponsiveLayout.isSmallScreen(context))
-              Container(
-                width: MediaQuery.of(context).size.width * 0.45,
-                height: 50.0,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: <Widget>[
-                    !_checkStoreLoc
-                        ? GestureDetector(
-                      onTap: () => {
-                        Fluttertoast.showToast(
-                          msg: S.of(context).currently_no_store ,//"currently there is no store address available",
-                          fontSize: MediaQuery.of(context).textScaleFactor *13,),
-                      },
-                      child:Container(
-                  //padding: EdgeInsets.symmetric(horizontal: 30),
-                    color: Colors.grey,
-                        height: 50,
-                          width: MediaQuery.of(context).size.width * 0.44,
-                         child: Row(
-                         mainAxisAlignment:
-                         MainAxisAlignment.spaceEvenly,
-                         crossAxisAlignment:CrossAxisAlignment.center,
-                    children: [
-                      _checkmembership ? Text('Total: '+IConstants.currencyFormat +(CartCalculations.totalMember)
-                          .toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),   style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold),):
-                      Text('Total: '+IConstants.currencyFormat +(CartCalculations.total)
-                          .toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),   style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold),),
-
-                    Text(S.of(context).confirm_order,//'CONFIRM ORDER',
-                     style: TextStyle(
-                       color: Colors.white,
-                 fontWeight: FontWeight.bold),
-                       ),
-                  /* SizedBox(
-                       width: 5,
-                         ),
-                        Icon(
-                           Icons.arrow_right,
-                            color: Colors.white,
-                          )*/
-                         ],
-                         ),
-                      ),
-                    )
-                        : _isPickupSlots
-                        ? GestureDetector(
-                      onTap: () {
-                         if(store.userData.mobileNumber.toString() == "" || store.userData.mobileNumber.toString() == "null"){
-                        _dialogforMobileNumber();
-                        }else {
-                           PrefUtils.prefs.setString("isPickup", "yes");
-                           PrefUtils.prefs.setString('fixtime', selectTime);
-                           PrefUtils.prefs.setString("fixdate", selectDate);
-                           PrefUtils.prefs.setString(
-                               "addressId",
-                               pickuplocItem.itemspickuploc[_groupPick].id
-                                   .toString());
-                           if (Features.isOffers) {
-                             Navigator.of(context).pushReplacementNamed(
-                                 OfferScreen.routeName,
-                                 arguments: {
-                                   'minimumOrderAmountNoraml': "0",
-                                   'deliveryChargeNormal': _deliveryChargeNormal,
-                                   'minimumOrderAmountPrime': "0",
-                                   'deliveryChargePrime': _deliveryChargePrime,
-                                   'minimumOrderAmountExpress': "0",
-                                   'deliveryChargeExpress': "0",
-                                   'deliveryType': "pickup",
-                                   'addressId': PrefUtils.prefs.getString(
-                                       "addressId").toString(),
-                                   'note': _message.text,
-                                   'deliveryCharge': _checkmembership
-                                       ? _deliveryChargePrime
-                                       : _deliveryChargeNormal,
-                                   // 'finalExpressDelivery':finalExpressDelivery.toString(),
-                                   'deliveryDurationExpress': "0",
-                                   '_groupValue': _groupCart,
-                                 });
-                           }
-                           else {
-                             debugPrint("payment noa....6.."+_deliveryChargeNormal+"  "+_minimumOrderAmountNoraml);
-                             Navigator.of(context)
-                                 .pushNamed(
-                                 PaymentScreen.routeName, arguments: {
-                               'minimumOrderAmountNoraml': "0",
-                               'deliveryChargeNormal': _deliveryChargeNormal,
-                               'minimumOrderAmountPrime': "0",
-                               'deliveryChargePrime': _deliveryChargePrime,
-                               'minimumOrderAmountExpress': "0",
-                               'deliveryChargeExpress': "0",
-                               'deliveryType': "pickup",
-                               'note': _message.text,
-                               'deliveryCharge': _checkmembership
-                                   ? _deliveryChargePrime
-                                   : _deliveryChargeNormal,
-                               'deliveryDurationExpress': "0",
-                               'fromScreen':'',
-                               'responsejson':"",
-                             });
-                           }
-                         }
-                      },
-                      child:Container(
-             //padding: EdgeInsets.symmetric(horizontal: 30),
-                        color: Theme.of(context).primaryColor,
-                         height: 50,
-                       width:MediaQuery.of(context).size.width *0.44,
-                      child:
-                      Row(
-                        mainAxisAlignment:
-                        MainAxisAlignment.spaceEvenly,
-                        crossAxisAlignment:
-                        CrossAxisAlignment.center,
-                        children: [
-                          _checkmembership ? Text('Total: '+IConstants.currencyFormat +(CartCalculations.totalMember)
-                              .toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),   style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold),):
-                          Text('Total: '+IConstants.currencyFormat +(CartCalculations.total)
-                              .toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),   style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold),),
-                          Text(
-                            S.of(context).confirm_order,//'CONFIRM ORDER',
-                            style: TextStyle(
+              (CartCalculations.totalMember <= 0.00 && CartCalculations.total <= 0.00 && CartCalculations.totalMember <= 0 && CartCalculations.total <= 0)?
+              SizedBox.shrink():
+              GestureDetector(
+                onTap:(){
+                  PrefUtils.prefs!.setString("isPickup", "yes");
+                  PrefUtils.prefs!.setString('fixtime', selectTime);
+                  PrefUtils.prefs!.setString("fixdate", selectDate);
+                  PrefUtils.prefs!.setString(
+                      "addressId",
+                      pickuplocItem.itemspickuploc[_groupPick].id
+                          .toString());
+                  Navigation(context, name: Routename.PaymentScreen, navigatore: NavigatoreTyp.Push,
+                      qparms: {
+                        'minimumOrderAmountNoraml': "0",
+                        'deliveryChargeNormal': _deliveryChargeNormal,
+                        'minimumOrderAmountPrime': "0",
+                        'deliveryChargePrime': _deliveryChargePrime,
+                        'minimumOrderAmountExpress': "0",
+                        'deliveryChargeExpress': "0",
+                        'deliveryType': "pickup",
+                        'addressId': PrefUtils.prefs!.getString("addressId"),
+                        'note': _message.text,
+                        'deliveryCharge': _checkmembership ? _deliveryChargePrime : _deliveryChargeNormal,
+                        'deliveryDurationExpress' : "0",
+                        'fromScreen':'pickupscreen',
+                        'responsejson':"",
+                      });
+                },
+                child: Container(
+                  width: MediaQuery.of(context).size.width,
+                  decoration: BoxDecoration(
+                      color: ColorCodes.primaryColor,
+                      borderRadius: BorderRadius.circular(5)
+                  ),
+                  padding: EdgeInsets.only(top: 10, bottom: 10),
+                  margin: EdgeInsets.only(top: 15),
+                  child: Column(children: <Widget>[
+                    Row(
+                      children: [
+                        SizedBox(width: 20),
+                        Image.asset(
+                          Images.bag, height: 30, width: 30, color: ColorCodes.whiteColor,
+                        ),
+                        SizedBox(width: 5,),
+                        Column(
+                          children: [
+                            Text((CartCalculations.itemCount).toString() + " " + S
+                                .of(context)
+                                .items,
+                                style: TextStyle( color: Colors.white,
+                                    fontWeight: FontWeight.bold)),
+                            SizedBox(height:5),
+                            VxState.store.userData.membership! == "1" ||_checkmembership ?
+                            Features.iscurrencyformatalign?
+                            Text('Total: ' +(CartCalculations.totalMember)
+                                .toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit) +IConstants.currencyFormat,   style: TextStyle(
                                 color: Colors.white,
-                                fontWeight: FontWeight.bold),
-                          ),
-                        /*  SizedBox(
-                            width: 5,
-                          ),
-                          Icon(
-                            Icons.arrow_right,
-                            color: Colors.white,
-                          )*/
-                        ],
-                      ),
-                      ),
-                    )
-                        : GestureDetector(
-                      onTap: () => {
-                        Fluttertoast.showToast(
-                          msg:
-                          S.of(context).currently_no_time_address ,//"currently there is no slots available for this address",
-                          fontSize: MediaQuery.of(context).textScaleFactor *13,),
-                      },
-                      child: Container(
-                        //padding: EdgeInsets.symmetric(horizontal: 30),
-                          color: Colors.grey,
-                          height: 50,
-                          width:
-                          MediaQuery.of(context).size.width * 0.44,
-                          child:Row(
-                            mainAxisAlignment:
-                            MainAxisAlignment.spaceEvenly,
-                            crossAxisAlignment:
-                            CrossAxisAlignment.center,
-                            children: [
-                              _checkmembership ? Text('Total: '+IConstants.currencyFormat +(CartCalculations.totalMember)
-                                  .toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),   style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold),):
-                              Text('Total: '+IConstants.currencyFormat +(CartCalculations.total)
-                                  .toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),   style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold),),
-                              Text(
-                                S.of(context).confirm_order,//'CONFIRM ORDER',
-                                style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold),
-                              ),
-                            /*  SizedBox(
-                                width: 5,
-                              ),
-                              Icon(
-                                Icons.arrow_right,
+                                fontWeight: FontWeight.bold),):
+                            Text('Total: '+IConstants.currencyFormat +(CartCalculations.totalMember)
+                                .toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),   style: TextStyle(
                                 color: Colors.white,
-                              )*/
-                            ],
-                          ),),
+                                fontWeight: FontWeight.bold),):
+                            Features.iscurrencyformatalign?
+                            Text('Total: ' +(CartCalculations.total)
+                                .toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit)+IConstants.currencyFormat,   style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold),):
+                            Text('Total: '+IConstants.currencyFormat +(CartCalculations.total)
+                                .toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),   style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold),),
+                          ],
+                        ),
+                        Spacer(),
+                        Text(
+                          S .of(context).confirm_order,//'CONFIRM ORDER',
+                          style: TextStyle(
+                              fontSize: 16.0,
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold),
+                        ),
+                        SizedBox(width: 20),
+                      ],
                     )
-                  ],
+                  ]),
                 ),
               ),
           ],
@@ -9941,8 +12550,20 @@ if(_initialloading)
     }
 
     Widget bodyWeb() {
-      debugPrint("body web....");
+
+
+      VxState.watch(context, on: [SetCartItem]);
+      if((VxState.store as GroceStore).CartItemList.length<=0){
+        setState(() {
+          isEmpty=true;
+        });
+      }else{
+        setState(() {
+          isEmpty=false;
+        });
+      }
       if(_cartitemloaded&&_cartdugestloaded){
+        print("inside,,");
         _initialloading = false;
       }
      /* if (!_loadingSlots && !_loadingDelCharge ) {
@@ -9952,10 +12573,11 @@ if(_initialloading)
           // _Load=false;
         });
       }*/
-      return (isEmpty ||store.CartItemList.length<=0 )?
+      return (isEmpty /*&& store.CartItemList.length<=0 */)?
       Expanded(
         child: SingleChildScrollView(
           child: Container(
+            color: (Vx.isWeb) ? ColorCodes.greyColord : ColorCodes.whiteColor,
             width: MediaQuery.of(context).size.width,
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -9966,68 +12588,91 @@ if(_initialloading)
                   height: 200.0,
                 ),
                 Text(
-                  S.of(context).cart_empty,//"Your cart is empty!",
+                  S .of(context).cart_empty,//"Your cart is empty!",
                   style: TextStyle(fontSize: 18.0),
                 ),
                 SizedBox(
                   height: 20.0,
                 ),
-                GestureDetector(
-                  onTap: () {
-                    Navigator.of(context).popUntil(ModalRoute.withName(
-                      HomeScreen.routeName,
-                    ));
-                  },
-                  child: Container(
-                      width: MediaQuery.of(context).size.width * 0.7,
-                      padding: EdgeInsets.all(5),
-                      height: 40.0,
-                      decoration: BoxDecoration(
-                          color: ColorCodes.discountoff,
-                          borderRadius: BorderRadius.circular(3.0),
-                          border: Border(
-                            top: BorderSide(
+            MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                    onTap: () {
+                      Navigation(context,/*name: Routename.Home,*/ navigatore: NavigatoreTyp.homenav);
+                    },
+                    child: Container(
+                        width: MediaQuery.of(context).size.width * 0.7,
+                        padding: EdgeInsets.all(5),
+                        height: 40.0,
+                        decoration: BoxDecoration(
+                            color: Theme.of(context).primaryColor,
+                            borderRadius: BorderRadius.circular(3.0),
+                            border: Border(
+                              top: BorderSide(
+                                  width: 1.0,
+                                  color: Theme.of(context).primaryColor),
+                              bottom: BorderSide(
+                                  width: 1.0,
+                                  color: Theme.of(context).primaryColor),
+                              left: BorderSide(
+                                  width: 1.0,
+                                  color: Theme.of(context).primaryColor),
+                              right: BorderSide(
                                 width: 1.0,
-                                color: ColorCodes.discountoff),
-                            bottom: BorderSide(
-                                width: 1.0,
-                                color: ColorCodes.discountoff),
-                            left: BorderSide(
-                                width: 1.0,
-                                color: ColorCodes.discountoff),
-                            right: BorderSide(
-                              width: 1.0,
-                              color: ColorCodes.discountoff,
-                            ),
-                          )),
-                      child: Center(
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              new Padding(
-                                padding: const EdgeInsets.fromLTRB(
-                                    15.0, 0.0, 10.0, 0.0),
-                                child: new Icon(
-                                  Icons.shopping_cart_outlined,
-                                  color: Colors.white,
-                                ),
+                                color: Theme.of(context).primaryColor,
                               ),
-                              Text(
-                                S.of(context).start_shopping,//'START SHOPPING',
-                                //textAlign: TextAlign.center,
-                                style: TextStyle(
+                            )),
+                        child: Center(
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                new Padding(
+                                  padding: const EdgeInsets.fromLTRB(
+                                      15.0, 0.0, 10.0, 0.0),
+                                  child: new Icon(
+                                    Icons.shopping_cart_outlined,
                                     color: Colors.white,
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.bold),
-                              ),
-                            ],
-                          ))),
+                                  ),
+                                ),
+                                Text(
+                                  S .of(context).start_shopping,//'START SHOPPING',
+                                  //textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.bold),
+                                ),
+                              ],
+                            ))),
+                  ),
                 ),
                 SizedBox(
                   height: 10,
                 ),
-                if (Vx.isWeb) Footer(address: _address),
+                VxBuilder(
+                  mutations: {HomeScreenController},
+                  builder: (ctx, store, VxStatus? state) {
+
+                    if(VxStatus.success==state) {
+                      if (Vx.isWeb) return Footer(address: _address);
+                      /*if (Vx.isWeb) return Footer(address: PrefUtils.prefs!
+                          .getString("restaurant_address")!);*/
+                    }
+                    else if(state==VxStatus.none){
+                      print("error loading screen");
+                      if((VxState.store as GroceStore).homescreen.toJson().isEmpty) {
+                        HomeScreenController(user: PrefUtils.prefs!.getString("apikey") ?? PrefUtils.prefs!.getString("ftokenid"), branch: PrefUtils.prefs!.getString("branch") ?? "999", rows: "0",);
+                        return SizedBox.shrink();
+                      }else{
+                        if (Vx.isWeb) return Footer(address: _address);
+                      }
+                    }
+                    return SizedBox.shrink();
+                  },
+                )
+
               ],
             ),
           ),
@@ -10035,62 +12680,89 @@ if(_initialloading)
       )
           :Expanded(
         child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: <Widget>[
-              _isLoading
-                  ? Container(
-                height: 100,
-                child: Center(
-                  child: CircularProgressIndicator(),
-                ),
-              )
-              /*: checkskip
-                      ? Center(child: cartScreen())*/
-                  : Align(
-                alignment: Alignment.center,
-                child: Container(
-                  constraints: (Vx.isWeb &&
-                      !ResponsiveLayout.isSmallScreen(
-                          context))
-                      ? BoxConstraints(maxWidth: maxwid)
-                      : null,
-                  child: Row(
-                    mainAxisAlignment:
-                    MainAxisAlignment.spaceEvenly,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SizedBox(
-                        width: 10,
-                      ),
-                      Flexible(child:
-                      cartScreen()),
-                      SizedBox(
-                        width: 10,
-                      ),
-                      Flexible(
-                          child: _groupCart == 2
-                              ? pickUp()
-                              : /*_loading
-                              ? Container(
-                            height: 200,
-                            child: Center(
-                              child:
-                              CircularProgressIndicator(),
-                            ),
-                          )
-                              :*/ confirmOrder()),
-                      SizedBox(
-                        width: 10,
-                      ),
-                    ],
+          child: Container(
+            color: (Vx.isWeb) ? ColorCodes.greyColord : ColorCodes.whiteColor,
+            width: MediaQuery.of(context).size.width,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: <Widget>[
+                _isLoading
+                    ? Container(
+                  height: 100,
+                  child: Center(
+                    child: CircularProgressIndicator(),
+                  ),
+                )
+                /*: checkskip
+                        ? Center(child: cartScreen())*/
+                    : Align(
+                  alignment: Alignment.center,
+                  child: Container(
+                    constraints: (Vx.isWeb &&
+                        !ResponsiveLayout.isSmallScreen(
+                            context))
+                        ? BoxConstraints(maxWidth: maxwid!)
+                        : null,
+                    child: Row(
+                      mainAxisAlignment:
+                      MainAxisAlignment.spaceEvenly,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if(!Vx.isWeb)
+                        SizedBox(
+                          width: 10,
+                        ),
+                        Flexible(child:
+                        cartScreen()),
+                        SizedBox(
+                          width: 10,
+                        ),
+                        Flexible(
+                            child: _groupCart == 2
+                                ? pickUp()
+                                : /*_loading
+                                ? Container(
+                              height: 200,
+                              child: Center(
+                                child:
+                                CircularProgressIndicator(),
+                              ),
+                            )
+                                :*/ confirmOrder()),
+                        SizedBox(
+                          width: 10,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              if (Vx.isWeb) Footer(address: _address),
-              //Builder
-            ],
+
+                VxBuilder(
+                  mutations: {HomeScreenController},
+                  builder: (ctx, store, VxStatus? state) {
+
+                    if(VxStatus.success==state) {
+                      if (Vx.isWeb) return Footer(address: _address);
+                      /*if (Vx.isWeb) return Footer(address: PrefUtils.prefs!
+                            .getString("restaurant_address")!);*/
+                    }
+                    else if(state==VxStatus.none){
+                      print("error loading screen");
+                      if((VxState.store as GroceStore).homescreen.toJson().isEmpty) {
+                        HomeScreenController(user: PrefUtils.prefs!.getString("apikey") ?? PrefUtils.prefs!.getString("ftokenid"), branch: PrefUtils.prefs!.getString("branch") ?? "999", rows: "0",);
+                        return SizedBox.shrink();
+                      }else{
+                        if (Vx.isWeb) return Footer(address: _address);
+                      }
+                    }
+                    return SizedBox.shrink();
+                  },
+                )
+                //if (Vx.isWeb) Footer(address: _address),
+                //Builder
+              ],
+            ),
           ),
         ),
       );
@@ -10123,7 +12795,7 @@ if(_cartitemloaded&&_cartdugestloaded){
                 height: 200.0,
               ),
               Text(
-                S.of(context).cart_empty,//"Your cart is empty!",
+                S .of(context).cart_empty,//"Your cart is empty!",
                 style: TextStyle(fontSize: 18.0),
               ),
               SizedBox(
@@ -10131,34 +12803,31 @@ if(_cartitemloaded&&_cartdugestloaded){
               ),
               GestureDetector(
                 onTap: () {
-                  HomeScreenController(user: (VxState.store as GroceStore).userData.id ??
-                      PrefUtils.prefs.getString("tokenid"),
-                      branch: (VxState.store as GroceStore).userData.branch ?? "999",
-                      rows: "0");
-                  Navigator.of(context).popUntil(ModalRoute.withName(
-                    HomeScreen.routeName,
-                  ));
+                  Navigation(context, navigatore: NavigatoreTyp.homenav);
+                  // Navigator.of(context).popUntil(ModalRoute.withName(
+                  //   HomeScreen.routeName,
+                  // ));
                 },
                 child: Container(
                     width: MediaQuery.of(context).size.width * 0.7,
                     padding: EdgeInsets.all(5),
                     height: 40.0,
                     decoration: BoxDecoration(
-                        color: ColorCodes.discountoff,
+                        color: Theme.of(context).primaryColor,
                         borderRadius: BorderRadius.circular(3.0),
                         border: Border(
                           top: BorderSide(
                               width: 1.0,
-                              color: ColorCodes.discountoff),
+                              color: Theme.of(context).primaryColor),
                           bottom: BorderSide(
                               width: 1.0,
-                              color: ColorCodes.discountoff),
+                              color: Theme.of(context).primaryColor),
                           left: BorderSide(
                               width: 1.0,
-                              color: ColorCodes.discountoff),
+                              color: Theme.of(context).primaryColor),
                           right: BorderSide(
                             width: 1.0,
-                            color: ColorCodes.discountoff,
+                            color: Theme.of(context).primaryColor,
                           ),
                         )),
                     child: Center(
@@ -10175,7 +12844,7 @@ if(_cartitemloaded&&_cartdugestloaded){
                               ),
                             ),
                             Text(
-                              S.of(context).start_shopping,//'START SHOPPING',
+                              S .of(context).start_shopping,//'START SHOPPING',
                               //textAlign: TextAlign.center,
                               style: TextStyle(
                                   color: Colors.white,
@@ -10188,7 +12857,28 @@ if(_cartitemloaded&&_cartdugestloaded){
               SizedBox(
                 height: 10,
               ),
-              if (Vx.isWeb) Footer(address: _address),
+              VxBuilder(
+                mutations: {HomeScreenController},
+                builder: (ctx,store, VxStatus? state) {
+
+                  if(VxStatus.success==state) {
+                    if (Vx.isWeb) return Footer(address: _address);
+                    /*if (Vx.isWeb) return Footer(address: PrefUtils.prefs!
+                          .getString("restaurant_address")!);*/
+                  }
+                  else if(state==VxStatus.none){
+                    print("error loading screen");
+                    if((VxState.store as GroceStore).homescreen.toJson().isEmpty) {
+                      HomeScreenController(user: PrefUtils.prefs!.getString("apikey") ?? PrefUtils.prefs!.getString("ftokenid"), branch: PrefUtils.prefs!.getString("branch") ?? "999", rows: "0",);
+                      return SizedBox.shrink();
+                    }else{
+                      if (Vx.isWeb) return Footer(address: _address);
+                    }
+                  }
+                  return SizedBox.shrink();
+                },
+              )
+             // if (Vx.isWeb) Footer(address: _address),
             ],
           ),
         ):
@@ -10205,11 +12895,31 @@ if(_cartitemloaded&&_cartdugestloaded){
         ),
       );
     }
-    void launchWhatsapp({@required number,@required message})async{
+ /*   void launchWhatsapp({required number,required message})async{
       String url ="whatsapp://send?phone=$number&text=$message";
       await canLaunch(url)?launch(url):print('can\'t open whatsapp');
+    }*/
+
+    void launchWhatsApp() async {
+      String phone = /*"+918618320591"*/IConstants.secondaryMobile;
+      debugPrint("Whatsapp . .. . . .. . .");
+      String url() {
+        if (Platform.isIOS) {
+          debugPrint("Whatsapp1 . .. . . .. . .");
+          return "whatsapp://wa.me/$phone/?text=${Uri.parse('I want to order Grocery')}";
+        } else {
+          return "whatsapp://send?phone=$phone&text=${Uri.parse('I want to order Grocery')}";
+          const url = "https://wa.me/?text=YourTextHere";
+
+        }
+      }
+      if (await canLaunch(url())) {
+        await launch(url());
+      } else {
+        throw 'Could not launch ${url()}';
+      }
     }
-    shoplistData = Provider.of<BrandItemsList>(context, listen: false);
+    shoplistData = shoplistData;//Provider.of<BrandItemsList>(context, listen: false);
     bottomNavigationbar() {
       return SingleChildScrollView(
         child: Container(
@@ -10244,7 +12954,7 @@ if(_cartitemloaded&&_cartdugestloaded){
                       height: 5.0,
                     ),
                     Text(
-                        S.of(context).home,//"Home",
+                        S .of(context).home,//"Home",
                         style: TextStyle(
                             color: ColorCodes.greyColor, fontSize: 10.0)),
                   ],
@@ -10267,7 +12977,7 @@ if(_cartitemloaded&&_cartdugestloaded){
                     height: 5.0,
                   ),
                   Text(
-                      S.of(context).categories,
+                      S .of(context).categories,
                       //"Categories",
                       style: TextStyle(
                           color: Theme.of(context).primaryColor,
@@ -10281,14 +12991,17 @@ if(_cartitemloaded&&_cartdugestloaded){
                 GestureDetector(
                   onTap: () {
                     checkskip
-                        ? Navigator.of(context).pushNamed(
-                      SignupSelectionScreen.routeName,arguments: {
-                      "prev": "cartScreen",
-                    }
-                    )
-                        : Navigator.of(context).pushReplacementNamed(
+                        ? /*Navigator.of(context).pushNamed(
+                      SignupSelectionScreen.routeName,
+                    )*/
+                    Navigation(context, name: Routename.SignUpScreen, navigatore: NavigatoreTyp.Push)
+                        :
+                    /* Navigator.of(context).pushReplacementNamed(
                         WalletScreen.routeName,
-                        arguments: {"type": "wallet"});
+                        arguments: {"type": "wallet"});*/
+                    Navigation(context, name: Routename.Wallet, navigatore: NavigatoreTyp.PushReplacment,qparms: {
+                      "type":"wallet",//Routename.Wallet.toString(),
+                    });
                   },
                   child: Column(
                     children: <Widget>[
@@ -10304,7 +13017,7 @@ if(_cartitemloaded&&_cartdugestloaded){
                         height: 5.0,
                       ),
                       Text(
-                          S.of(context).wallet,//"Wallet",
+                          S .of(context).wallet,//"Wallet",
                           style: TextStyle(
                               color: ColorCodes.greyColor, fontSize: 10.0)),
                     ],
@@ -10316,14 +13029,17 @@ if(_cartitemloaded&&_cartdugestloaded){
                 GestureDetector(
                   onTap: () {
                     checkskip
-                        ? Navigator.of(context).pushNamed(
-                      SignupSelectionScreen.routeName,arguments: {
-                      "prev": "cartScreen",
-                    }
-                    )
-                        : Navigator.of(context).pushReplacementNamed(
+                        ? /*Navigator.of(context).pushNamed(
+                      SignupSelectionScreen.routeName,
+                    )*/
+                    Navigation(context, name: Routename.SignUpScreen, navigatore: NavigatoreTyp.Push)
+                        : /*Navigator.of(context).pushReplacementNamed(
                       MembershipScreen.routeName,
-                    );
+                    );*/
+                       (Vx.isWeb &&
+                      !ResponsiveLayout.isSmallScreen(context)) ?
+                      MembershipInfo(context):
+                    Navigation(context, name: Routename.Membership, navigatore: NavigatoreTyp.PushReplacment);
                   },
                   child: Column(
                     children: <Widget>[
@@ -10341,7 +13057,7 @@ if(_cartitemloaded&&_cartdugestloaded){
                         height: 5.0,
                       ),
                       Text(
-                          S.of(context).membership,//"Membership",
+                          S .of(context).membership,//"Membership",
                           style: TextStyle(
                               color: ColorCodes.greyColor, fontSize: 10.0)),
                     ],
@@ -10354,16 +13070,19 @@ if(_cartitemloaded&&_cartdugestloaded){
                 GestureDetector(
                   onTap: () {
                     checkskip
-                        ? Navigator.of(context).pushNamed(
-                      SignupSelectionScreen.routeName,arguments: {
-                      "prev": "cartScreen",
-                    }
-                    )
+                        ? /*Navigator.of(context).pushNamed(
+                      SignupSelectionScreen.routeName,
+                    )*/
+                    Navigation(context, name: Routename.SignUpScreen, navigatore: NavigatoreTyp.Push)
                         : Navigator.of(context).pushReplacementNamed(
-                      MyorderScreen.routeName,
+                      /*MyorderScreen.routeName,
                         arguments: {
                           "orderhistory": ""
-                        }
+                        }*/
+                      Navigation(context, name:Routename.MyOrders,navigatore: NavigatoreTyp.Push,
+                         /* parms: {
+                        "orderhistory": ""
+                      }*/)
                     );
                   },
                   child: Column(
@@ -10381,7 +13100,7 @@ if(_cartitemloaded&&_cartdugestloaded){
                       SizedBox(
                         height: 5.0,
                       ),
-                      Text(S.of(context).my_orders,//"My Orders",
+                      Text(S .of(context).my_orders,//"My Orders",
                           style: TextStyle(
                               color: ColorCodes.grey, fontSize: 10.0)),
                     ],
@@ -10394,13 +13113,13 @@ if(_cartitemloaded&&_cartdugestloaded){
                   onTap: () {
                     checkskip
                         ? Navigator.of(context).pushNamed(
-                      SignupSelectionScreen.routeName,arguments: {
-                      "prev": "cartScreen",
-                    }
+                      SignupSelectionScreen.routeName,
                     )
-                        : Navigator.of(context).pushReplacementNamed(
+                        :
+                   /* Navigator.of(context).pushReplacementNamed(
                       ShoppinglistScreen.routeName,
-                    );
+                    );*/
+                    Navigation(context, name: Routename.Shoppinglist, navigatore: NavigatoreTyp.Push);
                   },
                   child: Column(
                     children: <Widget>[
@@ -10416,7 +13135,7 @@ if(_cartitemloaded&&_cartdugestloaded){
                         height: 5.0,
                       ),
                       Text(
-                          S.of(context).shopping_list,//"Shopping list",
+                          S .of(context).shopping_list,//"Shopping list",
                           style: TextStyle(
                               color: ColorCodes.greyColor, fontSize: 10.0)),
                     ],
@@ -10429,9 +13148,7 @@ if(_cartitemloaded&&_cartdugestloaded){
                   onTap: () {
                     checkskip && Features.isLiveChat
                         ? Navigator.of(context).pushNamed(
-                      SignupSelectionScreen.routeName,arguments: {
-                      "prev": "cartScreen",
-                    }
+                      SignupSelectionScreen.routeName,
                     )
                         : (Features.isLiveChat && Features.isWhatsapp)?
                     Navigator.of(context)
@@ -10442,10 +13159,11 @@ if(_cartitemloaded&&_cartdugestloaded){
                       'phone': phone,
                     }):
                     (!Features.isLiveChat && !Features.isWhatsapp)?
-                    Navigator.of(context).pushNamed(SearchitemScreen.routeName)
+                        Navigation(context, navigatore: NavigatoreTyp.Push,name: Routename.search)
+                    // Navigator.of(context).pushNamed(SearchitemScreen.routeName)
 
                         :
-                    Features.isWhatsapp?launchWhatsapp(number: IConstants.countryCode + IConstants.secondaryMobile, message:"I want to order Grocery"):
+                    Features.isWhatsapp?/*launchWhatsapp(number: IConstants.countryCode + IConstants.secondaryMobile, message:"I want to order Grocery")*/launchWhatsApp():
                     Navigator.of(context)
                         .pushNamed(CustomerSupportScreen.routeName, arguments: {
                       'name': name,
@@ -10476,7 +13194,7 @@ if(_cartitemloaded&&_cartdugestloaded){
                       SizedBox(
                         height: 5.0,
                       ),
-                      Text((!Features.isLiveChat && !Features.isWhatsapp)?S.of(context).search:S.of(context).chat,
+                      Text((!Features.isLiveChat && !Features.isWhatsapp)?S .of(context).search:S .of(context).chat,
                           style: TextStyle(
                               color: ColorCodes.grey, fontSize: 10.0)),
                     ],
@@ -10490,78 +13208,106 @@ if(_cartitemloaded&&_cartdugestloaded){
     }
 
     gradientappbarmobile() {
-      final routeArgs = ModalRoute.of(context).settings.arguments as Map<String, String>;
+      final routeArgs = ModalRoute.of(context)!.settings.arguments as Map<String, String>;
       return AppBar(
         brightness: Brightness.dark,
         toolbarHeight: 60.0,
         elevation:  (IConstants.isEnterprise)?0:1,
         automaticallyImplyLeading: false,
         leading: IconButton(
-            icon: Icon(Icons.arrow_back, color: ColorCodes.menuColor),
+            icon: Icon(Icons.arrow_back, color: ColorCodes.iconColor),
             onPressed: () {
-
-              if((routeArgs['after_login']) == "")
-              {
-                debugPrint("after_login...1");
-               // Navigator.of(context).pop();
-                Navigator.pushNamedAndRemoveUntil(
-                    context, HomeScreen.routeName, (route) => false);
-              }
-              else if((routeArgs['after_login']) == "yes" || (routeArgs['after_login']) == "No"){
-                debugPrint("after_login..."+routeArgs['after_login']);
+             // print("back screen confirm ..."+PrefUtils.prefs!.getString("confirmback").toString());
+              if(widget.afterlogin == "" && PrefUtils.prefs!.getString("memberback") == "no"){
+                debugPrint("after login...1");
                 HomeScreenController(user: (VxState.store as GroceStore).userData.id ??
-                    PrefUtils.prefs.getString("tokenid"),
+                    PrefUtils.prefs!.getString("tokenid"),
                     branch: (VxState.store as GroceStore).userData.branch ?? "999",
                     rows: "0");
-                Navigator.of(context).pop();
+                PrefUtils.prefs!.setString("memberback", "");
+                // Navigator.of(context).pop();
+                Navigation(context, navigatore: NavigatoreTyp.Pop);
+              }
+              else if(widget.afterlogin == "" && PrefUtils.prefs!.getString("confirmback").toString() == "yes"){
+                HomeScreenController(user: (VxState.store as GroceStore).userData.id ??
+                    PrefUtils.prefs!.getString("ftokenid"),
+                    branch: (VxState.store as GroceStore).userData.branch ?? "999",
+                    rows: "0");
+                print("home,,,,1111111");
+                //  Navigation(context, navigatore: NavigatoreTyp.Pop);
+                IConstants.isEnterprise && Features.ismultivendor?
+                Navigation(context, navigatore: NavigatoreTyp.Pop)
+                /* Navigation(context,name: Routename.Home, navigatore: NavigatoreTyp.Push)*/:
+                Navigation(context,/*name: Routename.Home,*/ navigatore: NavigatoreTyp.homenav);
+              }
+              else if(widget.afterlogin == "")
+              {
+                debugPrint("after login...2");
+
+                //  Navigation(context, navigatore: NavigatoreTyp.Pop);
+                HomeScreenController(user: (VxState.store as GroceStore).userData.id ??
+                    PrefUtils.prefs!.getString("tokenid"),
+                    branch: (VxState.store as GroceStore).userData.branch ?? "999",
+                    rows: "0");
+                /*IConstants.isEnterprise && Features.ismultivendor?
+                Navigation(context, navigatore: NavigatoreTyp.Pop)
+                *//*Navigation(context,name: Routename.Home, navigatore: NavigatoreTyp.Push)*//*:*/
+                Navigation(context,/*name: Routename.Home,*/ navigatore: NavigatoreTyp.homenav);
+
+              }
+              else if(widget.afterlogin == "yes" || widget.afterlogin == "No"){
+                debugPrint("after login...3");
+                HomeScreenController(user: (VxState.store as GroceStore).userData.id ??
+                    PrefUtils.prefs!.getString("tokenid"),
+                    branch: (VxState.store as GroceStore).userData.branch ?? "999",
+                    rows: "0");
+                // Navigator.of(context).pop();
+                Navigation(context, navigatore: NavigatoreTyp.Pop);
                 // Navigator.pushNamedAndRemoveUntil(
                 //     context, HomeScreen.routeName, (route) => false);
-              }else if(routeArgs['after_login'] =="Single"){
-                Navigator.of(context).pop();
               }
+
               else{
-                debugPrint("after_login..."+routeArgs['after_login']);
+                debugPrint("after login...4");
                 HomeScreenController(user: (VxState.store as GroceStore).userData.id ??
-                    PrefUtils.prefs.getString("tokenid"),
+                    PrefUtils.prefs!.getString("ftokenid"),
                     branch: (VxState.store as GroceStore).userData.branch ?? "999",
                     rows: "0");
-                Navigator.pushNamedAndRemoveUntil(
-                    context, HomeScreen.routeName, (route) => false);
+                print("home,,,,");
+                Navigation(context, navigatore: NavigatoreTyp.Pop);
+                IConstants.isEnterprise && Features.ismultivendor?
+                Navigation(context, navigatore: NavigatoreTyp.Pop)
+                /*Navigation(context,name: Routename.Home, navigatore: NavigatoreTyp.Push)*/:
+                Navigation(context,/*name: Routename.Home,*/ navigatore: NavigatoreTyp.homenav);
+                /*  Navigator.pushNamedAndRemoveUntil(
+                    context, HomeScreen.routeName, (route) => false);*/
 
-               // Navigator.of(context).pop();
+                // Navigator.of(context).pop();
               }
-
             }),
         title: Text(
-          S.of(context).my_basket,// 'My Basket',
-          style: TextStyle(color: ColorCodes.menuColor,fontWeight: FontWeight.w800),
+            (IConstants.isEnterprise && Features.ismultivendor)?IConstants.storename.toString(): S .of(context).my_basket,// 'My Basket',
+          style: TextStyle(color: ColorCodes.iconColor, fontWeight: FontWeight.bold, fontSize: 18),
         ),
         titleSpacing: 0,
         flexibleSpace: Container(
           decoration: BoxDecoration(
-              boxShadow: [
-                BoxShadow(
-                  color: ColorCodes.grey.withOpacity(0.2),
-                  spreadRadius: 5,
-                  blurRadius: 5,
-                  offset: Offset(0, 5),
-                )
-              ],
               gradient: LinearGradient(
                   begin: Alignment.topRight,
                   end: Alignment.bottomLeft,
                   colors: [
-                    ColorCodes.accentColor,
-                    ColorCodes.primaryColor
+                    ColorCodes.appbarColor,
+                    ColorCodes.appbarColor2
                   ])),
         ),
         actions: [
+          if(IConstants.isEnterprise && !Features.ismultivendor)
           if(Features.isShoppingList)
             (checkskip) ? SizedBox.shrink() : MouseRegion(
                 cursor: SystemMouseCursors.click,
                 child: GestureDetector(
                   onTap: () {
-                    if (shoplistData.itemsshoplist.length <= 0) {
+                    if (shoplistData.length <= 0) {
                       _dialogforCreatelist(context);
                     } else {
                       _dialogforShoppinglist(context);
@@ -10570,21 +13316,22 @@ if(_cartitemloaded&&_cartdugestloaded){
                   child: Row(
                     children: [
                       Container(
-                          height: 20,
+                          height: 25,
                           child: Image.asset(
-                            Images.addToListImg,width: 20,height: 20,color: Colors.white,)),
+                            Images.addToListImg,width: 20,height: 20,color: IConstants.isEnterprise?ColorCodes.blackColor:ColorCodes.blackColor)),
                       SizedBox(
-                        width: 5,
+                        width: 10,
                       ),
-                      Text(
-                        S.of(context).add_to_list,//'ADD TO LIST',
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13),
-                      ),
-                      SizedBox(
-                        width: 20,
-                      ),
+                      // Text(
+                      //   S .of(context).add_to_list,//'ADD TO LIST',
+                      //   style: TextStyle(
+                      //     color: IConstants.isEnterprise?ColorCodes.blackColor:ColorCodes.blackColor,
+                      //       fontWeight: FontWeight.bold,
+                      //       fontSize: 13),
+                      // ),
+                      // SizedBox(
+                      //   width: 20,
+                      // ),
                     ],
                   ),
                 )
@@ -10595,61 +13342,219 @@ if(_cartitemloaded&&_cartdugestloaded){
 
     return WillPopScope(
       onWillPop: () {
-        final routeArgs = ModalRoute.of(context).settings.arguments as Map<String, String>;
+        final routeArgs = ModalRoute.of(context)!.settings.arguments as Map<String, String>;
         // this is the block you need
-        if((routeArgs['after_login']) == "")
+
+       // /* if(widget.afterlogin == "" && PrefUtils.prefs!.getString("memberback") == "no"){
+       //    debugPrint("after login...1");
+       //    HomeScreenController(user: (VxState.store as GroceStore).userData.id ??
+       //        PrefUtils.prefs!.getString("tokenid"),
+       //        branch: (VxState.store as GroceStore).userData.branch ?? "999",
+       //        rows: "0");
+       //    PrefUtils.prefs!.setString("memberback", "");
+       //    // Navigator.of(context).pop();
+       //    Navigation(context, navigatore: NavigatoreTyp.Pop);
+       //  }
+       //  else if(widget.afterlogin == "" && PrefUtils.prefs!.getString("confirmback").toString() == "yes"){
+       //    HomeScreenController(user: (VxState.store as GroceStore).userData.id ??
+       //        PrefUtils.prefs!.getString("ftokenid"),
+       //        branch: (VxState.store as GroceStore).userData.branch ?? "999",
+       //        rows: "0");
+       //    print("home,,,,1111111");
+       //    //  Navigation(context, navigatore: NavigatoreTyp.Pop);
+       //    IConstants.isEnterprise && Features.ismultivendor?
+       //    Navigation(context, navigatore: NavigatoreTyp.Pop)
+       //   *//* Navigation(context,name: Routename.Home, navigatore: NavigatoreTyp.Push)*//*:
+       //    Navigation(context,*//*name: Routename.Home,*//* navigatore: NavigatoreTyp.homenav);
+       //  }
+       //  else if(widget.afterlogin == "")
+       //  {
+       //    debugPrint("after login...2");
+       //
+       //    //  Navigation(context, navigatore: NavigatoreTyp.Pop);
+       //    HomeScreenController(user: (VxState.store as GroceStore).userData.id ??
+       //        PrefUtils.prefs!.getString("tokenid"),
+       //        branch: (VxState.store as GroceStore).userData.branch ?? "999",
+       //        rows: "0");
+       //    IConstants.isEnterprise && Features.ismultivendor?
+       //    Navigation(context, navigatore: NavigatoreTyp.Pop)
+       //    *//*Navigation(context,name: Routename.Home, navigatore: NavigatoreTyp.Push)*//*:
+       //    Navigation(context,*//*name: Routename.Home,*//* navigatore: NavigatoreTyp.homenav);
+       //
+       //  }
+       //  else if(widget.afterlogin == "yes" || widget.afterlogin == "No"){
+       //    debugPrint("after login...3");
+       //    HomeScreenController(user: (VxState.store as GroceStore).userData.id ??
+       //        PrefUtils.prefs!.getString("tokenid"),
+       //        branch: (VxState.store as GroceStore).userData.branch ?? "999",
+       //        rows: "0");
+       //    // Navigator.of(context).pop();
+       //    Navigation(context, navigatore: NavigatoreTyp.Pop);
+       //    // Navigator.pushNamedAndRemoveUntil(
+       //    //     context, HomeScreen.routeName, (route) => false);
+       //  }
+       //
+       //  else{
+       //    debugPrint("after login...4");
+       //    HomeScreenController(user: (VxState.store as GroceStore).userData.id ??
+       //        PrefUtils.prefs!.getString("ftokenid"),
+       //        branch: (VxState.store as GroceStore).userData.branch ?? "999",
+       //        rows: "0");
+       //    print("home,,,,");
+       //    Navigation(context, navigatore: NavigatoreTyp.Pop);
+       //    IConstants.isEnterprise && Features.ismultivendor?
+       //    Navigation(context, navigatore: NavigatoreTyp.Pop)
+       //    *//*Navigation(context,name: Routename.Home, navigatore: NavigatoreTyp.Push)*//*:
+       //    Navigation(context,*//*name: Routename.Home,*//* navigatore: NavigatoreTyp.homenav);
+       //    *//*  Navigator.pushNamedAndRemoveUntil(
+       //              context, HomeScreen.routeName, (route) => false);*//*
+       //
+       //    // Navigator.of(context).pop();
+       //  }
+       //  *//*if(widget.afterlogin == "" && PrefUtils.prefs!.getString("memberback") == "no"){
+       //    HomeScreenController(user: (VxState.store as GroceStore).userData.id ??
+       //        PrefUtils.prefs!.getString("tokenid"),
+       //        branch: (VxState.store as GroceStore).userData.branch ?? "999",
+       //        rows: "0");
+       //    PrefUtils.prefs!.setString("memberback", "");
+       //   // Navigator.of(context).pop();
+       //    Navigation(context, navigatore: NavigatoreTyp.Pop);
+       //  }
+       //  else if(widget.afterlogin == "" && PrefUtils.prefs!.getString("confirmback").toString() == "yes"){
+       //    HomeScreenController(user: (VxState.store as GroceStore).userData.id ??
+       //        PrefUtils.prefs!.getString("ftokenid"),
+       //        branch: (VxState.store as GroceStore).userData.branch ?? "999",
+       //        rows: "0");
+       //    print("home,,,,1111111");
+       //    //  Navigation(context, navigatore: NavigatoreTyp.Pop);
+       //    Navigation(context,*//**//*name: Routename.Home,*//**//* navigatore: NavigatoreTyp.homenav);
+       //  }
+       //  else if(widget.afterlogin == "")
+       //  {
+       //   // Navigator.of(context, rootNavigator: true).pop(context);
+       //    if(Vx.isWeb && !ResponsiveLayout.isSmallScreen(context)){
+       //
+       //      HomeScreenController(user: (VxState.store as GroceStore).userData.id ??
+       //          PrefUtils.prefs!.getString("ftokenid"),
+       //          branch: (VxState.store as GroceStore).userData.branch ?? "999",
+       //          rows: "0");
+       //      Navigation(context, navigatore: NavigatoreTyp.homenav);
+       //
+       //    }
+       //    else{
+       //      Navigation(context, navigatore: NavigatoreTyp.Pop);
+       //    }
+       //    // Navigator.pushNamedAndRemoveUntil(
+       //    //     context, HomeScreen.routeName, (route) => false);
+       //  }else if(widget.afterlogin == "yes"){
+       //    HomeScreenController(user: (VxState.store as GroceStore).userData.id ??
+       //        PrefUtils.prefs!.getString("tokenid"),
+       //        branch: (VxState.store as GroceStore).userData.branch ?? "999",
+       //        rows: "0");
+       //  //  Navigator.of(context).pop();
+       //    Navigation(context, navigatore: NavigatoreTyp.Pop);
+       //  }
+       //  else{
+       //    HomeScreenController(user: (VxState.store as GroceStore).userData.id ??
+       //        PrefUtils.prefs!.getString("tokenid"),
+       //        branch: (VxState.store as GroceStore).userData.branch ?? "999",
+       //        rows: "0");
+       //    // Navigator.pushNamedAndRemoveUntil(
+       //    //     context, HomeScreen.routeName, (route) => false);
+       // //   Navigator.of(context).pop();
+       //    Navigation(context, navigatore: NavigatoreTyp.Pop);
+       //  }*//*
+       //  *//*Navigator.pushNamedAndRemoveUntil(
+       //      context, HomeScreen.routeName, (route) => false);*/
+        if(widget.afterlogin == "" && PrefUtils.prefs!.getString("memberback") == "no"){
+          debugPrint("after login...1");
+          HomeScreenController(user: (VxState.store as GroceStore).userData.id ??
+              PrefUtils.prefs!.getString("tokenid"),
+              branch: (VxState.store as GroceStore).userData.branch ?? "999",
+              rows: "0");
+          PrefUtils.prefs!.setString("memberback", "");
+          // Navigator.of(context).pop();
+          Navigation(context, navigatore: NavigatoreTyp.Pop);
+        }
+        else if(widget.afterlogin == "" && PrefUtils.prefs!.getString("confirmback").toString() == "yes"){
+          HomeScreenController(user: (VxState.store as GroceStore).userData.id ??
+              PrefUtils.prefs!.getString("ftokenid"),
+              branch: (VxState.store as GroceStore).userData.branch ?? "999",
+              rows: "0");
+          print("home,,,,1111111");
+          //  Navigation(context, navigatore: NavigatoreTyp.Pop);
+          IConstants.isEnterprise && Features.ismultivendor?
+          Navigation(context, navigatore: NavigatoreTyp.Pop)
+          /* Navigation(context,name: Routename.Home, navigatore: NavigatoreTyp.Push)*/:
+          Navigation(context,/*name: Routename.Home,*/ navigatore: NavigatoreTyp.homenav);
+        }
+        else if(widget.afterlogin == "")
         {
-          debugPrint("after_login...1");
-          Navigator.pushNamedAndRemoveUntil(
-              context, HomeScreen.routeName, (route) => false);
-         /* Navigator.pushNamedAndRemoveUntil(
-              context, HomeScreen.routeName, (route) => false);*/
-        }else if((routeArgs['after_login']) == "yes"){
-          debugPrint("after_login..."+routeArgs['after_login']);
+          debugPrint("after login...2");
+
+          //  Navigation(context, navigatore: NavigatoreTyp.Pop);
           HomeScreenController(user: (VxState.store as GroceStore).userData.id ??
-              PrefUtils.prefs.getString("tokenid"),
+              PrefUtils.prefs!.getString("tokenid"),
               branch: (VxState.store as GroceStore).userData.branch ?? "999",
               rows: "0");
-          Navigator.of(context).pop();
-        }else if(routeArgs['after_login'] =="Single"){
-          Navigator.of(context).pop();
+          /*IConstants.isEnterprise && Features.ismultivendor?
+                Navigation(context, navigatore: NavigatoreTyp.Pop)
+                *//*Navigation(context,name: Routename.Home, navigatore: NavigatoreTyp.Push)*//*:*/
+          Navigation(context,/*name: Routename.Home,*/ navigatore: NavigatoreTyp.homenav);
+
         }
+        else if(widget.afterlogin == "yes" || widget.afterlogin == "No"){
+          debugPrint("after login...3");
+          HomeScreenController(user: (VxState.store as GroceStore).userData.id ??
+              PrefUtils.prefs!.getString("tokenid"),
+              branch: (VxState.store as GroceStore).userData.branch ?? "999",
+              rows: "0");
+          // Navigator.of(context).pop();
+          Navigation(context, navigatore: NavigatoreTyp.Pop);
+          // Navigator.pushNamedAndRemoveUntil(
+          //     context, HomeScreen.routeName, (route) => false);
+        }
+
         else{
-          debugPrint("after_login..."+routeArgs['after_login']);
+          debugPrint("after login...4");
           HomeScreenController(user: (VxState.store as GroceStore).userData.id ??
-              PrefUtils.prefs.getString("tokenid"),
+              PrefUtils.prefs!.getString("ftokenid"),
               branch: (VxState.store as GroceStore).userData.branch ?? "999",
               rows: "0");
-          Navigator.pushNamedAndRemoveUntil(
-              context, HomeScreen.routeName, (route) => false);
-         // Navigator.of(context).pop();
+          print("home,,,,");
+          Navigation(context, navigatore: NavigatoreTyp.Pop);
+          IConstants.isEnterprise && Features.ismultivendor?
+          Navigation(context, navigatore: NavigatoreTyp.Pop)
+          /*Navigation(context,name: Routename.Home, navigatore: NavigatoreTyp.Push)*/:
+          Navigation(context,/*name: Routename.Home,*/ navigatore: NavigatoreTyp.homenav);
+          /*  Navigator.pushNamedAndRemoveUntil(
+                    context, HomeScreen.routeName, (route) => false);*/
+
+          // Navigator.of(context).pop();
         }
-        /*Navigator.pushNamedAndRemoveUntil(
-            context, HomeScreen.routeName, (route) => false);*/
         return Future.value(false);
       },
       child: Scaffold(
         appBar: ResponsiveLayout.isSmallScreen(context)
             ? gradientappbarmobile()
             : null,
-        backgroundColor: ColorCodes.backgroundcolor,
+        backgroundColor: (Features.ismultivendor)? ColorCodes.whiteColor : ColorCodes.whiteColor,
         body: Column(
           children: [
-            if (Vx.isWeb && !ResponsiveLayout.isSmallScreen(context)) Header(false, false),
+            if (Vx.isWeb && !ResponsiveLayout.isSmallScreen(context)) Header(false),
 
             (Vx.isWeb && !ResponsiveLayout.isSmallScreen(context))
                 ? bodyWeb()
                 : bodyMobile(),
           ],
         ),
-        floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-        floatingActionButton: Vx.isWeb
+        bottomNavigationBar: (Vx.isWeb && !ResponsiveLayout.isSmallScreen(context))
             ? SizedBox.shrink()
             : _initialloading?SizedBox.shrink():VxBuilder(
           builder: (context, box, index) {
 
-            WidgetsBinding.instance.addPostFrameCallback((_){
-              isEmpty=CartCalculations.itemCount<=0;
+            WidgetsBinding.instance!.addPostFrameCallback((_){
+                isEmpty=CartCalculations.itemCount<=0;
 
               // setState((){
               //   isEmpty=CartCalculations.itemCount<=0;
@@ -10661,10 +13566,14 @@ if(_cartitemloaded&&_cartdugestloaded){
               //   }
               // });
             });
-            return Container(
+                return Container(
+              color: Colors.white,
               child: Padding(
                   padding: EdgeInsets.only(left: 0.0, top: 0.0, right: 0.0, bottom: iphonex ? 16.0 : 0.0),
-                  child: _buildBottomNavigationBar(box.CartItemList)
+                  child: (CartCalculations.totalMember <= 0.00 && CartCalculations.total <= 0.00 && CartCalculations.totalMember <= 0 && CartCalculations.total <= 0)?
+                  SizedBox.shrink()
+                      :
+                  _buildBottomNavigationBar(box.CartItemList)
               ),
             );
           }, mutations: {SetCartItem},

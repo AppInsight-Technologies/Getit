@@ -41,7 +41,7 @@ class HomeRepository {
 
   Future<List<BrandsFields>> fetchFooter() => sliderbanner.fetchFooter();
 
-  Future<SellingItemModel> searchedItemsRepo() => sellingitem.fetchSellingItem();
+  Future<SellingItemModel?> searchedItemsRepo() => sellingitem.fetchSellingItem();
 /*
  Stream< List<SellingItemsFields>> get feauturedrepstream => _featuredItemsController.stream;
   List<SellingItemsFields> featuredItemsRepo() {

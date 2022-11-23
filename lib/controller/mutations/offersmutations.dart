@@ -9,9 +9,9 @@ class cartMutation extends VxMutation<GroceStore>{
   SellingItemsFields cartitemsfields;
   int position;
   cartMutation({
-    this.type,
-    this.cartitemsfields,
-    this.position,
+    required this.type,
+    required this.cartitemsfields,
+    required this.position,
 });
   @override
   perform() {
@@ -22,7 +22,7 @@ class cartMutation extends VxMutation<GroceStore>{
       case Carts.ADD:
         // TODO: Handle this case.
       print("id...."+cartitemsfields.id.toString());
-      store.OfferCartList[position] = SellingItemsFields(
+      store!.OfferCartList[position] = SellingItemsFields(
         id: cartitemsfields.id,
         title: cartitemsfields.title,
         imageUrl:cartitemsfields.imageUrl,
@@ -61,7 +61,7 @@ class cartMutation extends VxMutation<GroceStore>{
         cronTime:cartitemsfields.cronTime,
         name:cartitemsfields.name,
       );
-      store.CartOfferList.add( SellingItemsFields(
+      store!.CartOfferList.add( SellingItemsFields(
         id: cartitemsfields.id,
         title: cartitemsfields.title,
         imageUrl:cartitemsfields.imageUrl,
@@ -100,12 +100,12 @@ class cartMutation extends VxMutation<GroceStore>{
         cronTime:cartitemsfields.cronTime,
         name:cartitemsfields.name,
       ));
-      print("varmrp..."+store.CartOfferList[position].varprice.toString());
+      print("varmrp..."+store!.CartOfferList[position].varprice.toString());
         break;
       case Carts.REMOVE:
         // TODO: Handle this case.
         print("idssss...."+cartitemsfields.id.toString());
-        store.OfferCartList[position] = SellingItemsFields(
+        store!.OfferCartList[position] = SellingItemsFields(
           id: cartitemsfields.id,
           title: cartitemsfields.title,
           imageUrl:cartitemsfields.imageUrl,
@@ -144,7 +144,7 @@ class cartMutation extends VxMutation<GroceStore>{
           cronTime:cartitemsfields.cronTime,
           name:cartitemsfields.name,
         );
-        store.CartOfferList.remove(SellingItemsFields(
+        store!.CartOfferList.remove(SellingItemsFields(
           id: cartitemsfields.id,
           title: cartitemsfields.title,
           imageUrl:cartitemsfields.imageUrl,
@@ -183,10 +183,10 @@ class cartMutation extends VxMutation<GroceStore>{
           cronTime:cartitemsfields.cronTime,
           name:cartitemsfields.name,
         ));
-       store.OfferCartList[position].id;
-       for(int i=0;i<store.CartOfferList.length;i++){
-         if(store.CartOfferList[i].id== store.OfferCartList[position].id){
-           store.CartOfferList.removeAt(i);
+       store!.OfferCartList[position].id;
+       for(int i=0;i<store!.CartOfferList.length;i++){
+         if(store!.CartOfferList[i].id== store!.OfferCartList[position].id){
+           store!.CartOfferList.removeAt(i);
          }
        }
         break;
@@ -206,7 +206,7 @@ class AddOffersCart extends VxMutation<GroceStore>{
   @override
   perform() {
     // TODO: implement perform
-   store.OfferCartList  = listcart;
+   store!.OfferCartList  = listcart;
   // store.CartOfferList = listcart;
   }
 

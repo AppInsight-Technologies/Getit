@@ -1,66 +1,82 @@
 
-
 import 'dart:io';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import '../../controller/mutations/cart_mutation.dart';
-import '../../models/VxModels/VxStore.dart';
-import '../../models/newmodle/cartModle.dart';
-import '../../models/newmodle/product_data.dart';
+import '../../repository/productandCategory/category_or_product.dart';
+import '../../controller/mutations/cat_and_product_mutation.dart';
+import '../controller/mutations/cart_mutation.dart';
+import '../models/VxModels/VxStore.dart';
+import '../models/newmodle/cartModle.dart';
+import '../models/newmodle/product_data.dart';
 import 'package:velocity_x/velocity_x.dart';
 import '../assets/ColorCodes.dart';
 import '../assets/images.dart';
-import '../blocs/cart_item_bloc.dart';
 import '../constants/IConstants.dart';
 import '../constants/features.dart';
 import '../data/calculations.dart';
-import '../data/hiveDB.dart';
 import '../generated/l10n.dart';
-import '../main.dart';
 import '../providers/branditems.dart';
-import '../providers/cartItems.dart';
-import '../providers/sellingitems.dart';
-import '../screens/bloc.dart';
-import '../screens/confirmorder_screen.dart';
-import '../screens/payment_screen.dart';
-import '../screens/pickup_screen.dart';
+import '../rought_genrator.dart';
 import '../utils/ResponsiveLayout.dart';
 import '../utils/prefUtils.dart';
 import '../widgets/bottom_navigation.dart';
 import '../widgets/footer.dart';
 import '../widgets/header.dart';
 import '../widgets/simmers/checkout_screen.dart';
-import 'package:hive/hive.dart';
 import 'package:provider/provider.dart';
-import 'package:hive_flutter/hive_flutter.dart';
-
-import 'cart_screen.dart';
 
 class OfferScreen extends StatefulWidget {
   static const routeName = '/offer-screen';
+
+
+  String minimumOrderAmountNoraml="";
+  String deliveryChargeNormal ="";
+  String minimumOrderAmountPrime = "";
+  String deliveryChargePrime = "";
+  String minimumOrderAmountExpress ="";
+  String deliveryChargeExpress = "";
+  String deliveryType = "";
+  String addressId = "";
+  String note = "";
+  String deliveryCharge = "";
+  String deliveryDurationExpress = "";
+  String groupValue = "";
+  Map<String, String>? params1;
+
+  OfferScreen(Map<String, String> params){
+    this.params1= params;
+    this.minimumOrderAmountNoraml = params["minimumOrderAmountNoraml"]??"" ;
+    this.deliveryChargeNormal = params["deliveryChargeNormal"]??"";
+    this.minimumOrderAmountPrime = params["minimumOrderAmountPrime"]??"";
+    this.deliveryChargePrime = params["deliveryChargePrime"]??"";
+    this.minimumOrderAmountExpress = params["minimumOrderAmountExpress"]??"";
+    this.deliveryChargeExpress = params["deliveryChargeExpress"]??"";
+    this.deliveryType = params["deliveryType"]??"";
+    this.addressId = params["addressId"]??"";
+    this.note = params["note"]??"";
+    this.deliveryCharge = params["deliveryCharge"]??"";
+    this.deliveryDurationExpress = params["deliveryDurationExpress"]??"";
+    this.groupValue = params["_groupValue"]??"";
+  }
 
   @override
   _OfferScreenState createState() => _OfferScreenState();
 }
 
-class _OfferScreenState extends State<OfferScreen> {
-
-  //Box<Product> productBox;
+class _OfferScreenState extends State<OfferScreen> with Navigations{
   List<CartItem> productBox=[];
-  BrandItemsList offersData;
+  BrandItemsList? offersData;
   int _selectedOffer = -1;
   bool _checkmembership = false;
   bool _isLoading = true;
   var _checkoffers = false;
-  HomeDisplayBloc _bloc;
   bool _isAddToCart = false;
   bool _isWeb = false;
   var _address = "";
 
   @override
   void initState() {
-    _bloc = HomeDisplayBloc();
     productBox = (VxState.store as GroceStore).CartItemList;
 
     try {
@@ -97,44 +113,37 @@ class _OfferScreenState extends State<OfferScreen> {
       }
     }
     Future.delayed(Duration.zero, () async {
-      _address = PrefUtils.prefs.getString("restaurant_address");
+      _address = PrefUtils.prefs!.getString("restaurant_address")!;
       if(Features.isOffers) {
         Provider.of<BrandItemsList>(context, listen: false).getOffers().then((
             _) {
           setState(() {
             offersData = Provider.of<BrandItemsList>(context, listen: false);
-            if (offersData.offers.length > 0) {
+            if (offersData!.offers.length > 0) {
               _isLoading = false;
               _checkoffers = true;
             } else {
               final routeArgs = ModalRoute
-                  .of(context)
+                  .of(context)!
                   .settings
                   .arguments as Map<String, dynamic>;
-              final _groupValue = routeArgs['_groupValue'];
-              final String _minimumOrderAmountNoraml = routeArgs['minimumOrderAmountNoraml'];
-              final String _deliveryChargeNormal = routeArgs['deliveryChargeNormal'];
-              final String _minimumOrderAmountPrime = routeArgs['minimumOrderAmountPrime'];
-              final String _deliveryChargePrime = routeArgs['deliveryChargePrime'];
-              final String _minimumOrderAmountExpress = routeArgs['minimumOrderAmountExpress'];
-              final String _deliveryChargeExpress = routeArgs['deliveryChargeExpress'];
-              final _groupValueAdvance = routeArgs['deliveryType'];
-              final _message = routeArgs['note'];
+              final _groupValue =/* routeArgs['_groupValue']*/widget.groupValue;
+              final String _minimumOrderAmountNoraml = /*routeArgs['minimumOrderAmountNoraml']*/widget.minimumOrderAmountNoraml;
+              final String _deliveryChargeNormal = /*routeArgs['deliveryChargeNormal']*/widget.deliveryChargeNormal;
+              final String _minimumOrderAmountPrime = /*routeArgs['minimumOrderAmountPrime']*/widget.minimumOrderAmountPrime;
+              final String _deliveryChargePrime = /*routeArgs['deliveryChargePrime']*/widget.deliveryChargePrime;
+              final String _minimumOrderAmountExpress = /*routeArgs['minimumOrderAmountExpress']*/widget.minimumOrderAmountExpress;
+              final String _deliveryChargeExpress = /*routeArgs['deliveryChargeExpress']*/widget.deliveryChargeExpress;
+              final _groupValueAdvance = /*routeArgs['deliveryType']*/widget.deliveryType;
+              final _message = /*routeArgs['note']*/widget.note;
               final finalSlotDelivery = routeArgs['finalSlotDelivery'];
               final finalExpressDelivery = routeArgs['finalExpressDelivery'];
-              final _deliveryDurationExpress = routeArgs['deliveryDurationExpress'];
-              final deliveryCharge =routeArgs['deliveryCharge'];
-              final deliveryType =routeArgs['deliveryType'];
-              debugPrint('mini.......');
-              debugPrint(_minimumOrderAmountNoraml);
-              debugPrint(_deliveryChargeNormal);
-              debugPrint(_minimumOrderAmountPrime);
-              debugPrint(_deliveryChargePrime);
-              debugPrint(_minimumOrderAmountExpress);
+              final _deliveryDurationExpress = /*routeArgs['deliveryDurationExpress']*/widget.deliveryDurationExpress;
+              final deliveryCharge =/*routeArgs['deliveryCharge']*/widget.deliveryCharge;
+              final deliveryType =/*routeArgs['deliveryType']*/widget.deliveryType;
 
               if (_isWeb) {
-                debugPrint("address..."+routeArgs['addressId'].toString());
-                Navigator.of(context)
+           /*     Navigator.of(context)
                     .pushNamed(PaymentScreen.routeName, arguments: {
                   'minimumOrderAmountNoraml': _minimumOrderAmountNoraml.toString(),
                   'deliveryChargeNormal': _deliveryChargeNormal.toString(),
@@ -143,40 +152,38 @@ class _OfferScreenState extends State<OfferScreen> {
                   'minimumOrderAmountExpress': _minimumOrderAmountExpress.toString(),
                   'deliveryChargeExpress': _deliveryChargeExpress.toString(),
                   'addressId': routeArgs['addressId'].toString(),
-                  'deliveryType': /*(_groupValueAdvance == 1)
-                      ? "Default"
-                      : "OptionTwo"*/deliveryType.toString(),
+                  'deliveryType': deliveryType.toString(),
                   'note': _message.toString(),
-                  'deliveryCharge':/* (_groupValueAdvance == 1)
-                      ? finalSlotDelivery.toString()
-                      : finalExpressDelivery.toString()*/deliveryCharge.toString(),
+                  'deliveryCharge':deliveryCharge.toString(),
                   'deliveryDurationExpress': _deliveryDurationExpress.toString(),
-                  'fromScreen':'',
-                  'responsejson':"",
-                });
+                });*/
+                Navigation(context, name: Routename.PaymentScreen, navigatore: NavigatoreTyp.Push,
+                    qparms: {
+                      'minimumOrderAmountNoraml': _minimumOrderAmountNoraml.toString(),
+                      'deliveryChargeNormal': _deliveryChargeNormal.toString(),
+                      'minimumOrderAmountPrime': _minimumOrderAmountPrime.toString(),
+                      'deliveryChargePrime': _deliveryChargePrime.toString(),
+                      'minimumOrderAmountExpress': _minimumOrderAmountExpress.toString(),
+                      'deliveryChargeExpress': _deliveryChargeExpress.toString(),
+                      'addressId': /*routeArgs['addressId'].toString()*/widget.addressId,
+                      'deliveryType': deliveryType.toString(),
+                      'note': _message.toString(),
+                      'deliveryCharge':deliveryCharge.toString(),
+                      'deliveryDurationExpress': _deliveryDurationExpress.toString(),
+                      'fromScreen':'',
+                      'responsejson':"",
+                    });
               } else {
-                if (_groupValue == 2) {
-                  Navigator.of(context)
-                      .pushReplacementNamed(PickupScreen.routeName);
+                if (_groupValue == "2") {
+                  /*Navigator.of(context)
+                      .pushReplacementNamed(PickupScreen.routeName);*/
+                  Navigation(context, name: Routename.PickupScreen, navigatore: NavigatoreTyp.Push);
                 } else {
-                  Navigator.of(context)
-                      .pushNamed(PaymentScreen.routeName, arguments: {
-                    'minimumOrderAmountNoraml': _minimumOrderAmountNoraml,
-                    'deliveryChargeNormal': _deliveryChargeNormal,
-                    'minimumOrderAmountPrime': _minimumOrderAmountPrime,
-                    'deliveryChargePrime': _deliveryChargePrime,
-                    'minimumOrderAmountExpress': _minimumOrderAmountExpress,
-                    'deliveryChargeExpress': _deliveryChargeExpress,
-                    'deliveryType': (_groupValueAdvance == 1) ? "Default" : "OptionTwo",
-                    'note': _message.text,
-                    'deliveryCharge': (_groupValueAdvance == 1)? finalSlotDelivery.toString():finalExpressDelivery.toString(),
-                    'deliveryDurationExpress' : _deliveryDurationExpress,
-                    'fromScreen':'',
-                    'responsejson':"",
-                  });
-                  // Navigator.of(context).pushReplacementNamed(
-                  //     ConfirmorderScreen.routeName,
-                  //     arguments: {"prev": "cart_screen"});
+                 /* Navigator.of(context).pushReplacementNamed(
+                      ConfirmorderScreen.routeName,
+                      arguments: {"prev": "cart_screen"});*/
+                  Navigation(context, name:Routename.ConfirmOrder,navigatore: NavigatoreTyp.Push,
+                      parms:{"prev": "cart_screen"});
                 }
               }
             }
@@ -184,55 +191,25 @@ class _OfferScreenState extends State<OfferScreen> {
         });
       }else{
         final routeArgs =
-        ModalRoute.of(context).settings.arguments as Map<String, dynamic>;
-        final _groupValue = routeArgs['_groupValue'];
+        ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+        final _groupValue =/* routeArgs['_groupValue']*/widget.groupValue;
         if(_groupValue == 2) {
-          Navigator.of(context)
-              .pushReplacementNamed(PickupScreen.routeName);
+         /* Navigator.of(context)
+              .pushReplacementNamed(PickupScreen.routeName);*/
+          Navigation(context, name: Routename.PickupScreen, navigatore: NavigatoreTyp.Push);
         }else{
-          // Navigator.of(context).pushReplacementNamed(
-          //     ConfirmorderScreen.routeName,
-          //     arguments: {"prev": "cart_screen"});
-          final routeArgs = ModalRoute
-              .of(context)
-              .settings
-              .arguments as Map<String, dynamic>;
-          final _groupValue = routeArgs['_groupValue'];
-          final String _minimumOrderAmountNoraml = routeArgs['minimumOrderAmountNoraml'];
-          final String _deliveryChargeNormal = routeArgs['deliveryChargeNormal'];
-          final String _minimumOrderAmountPrime = routeArgs['minimumOrderAmountPrime'];
-          final String _deliveryChargePrime = routeArgs['deliveryChargePrime'];
-          final String _minimumOrderAmountExpress = routeArgs['minimumOrderAmountExpress'];
-          final String _deliveryChargeExpress = routeArgs['deliveryChargeExpress'];
-          final _groupValueAdvance = routeArgs['deliveryType'];
-          final _message = routeArgs['note'];
-          final finalSlotDelivery = routeArgs['finalSlotDelivery'];
-          final finalExpressDelivery = routeArgs['finalExpressDelivery'];
-          final _deliveryDurationExpress = routeArgs['deliveryDurationExpress'];
-          final deliveryCharge =routeArgs['deliveryCharge'];
-          final deliveryType =routeArgs['deliveryType'];
-          Navigator.of(context)
-              .pushNamed(PaymentScreen.routeName, arguments: {
-            'minimumOrderAmountNoraml': _minimumOrderAmountNoraml,
-            'deliveryChargeNormal': _deliveryChargeNormal,
-            'minimumOrderAmountPrime': _minimumOrderAmountPrime,
-            'deliveryChargePrime': _deliveryChargePrime,
-            'minimumOrderAmountExpress': _minimumOrderAmountExpress,
-            'deliveryChargeExpress': _deliveryChargeExpress,
-            'deliveryType': (_groupValueAdvance == 1) ? "Default" : "OptionTwo",
-            'note': _message.text,
-            'deliveryCharge': (_groupValueAdvance == 1)? finalSlotDelivery.toString():finalExpressDelivery.toString(),
-            'deliveryDurationExpress' : _deliveryDurationExpress,
-            'fromScreen':'',
-            'responsejson':"",
-          });
+         /* Navigator.of(context).pushReplacementNamed(
+              ConfirmorderScreen.routeName,
+              arguments: {"prev": "cart_screen"});*/
+          Navigation(context, name:Routename.ConfirmOrder,navigatore: NavigatoreTyp.Push,
+              parms:{"prev": "cart_screen"});
         }
       }
     });
     super.initState();
   }
   removeToCart() async {
-    String itemId, varId, varName,
+    String? itemId, varId, varName,
         varMinItem, varMaxItem, varLoyalty, varStock, varMrp, itemName, qty, price, membershipPrice, itemImage, veg_type, type,eligibleforexpress,delivery,duration,durationType,note;
     // widget.isdbonprocess();
     //  if (itemCount + 1 <= int.parse(widget.varminitem)) {
@@ -241,10 +218,7 @@ class _OfferScreenState extends State<OfferScreen> {
 
       // }
       for (int i = 0; i < productBox.length; i++) {
-        debugPrint("mode....." + productBox[i].mode.toString());
-        debugPrint("mode1....." +productBox[i].varId.toString());
         if (productBox[i].mode =="4") {
-          debugPrint("yes,,,,");
           itemId = productBox[i]
               .itemId
               .toString();
@@ -252,7 +226,7 @@ class _OfferScreenState extends State<OfferScreen> {
               .varId
               .toString();
           varName = productBox[i]
-              .varName;
+              .varName!;
           varMinItem = productBox[i]
               .varMinItem
               .toString();
@@ -269,7 +243,7 @@ class _OfferScreenState extends State<OfferScreen> {
               .varMrp
               .toString();
           itemName = productBox[i]
-              .itemName;
+              .itemName!;
           price = productBox[i]
               .price
               .toString();
@@ -277,42 +251,41 @@ class _OfferScreenState extends State<OfferScreen> {
               .membershipPrice
               .toString();
           itemImage = productBox[i]
-              .itemImage;
+              .itemImage!;
           veg_type = productBox[i]
-              .vegType;
+              .vegType!;
           type = productBox[i]
-              .type;
+              .type!;
           eligibleforexpress = productBox[i]
-              .eligibleForExpress;
+              .eligibleForExpress!;
           delivery = productBox[i]
-              .delivery;
+              .delivery!;
           duration = productBox[i]
-              .duration;
+              .duration!;
           durationType = productBox[i]
-              .durationType;
+              .durationType!;
           note = productBox[i]
-              .note;
+              .note!;
           break;
         }
       }
-      debugPrint("test.."+varId.toString());
       cartcontroller.update((done){
         setState(() {
           _isAddToCart = !done;
         });
-      },price: double.parse(price).toString(),var_id:varId,quantity: "0");
+      },price: double.parse(price!).toString(),var_id:varId!,quantity: "0",weight: "0",
+        cart_id: productBox.where((e) => e.itemId ==itemId).first.parent_id!,toppings: "",
+        topping_id: "",);
      /* final s = await Provider.of<CartItems>(context, listen: false).
       updateCart(varId, itemCount.toString(), price).then((_) async {
         if (itemCount + 1 == int.parse(varMinItem)) {
-          print("if.......");
           for (int i = 0; i < productBox.length; i++) {
             if (productBox[i]
                 .mode == 1) {
-              PrefUtils.prefs.setString("membership", "0");
+              PrefUtils.prefs!.setString("membership", "0");
             }
             if (productBox[i]
                 .varId == int.parse(varId)) {
-              print("if.......delete");
               productBox.clear();
               break;
             }
@@ -332,7 +305,6 @@ class _OfferScreenState extends State<OfferScreen> {
             });
           });
         } else {
-          print("else.......");
           cartBloc.cartItems();
           final sellingitemData = Provider.of<SellingItemsList>(
               context, listen: false);
@@ -412,6 +384,7 @@ class _OfferScreenState extends State<OfferScreen> {
     offersData = Provider.of<BrandItemsList>(context, listen: false);
 
     _addToCart() async {
+      debugPrint("Add to cart....");
       String itemId, varId, varName,unit,brand,
           varMinItem, varMaxItem, varLoyalty, varStock, varMrp, itemName, qty, price, membershipPrice, itemImage, veg_type, type,eligibleforexpress,delivery,duration,durationType,note;
       productBox = (VxState.store as GroceStore).CartItemList;
@@ -420,39 +393,36 @@ class _OfferScreenState extends State<OfferScreen> {
           removeToCart();
         }
       }
-        for (int j = 0; j < offersData.offers.length; j++) {
+      debugPrint("Add to cart....1.."+offersData!.offers.length.toString());
+        for (int j = 0; j < offersData!.offers.length; j++) {
           if (_selectedOffer == j) {
-            itemId = offersData.offers[j].menuid;
-            brand =offersData.offers[j].brand;
-            varId = offersData.offers[j].varid;
-            varName = offersData.offers[j].varname;
-            unit =offersData.offers[j].unit;
-            varMinItem = offersData.offers[j].varminitem;
-            varMaxItem = offersData.offers[j].varmaxitem;
-            varLoyalty = offersData.offers[j].varLoyalty.toString();
-            varStock = offersData.offers[j].varstock;
-            varMrp = offersData.offers[j].varmrp;
-            itemName = offersData.offers[j].title;
-            price = offersData.offers[j].varprice;
-            membershipPrice = offersData.offers[j].varmemberprice;
-            itemImage = offersData.offers[j].imageUrl;
-            veg_type = offersData.offers[j].veg_type;
-            type = offersData.offers[j].type;
+            itemId = offersData!.offers[j].menuid!;
+            brand =offersData!.offers[j].brand!;
+            varId = offersData!.offers[j].varid!;
+            varName = offersData!.offers[j].varname!;
+            unit =offersData!.offers[j].unit!;
+            varMinItem = offersData!.offers[j].varminitem!;
+            varMaxItem = offersData!.offers[j].varmaxitem!;
+            varLoyalty = offersData!.offers[j].varLoyalty.toString();
+            varStock = offersData!.offers[j].varstock!;
+            varMrp = offersData!.offers[j].varmrp!;
+            itemName = offersData!.offers[j].title!;
+            price = offersData!.offers[j].varprice!;
+            membershipPrice = offersData!.offers[j].varmemberprice!;
+            itemImage = offersData!.offers[j].imageUrl!;
+            veg_type = offersData!.offers[j].veg_type!;
+            type = offersData!.offers[j].type!;
             eligibleforexpress = productBox[0]
-                .eligibleForExpress;
-            delivery = productBox[0]
-                .delivery;
+                .eligibleForExpress!;
+            delivery = "";
             duration = productBox[0]
-                .duration;
+                .duration!;
             durationType =productBox[0]
-                .durationType;
+                .durationType!;
             note = productBox[0]
-                .note;
-            cartcontroller.addtoCart( PriceVariation(quantity: 1,mode: "4",status: "0",discointDisplay: offersData.offers[j].discountDisplay,
-                loyaltys: offersData.offers[j].varLoyalty,membershipDisplay: offersData.offers[j].membershipDisplay,menuItemId: offersData.offers[j].menuid,
-                netWeight: offersData.offers[j].weight.toString(),weight: offersData.offers[j].weight.toString(),id: varId,variationName: varName,unit:unit,minItem: varMinItem,maxItem: varMaxItem,loyalty: 0,stock: int.parse(varStock),mrp: double.parse(varMrp),
-                price: double.parse(price),membershipPrice: double.parse(membershipPrice)),ItemData(type: offersData.offers[j].type,eligibleForExpress: offersData.offers[j].eligible_for_express,vegType: offersData.offers[j].veg_type,delivery: offersData.offers[j].delivery??"0",
-                duration: offersData.offers[j].duration??"0",brand: offersData.offers[j].brand,id: itemId,itemName: itemName,mode: "4",deliveryDuration:DeliveryDurationData(duration:offersData.offers[j].duration??"",status: "",durationType: offersData.offers[j].durationType??"",note: "", id: "",branch: "",blockFor: "") ), (onload){debugPrint("offer..."+varName.toString()+",,"+unit.toString());
+                .note!;
+            cartcontroller.addtoCart(itemdata: ItemData(type: offersData!.offers[j].type,eligibleForExpress: offersData!.offers[j].eligible_for_express,vegType: offersData!.offers[j].veg_type,delivery: offersData!.offers[j].delivery??"0",
+                duration: offersData!.offers[j].duration??"0",brand: offersData!.offers[j].brand,id: itemId,itemName: itemName,mode: "4",deliveryDuration:DeliveryDurationData(duration:offersData!.offers[j].duration??"",status: "",durationType: offersData!.offers[j].durationType??"",note: "", id: "",branch: "",blockFor: "") ), onload: (onload){
 
             setState(() {
               _isAddToCart = onload;
@@ -461,16 +431,21 @@ class _OfferScreenState extends State<OfferScreen> {
               _isAddToCart = false;
               //  _varQty = _itemCount;
             });
-            });
+            },topping_type: "",varid: "",toppings: "0",parent_id: "",newproduct: "0",toppingsList: [],itembody: PriceVariation(quantity: 1,mode: "4",status: "0",discointDisplay: offersData!.offers[j].discountDisplay,
+                loyaltys: offersData!.offers[j].varLoyalty,membershipDisplay: offersData!.offers[j].membershipDisplay,menuItemId: offersData!.offers[j].menuid,
+                netWeight: offersData!.offers[j].weight.toString(),weight: offersData!.offers[j].weight.toString(),id: varId,variationName: varName,unit:unit,minItem: varMinItem,maxItem: varMaxItem,loyalty: 0,stock: double.parse(varStock),mrp: varMrp,
+                price: price,membershipPrice: membershipPrice),context: context);
               break;
           }
           else{
-            if((VxState.store as GroceStore).CartItemList.where((element) => element.varId == offersData.offers[j].varid).length>0)
-              cartcontroller.update((done){
-                setState(() {
-                  _isAddToCart = !done;
-                });
-              },price: offersData.offers[j].varprice,var_id:offersData.offers[j].varid ,quantity: "0");
+            if((VxState.store as GroceStore).CartItemList.where((element) => element.varId == offersData!.offers[j].varid).length>0)
+            cartcontroller.update((done){
+              setState(() {
+                _isAddToCart = !done;
+              });
+            },price: offersData!.offers[j].varprice!,var_id:offersData!.offers[j].varid! ,quantity: "0",weight: "0",
+              cart_id: productBox.where((e) => e.itemId ==offersData!.offers[j].id).first.parent_id!,toppings: "",
+              topping_id: "",);
           }
         }
 
@@ -630,7 +605,7 @@ class _OfferScreenState extends State<OfferScreen> {
                       ),
                       SizedBox(width: 10,),
                       Text(
-                        S.of(context).thank_you_shopping,//"Thank you for shopping with us. Your order qualifies for a gift",
+                        S .of(context).thank_you_shopping,//"Thank you for shopping with us. Your order qualifies for a gift",
                         style: TextStyle(
                             color: ColorCodes.greenColor,
                             fontSize: 18,
@@ -645,7 +620,7 @@ class _OfferScreenState extends State<OfferScreen> {
                       shrinkWrap: true,
                       scrollDirection: Axis.vertical,
                       physics: AlwaysScrollableScrollPhysics(),
-                      itemCount: offersData.offers.length,
+                      itemCount: offersData!.offers.length,
                       itemBuilder: (_, i) => /*GestureDetector(
                     onTap: () {
                       for(int j = 0; j < offersData.offers.length; j++) {
@@ -674,7 +649,7 @@ class _OfferScreenState extends State<OfferScreen> {
                             children: [
                               Container(
                                   width:MediaQuery.of(context).size.width,
-                                  height: 100,
+                                  height: 110,
                                   // elevation: 2,
                                   decoration: BoxDecoration(
                                    // borderRadius: BorderRadius.circular(5),
@@ -689,7 +664,7 @@ class _OfferScreenState extends State<OfferScreen> {
                                           //  Text(offersData.offers[i].offerTitle),
                                           SizedBox(width: 10,),
                                           CachedNetworkImage(
-                                            imageUrl: offersData.offers[i].imageUrl,
+                                            imageUrl: offersData!.offers[i].imageUrl,
                                             placeholder: (context, url) =>
                                                 Image.asset(
                                                   Images.defaultProductImg,
@@ -711,21 +686,21 @@ class _OfferScreenState extends State<OfferScreen> {
                                             mainAxisAlignment: MainAxisAlignment.center,
                                             children: [
                                               SizedBox(height: 10,),
-                                              Text(offersData.offers[i].brand,
+                                              Text(offersData!.offers[i].brand!,
                                                   overflow: TextOverflow.ellipsis,
                                                   maxLines: 1,
                                                   style: TextStyle(
                                                     fontSize: 13,
                                                    // fontWeight: FontWeight.bold,
                                                   )),
-                                              Text(offersData.offers[i].title,
+                                              Text(offersData!.offers[i].title!,
                                                   overflow: TextOverflow.ellipsis,
                                                   maxLines: 1,
                                                   style: TextStyle(
                                                     fontSize: 15,
                                                     fontWeight: FontWeight.bold,
                                                   )),
-                                              Text(offersData.offers[i].varname, style: TextStyle(
+                                              Text(offersData!.offers[i].varname!, style: TextStyle(
                                                 fontSize: 14,
                                                 color: ColorCodes.greenColor,
                                                 fontWeight: FontWeight.bold,
@@ -734,43 +709,58 @@ class _OfferScreenState extends State<OfferScreen> {
                                                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                                                 children: [
                                                   _checkmembership?
-                                                  (offersData.offers[i].membershipDisplay)?
-                                                  Text(IConstants.currencyFormat + offersData.offers[i].varmemberprice,
+                                                  (offersData!.offers[i].membershipDisplay!)?
+                                                  Text(
+                                                    Features.iscurrencyformatalign?
+                                                    offersData!.offers[i].varmemberprice! + IConstants.currencyFormat :
+                                                      IConstants.currencyFormat + offersData!.offers[i].varmemberprice!,
                                                       style: TextStyle(
                                                         fontWeight: FontWeight.bold,
                                                         fontSize: ResponsiveLayout.isSmallScreen(context) ? 15 : ResponsiveLayout.isMediumScreen(context) ? 13 : 15,)
                                                   ):
-                                                  (offersData.offers[i].discountDisplay)?
-                                                  Text(IConstants.currencyFormat + offersData.offers[i].varprice,
+                                                  (offersData!.offers[i].discountDisplay!)?
+                                                  Text(Features.iscurrencyformatalign?
+                                                  offersData!.offers[i].varprice !+ IConstants.currencyFormat :
+                                                  IConstants.currencyFormat + offersData!.offers[i].varprice!,
                                                       style: TextStyle(
                                                         fontWeight: FontWeight.bold,
                                                         fontSize: ResponsiveLayout.isSmallScreen(context) ? 15 : ResponsiveLayout.isMediumScreen(context) ? 13 : 15,)
                                                   ):
-                                                  Text(IConstants.currencyFormat + offersData.offers[i].varmrp,
+                                                  Text(
+                                                    Features.iscurrencyformatalign?
+                                                    offersData!.offers[i].varmrp !+ IConstants.currencyFormat :
+                                                      IConstants.currencyFormat + offersData!.offers[i].varmrp!,
                                                       style: TextStyle(
                                                         fontWeight: FontWeight.bold,
                                                         fontSize: ResponsiveLayout.isSmallScreen(context) ? 15 : ResponsiveLayout.isMediumScreen(context) ? 13 : 15,)
-                                                  ):  (offersData.offers[i].discountDisplay)?
-                                                  Text(IConstants.currencyFormat + offersData.offers[i].varprice,
+                                                  ):  (offersData!.offers[i].discountDisplay!)?
+                                                  Text(
+                                                    Features.iscurrencyformatalign?
+                                                    offersData!.offers[i].varprice !+ IConstants.currencyFormat :
+                                                      IConstants.currencyFormat + offersData!.offers[i].varprice!,
                                                       style: TextStyle(
                                                         fontWeight: FontWeight.bold,
                                                         fontSize: ResponsiveLayout.isSmallScreen(context) ? 15 : ResponsiveLayout.isMediumScreen(context) ? 13 : 15,)
                                                   ):
-                                                  Text(IConstants.currencyFormat + offersData.offers[i].varmrp,
+                                                  Text(
+                                                      Features.iscurrencyformatalign?
+                                                      offersData!.offers[i].varmrp !+ IConstants.currencyFormat :
+                                                      IConstants.currencyFormat + offersData!.offers[i].varmrp!,
                                                       style: TextStyle(
                                                         fontWeight: FontWeight.bold,
                                                         fontSize: ResponsiveLayout.isSmallScreen(context) ? 15 : ResponsiveLayout.isMediumScreen(context) ? 13 : 15,)
                                                   ),
                                                   _isWeb?SizedBox(width: 70,):SizedBox(width: 15,),
-                                                  ValueListenableBuilder(
-                                                      valueListenable:
-                                                      Hive.box<Product>(productBoxName).listenable(),
-                                                      builder: (context, Box<Product> box, _) {
+                                                  VxBuilder(
+                                                      mutations: {ProductMutation},
+                                                      builder: (context, box, _) {
                                                         if ( _selectedOffer == i)
                                                           return Container(
                                                             height: 30,
                                                             width: MediaQuery.of(context).size.width/4,
                                                             decoration: BoxDecoration(
+                                                              border: Border.all(color: ColorCodes.varcolor),
+                                                              borderRadius: BorderRadius.circular(3),
                                                             ),
                                                             child: Row(
                                                               children: [
@@ -784,21 +774,21 @@ class _OfferScreenState extends State<OfferScreen> {
                                                                   child: Container(
                                                                       width: 30,
                                                                       height: 30,
-                                                                      decoration: new BoxDecoration(
-                                                                        border: Border.all(
-                                                                          color: ColorCodes.lightblue,
-                                                                          width: 2,
-                                                                        ),
-                                                                        borderRadius:
-                                                                        new BorderRadius.only(
-                                                                          bottomLeft:
-                                                                          const Radius.circular(
-                                                                              3),
-                                                                          topLeft:
-                                                                          const Radius.circular(
-                                                                              3),
-                                                                        ),
-                                                                      ),
+                                                                      // decoration: new BoxDecoration(
+                                                                      //   border: Border.all(
+                                                                      //     color: ColorCodes.primaryColor,
+                                                                      //     width: 2,
+                                                                      //   ),
+                                                                      //   borderRadius:
+                                                                      //   new BorderRadius.only(
+                                                                      //     bottomLeft:
+                                                                      //     const Radius.circular(
+                                                                      //         3),
+                                                                      //     topLeft:
+                                                                      //     const Radius.circular(
+                                                                      //         3),
+                                                                      //   ),
+                                                                      // ),
                                                                       child: Center(
                                                                         child: Text(
                                                                           "-",
@@ -806,7 +796,7 @@ class _OfferScreenState extends State<OfferScreen> {
                                                                               .center,
                                                                           style: TextStyle(
                                                                             fontSize: 20,
-                                                                            color:ColorCodes.lightblue,
+                                                                            color:ColorCodes.primaryColor,
                                                                           ),
                                                                         ),
                                                                       )),
@@ -814,7 +804,7 @@ class _OfferScreenState extends State<OfferScreen> {
                                                                 Spacer(),
                                                                 Container(
                                                                     child:Center(
-                                                                      child:Text(offersData.offers[i].varQty.toString(),style: TextStyle(fontSize: 16,fontWeight: FontWeight.bold,color: ColorCodes.lightblue),),
+                                                                      child:Text(offersData!.offers[i].varQty.toString(),style: TextStyle(fontSize: 16,fontWeight: FontWeight.bold,color: ColorCodes.primaryColor),),
                                                                     )
                                                                 ),
                                                                 Spacer(),
@@ -825,21 +815,21 @@ class _OfferScreenState extends State<OfferScreen> {
                                                                     child:Container(
                                                                         width: 30,
                                                                         height: 30,
-                                                                        decoration: new BoxDecoration(
-                                                                          border: Border.all(
-                                                                            color: ColorCodes.lightblue,
-                                                                            width: 2,
-                                                                          ),
-                                                                          borderRadius:
-                                                                          new BorderRadius.only(
-                                                                            bottomRight:
-                                                                            const Radius.circular(
-                                                                                3),
-                                                                            topRight:
-                                                                            const Radius.circular(
-                                                                                3),
-                                                                          ),
-                                                                        ),
+                                                                        // decoration: new BoxDecoration(
+                                                                        //   border: Border.all(
+                                                                        //     color: ColorCodes.lightblue,
+                                                                        //     width: 2,
+                                                                        //   ),
+                                                                        //   borderRadius:
+                                                                        //   new BorderRadius.only(
+                                                                        //     bottomRight:
+                                                                        //     const Radius.circular(
+                                                                        //         3),
+                                                                        //     topRight:
+                                                                        //     const Radius.circular(
+                                                                        //         3),
+                                                                        //   ),
+                                                                        // ),
                                                                         child: Center(
                                                                           child: Text(
                                                                             "+",
@@ -847,7 +837,7 @@ class _OfferScreenState extends State<OfferScreen> {
                                                                                 .center,
                                                                             style: TextStyle(
                                                                               fontSize: 20,
-                                                                              color:ColorCodes.lightblue,
+                                                                              color:ColorCodes.primaryColor,
                                                                             ),
                                                                           ),
                                                                         ))),
@@ -864,19 +854,17 @@ class _OfferScreenState extends State<OfferScreen> {
                                                               .CartItemList;
                                                           return GestureDetector(
                                                               onTap: () {
-                                                                debugPrint(
-                                                                    'ontap..');
                                                                 setState(() {
                                                                   _selectedOffer =
                                                                       i;
-                                                                  offersData
+                                                                  offersData!
                                                                       .offers[i]
                                                                       .varQty =
                                                                   1;
                                                                   _addToCart();
                                                                 });
                                                                 // _addToCart();
-                                                                /*  debugPrint("MenuId....."+store.OfferCartList[i].menuid.toString());
+                                                                /*
                                               _addToCart( i,int.parse(*/ /*offersData.offers[i]*/ /*store.OfferCartList[i].menuid),
                                                 int.parse(store.OfferCartList[i].varid),
                                                 store.OfferCartList[i].title,
@@ -904,18 +892,18 @@ class _OfferScreenState extends State<OfferScreen> {
                                                                     border: Border
                                                                         .all(
                                                                         color: ColorCodes
-                                                                            .lightblue,
-                                                                        width: 2)
+                                                                            .varcolor,
+                                                                        width: 1)
                                                                 ),
                                                                 child: Center(
                                                                     child: Text(
-                                                                      'ADD',
+                                                                      S.of(context).add,//'ADD',
                                                                       style: TextStyle(
                                                                           fontWeight: FontWeight
                                                                               .bold,
                                                                           color: ColorCodes
-                                                                              .lightblue,
-                                                                          fontSize: 20),)),
+                                                                              .primaryColor,
+                                                                          fontSize: 16),)),
                                                               )
                                                           );
                                                         });
@@ -989,7 +977,7 @@ class _OfferScreenState extends State<OfferScreen> {
           child: SingleChildScrollView(child:Column(
         children: [
           if(Features.isOffers)
-            if(offersData.offers.length > 0)
+            if(offersData!.offers.length > 0)
               _offers(),
         ],
       )));
@@ -999,9 +987,10 @@ class _OfferScreenState extends State<OfferScreen> {
           Future.delayed(Duration.zero, () async {
             removeToCart();
             // Navigator.of(context).pop();
-            Navigator.of(context).pushReplacementNamed(CartScreen.routeName, arguments: {
-              "after_login": ""
-            });
+         /*   Navigator.of(context).pushReplacementNamed(CartScreen.routeName, arguments: {
+              "afterlogin": ""
+            });*/
+            Navigation(context, name: Routename.Cart, navigatore: NavigatoreTyp.Push,qparms: {"afterlogin":null});
           });
           return Future.value(false);
         },
@@ -1011,7 +1000,7 @@ class _OfferScreenState extends State<OfferScreen> {
           body: Column(
             children: [
               if(_isWeb && !ResponsiveLayout.isSmallScreen(context))
-                Header(false, false),
+                Header(false),
               body(),
             ],
           ),
@@ -1019,7 +1008,7 @@ class _OfferScreenState extends State<OfferScreen> {
           VxBuilder(
               mutations: {SetCartItem},
               // valueListenable: Hive.box<Product>(productBoxName).listenable(),
-              builder: (context, store, index) {
+              builder: (context,store, index) {
                 final box = (VxState.store as GroceStore).CartItemList;
                 if (box.isEmpty) return SizedBox.shrink();
                 return BottomNaviagation(
@@ -1037,50 +1026,20 @@ class _OfferScreenState extends State<OfferScreen> {
                     setState(() {
                       final routeArgs =
                       ModalRoute
-                          .of(context)
+                          .of(context)!
                           .settings
                           .arguments as Map<String, dynamic>;
-                      final _groupValue = routeArgs['_groupValue'];
+                      final _groupValue = /*routeArgs['_groupValue']*/widget.groupValue;
                       if (_groupValue == 2) {
-                        Navigator.of(context)
-                            .pushReplacementNamed(PickupScreen.routeName);
+                       /* Navigator.of(context)
+                            .pushReplacementNamed(PickupScreen.routeName);*/
+                        Navigation(context, name: Routename.PickupScreen, navigatore: NavigatoreTyp.Push);
                       } else {
-                        // Navigator.of(context).pushReplacementNamed(
-                        //     ConfirmorderScreen.routeName,
-                        //     arguments: {"prev": "cart_screen"});
-                        final routeArgs = ModalRoute
-                            .of(context)
-                            .settings
-                            .arguments as Map<String, dynamic>;
-                        final _groupValue = routeArgs['_groupValue'];
-                        final String _minimumOrderAmountNoraml = routeArgs['minimumOrderAmountNoraml'];
-                        final String _deliveryChargeNormal = routeArgs['deliveryChargeNormal'];
-                        final String _minimumOrderAmountPrime = routeArgs['minimumOrderAmountPrime'];
-                        final String _deliveryChargePrime = routeArgs['deliveryChargePrime'];
-                        final String _minimumOrderAmountExpress = routeArgs['minimumOrderAmountExpress'];
-                        final String _deliveryChargeExpress = routeArgs['deliveryChargeExpress'];
-                        final _groupValueAdvance = routeArgs['deliveryType'];
-                        final _message = routeArgs['note'];
-                        final finalSlotDelivery = routeArgs['finalSlotDelivery'];
-                        final finalExpressDelivery = routeArgs['finalExpressDelivery'];
-                        final _deliveryDurationExpress = routeArgs['deliveryDurationExpress'];
-                        final deliveryCharge =routeArgs['deliveryCharge'];
-                        final deliveryType =routeArgs['deliveryType'];
-                        Navigator.of(context)
-                            .pushNamed(PaymentScreen.routeName, arguments: {
-                          'minimumOrderAmountNoraml': _minimumOrderAmountNoraml,
-                          'deliveryChargeNormal': _deliveryChargeNormal,
-                          'minimumOrderAmountPrime': _minimumOrderAmountPrime,
-                          'deliveryChargePrime': _deliveryChargePrime,
-                          'minimumOrderAmountExpress': _minimumOrderAmountExpress,
-                          'deliveryChargeExpress': _deliveryChargeExpress,
-                          'deliveryType': (_groupValueAdvance == 1) ? "Default" : "OptionTwo",
-                          'note': _message.text,
-                          'deliveryCharge': (_groupValueAdvance == 1)? finalSlotDelivery.toString():finalExpressDelivery.toString(),
-                          'deliveryDurationExpress' : _deliveryDurationExpress,
-                          'fromScreen':'',
-                          'responsejson':"",
-                        });
+                      /*  Navigator.of(context).pushReplacementNamed(
+                            ConfirmorderScreen.routeName,
+                            arguments: {"prev": "cart_screen"});*/
+                        Navigation(context, name:Routename.ConfirmOrder,navigatore: NavigatoreTyp.Push,
+                            parms:{"prev": "cart_screen"});
                       }
                       // });
                     });
@@ -1099,29 +1058,23 @@ class _OfferScreenState extends State<OfferScreen> {
             GestureDetector(
                 onTap: () => {
                   setState(() {
-                    final routeArgs =ModalRoute.of(context).settings.arguments as Map<String, dynamic>;
-                    final _groupValue = routeArgs['_groupValue'];
-                    final String _minimumOrderAmountNoraml = routeArgs['minimumOrderAmountNoraml'];
-                    final String _deliveryChargeNormal = routeArgs['deliveryChargeNormal'];
-                    final String _minimumOrderAmountPrime = routeArgs['minimumOrderAmountPrime'];
-                    final String _deliveryChargePrime = routeArgs['deliveryChargePrime'];
-                    final String _minimumOrderAmountExpress = routeArgs['minimumOrderAmountExpress'];
-                    final String _deliveryChargeExpress = routeArgs['deliveryChargeExpress'];
-                    final _groupValueAdvance = routeArgs['deliveryType'];
-                    final _message = routeArgs['note'];
+                    final routeArgs =ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+                    final _groupValue =/* routeArgs['_groupValue']*/widget.groupValue;
+                    final String _minimumOrderAmountNoraml = /*routeArgs['minimumOrderAmountNoraml']*/widget.minimumOrderAmountNoraml;
+                    final String _deliveryChargeNormal = /*routeArgs['deliveryChargeNormal']*/widget.deliveryChargeNormal;
+                    final String _minimumOrderAmountPrime = /*routeArgs['minimumOrderAmountPrime']*/widget.minimumOrderAmountPrime;
+                    final String _deliveryChargePrime = /*routeArgs['deliveryChargePrime']*/widget.deliveryChargePrime;
+                    final String _minimumOrderAmountExpress = /*routeArgs['minimumOrderAmountExpress']*/widget.minimumOrderAmountExpress;
+                    final String _deliveryChargeExpress = /*routeArgs['deliveryChargeExpress']*/widget.deliveryChargeExpress;
+                    final _groupValueAdvance = /*routeArgs['deliveryType']*/widget.deliveryType;
+                    final _message = /*routeArgs['note']*/widget.note;
                     final finalSlotDelivery = routeArgs['finalSlotDelivery'];
                     final finalExpressDelivery = routeArgs['finalExpressDelivery'];
-                    final _deliveryDurationExpress = routeArgs['deliveryDurationExpress'];
-                    final deliveryCharge =routeArgs['deliveryCharge'];
-                    final deliveryType =routeArgs['deliveryType'];
-                    debugPrint('mini.......');
-                    debugPrint(_minimumOrderAmountNoraml);
-                    debugPrint(_deliveryChargeNormal);
-                    debugPrint(_minimumOrderAmountPrime);
-                    debugPrint(_deliveryChargePrime);
-                    debugPrint(_minimumOrderAmountExpress);
+                    final _deliveryDurationExpress = /*routeArgs['deliveryDurationExpress']*/widget.deliveryDurationExpress;
+                    final deliveryCharge =/*routeArgs['deliveryCharge']*/widget.deliveryCharge;
+                    final deliveryType =/*routeArgs['deliveryType']*/widget.deliveryType;
 
-                    Navigator.of(context)
+              /*      Navigator.of(context)
                         .pushNamed(PaymentScreen.routeName, arguments: {
                       'minimumOrderAmountNoraml': _minimumOrderAmountNoraml.toString(),
                       'deliveryChargeNormal': _deliveryChargeNormal.toString(),
@@ -1130,20 +1083,34 @@ class _OfferScreenState extends State<OfferScreen> {
                       'minimumOrderAmountExpress': _minimumOrderAmountExpress.toString(),
                       'deliveryChargeExpress': _deliveryChargeExpress.toString(),
                       'addressId': routeArgs['addressId'].toString(),
-                      'deliveryType': /*(_groupValueAdvance == 1)
+                      'deliveryType': *//*(_groupValueAdvance == 1)
                       ? "Default"
-                      : "OptionTwo"*/deliveryType.toString(),
+                      : "OptionTwo"*//*deliveryType.toString(),
                       'note': _message.toString(),
-                      'deliveryCharge':/* (_groupValueAdvance == 1)
+                      'deliveryCharge':*//* (_groupValueAdvance == 1)
                       ? finalSlotDelivery.toString()
-                      : finalExpressDelivery.toString()*/deliveryCharge.toString(),
+                      : finalExpressDelivery.toString()*//*deliveryCharge.toString(),
                       'deliveryDurationExpress': _deliveryDurationExpress.toString(),
-                      'fromScreen':'',
-                      'responsejson':"",
-                    });
+                    });*/
+                    Navigation(context, name: Routename.PaymentScreen, navigatore: NavigatoreTyp.Push,
+                        qparms: {
+                        'minimumOrderAmountNoraml': _minimumOrderAmountNoraml.toString(),
+                        'deliveryChargeNormal': _deliveryChargeNormal.toString(),
+                        'minimumOrderAmountPrime': _minimumOrderAmountPrime.toString(),
+                        'deliveryChargePrime': _deliveryChargePrime.toString(),
+                        'minimumOrderAmountExpress': _minimumOrderAmountExpress.toString(),
+                        'deliveryChargeExpress': _deliveryChargeExpress.toString(),
+                        'addressId': /*routeArgs['addressId'].toString()*/widget.addressId,
+                        'deliveryType':deliveryType.toString(),
+                        'note': _message.toString(),
+                        'deliveryCharge':deliveryCharge.toString(),
+                        'deliveryDurationExpress': _deliveryDurationExpress.toString(),
+                          'fromScreen':'',
+                          'responsejson':"",
+                        });
                   })
                 },
-                child: Text('CONFIRM ORDER',  style: TextStyle(
+                child: Text(/*'CONFIRM ORDER'*/S.of(context).confirm_order,  style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold),)),
           ],));
@@ -1155,29 +1122,30 @@ class _OfferScreenState extends State<OfferScreen> {
       elevation: (IConstants.isEnterprise)?0:1,
       automaticallyImplyLeading: false,
       leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: ColorCodes.menuColor),
+          icon: Icon(Icons.arrow_back, color: ColorCodes.iconColor),
           onPressed: () {
             // Navigator.of(context).pop();
             Future.delayed(Duration.zero, () async {
               removeToCart();
-              Navigator.of(context).pushReplacementNamed(CartScreen.routeName, arguments: {
-                "after_login": ""
-              });
+        /*      Navigator.of(context).pushReplacementNamed(CartScreen.routeName, arguments: {
+                "afterlogin": ""
+              });*/
+              Navigation(context, name: Routename.Cart, navigatore: NavigatoreTyp.Push,qparms: {"afterlogin":null});
               return Future.value(false);
             });
           }
       ),
       titleSpacing: 0,
-      title: Text("Offers",
-        style: TextStyle(color: ColorCodes.menuColor),),
+      title: Text(S.of(context).offers,//"Offers",
+        style: TextStyle(color: ColorCodes.iconColor, fontWeight: FontWeight.bold, fontSize: 18),),
       flexibleSpace: Container(
         decoration: BoxDecoration(
             gradient: LinearGradient(
                 begin: Alignment.topRight,
                 end: Alignment.bottomLeft,
                 colors: [
-                  ColorCodes.accentColor,
-                  ColorCodes.primaryColor
+                  ColorCodes.appbarColor,
+                  ColorCodes.appbarColor2
                 ]
             )
         ),

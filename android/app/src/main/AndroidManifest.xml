@@ -1,6 +1,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     package="com.getit.store">
 
+    <!-- io.flutter.app.FlutterApplication is an android.app.Application that
+         calls FlutterMain.startInitialization(this); in its onCreate method.
+         In most cases you can leave this as-is, but you if you want to provide
+         additional functionality it is fine to subclass or reimplement
+         FlutterApplication and put your custom class here. -->
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.FLASHLIGHT" />
@@ -8,7 +14,13 @@
     <uses-feature android:name="android.hardware.camera.flash" android:required="false" />
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
 
+
+    <!--
+        <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    -->
+
     <application
+
         android:name="${applicationName}"
         android:label="Getit"
         android:allowBackup="false"
@@ -17,6 +29,7 @@
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="AIzaSyCe6evdOqGIOUMugiFHNEYq20ztqcNSZrc"/>
+
         <activity
             android:name=".MainActivity"
             android:launchMode="singleTop"
@@ -24,6 +37,7 @@
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
             android:hardwareAccelerated="true"
             android:exported="true"
+            android:usesCleartextTraffic="true"
             android:windowSoftInputMode="adjustResize">
             <!-- Specifies an Android theme to apply to this Activity as soon as
                  the Android process has started. This theme is visible to the user
@@ -99,7 +113,7 @@
 
         <!--<provider
             android:name="androidx.core.content.FileProvider"
-            android:authorities="com.appinsight.gbay.provider"
+            android:authorities="com.getit.store.provider"
             android:exported="false"
             tools:replace="android:authorities"
             android:grantUriPermissions="true">

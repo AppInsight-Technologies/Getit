@@ -2,16 +2,16 @@ import 'package:flutter/material.dart';
 
 class ControlledScrollView extends StatelessWidget {
   Widget child;
-  Function onRightClick;
-  Function onLeftClick;
+  Function? onRightClick;
+  Function? onLeftClick;
 
-  var lbtnval = false;
+  var lbtnval ;
 
   var rbtnval = false;
 
-  ControlledScrollView({Key key,this.child,this.onLeftClick,this.onRightClick,  this.controller, this. lbtnval, this. rbtnval}) : super(key: key);
+  ControlledScrollView({Key? key,required this.child,this.onLeftClick,this.onRightClick,  this.controller, this. lbtnval, this. rbtnval= false}) : super(key: key);
 
-  ScrollController controller = ScrollController();
+  ScrollController? controller = ScrollController();
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -19,7 +19,11 @@ class ControlledScrollView extends StatelessWidget {
       child: Stack(
         // fit: StackFit.expand,
         children:[
-          Container(padding: EdgeInsets.symmetric(horizontal: 60),child: child),
+          Container(
+            //  padding: EdgeInsets.symmetric(horizontal: 60),
+              child: child),
+
+
           // if( lbtnval) ElevatedButton(
           //     onPressed: () {
           //       onLeftClick();

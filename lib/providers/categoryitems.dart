@@ -40,17 +40,17 @@ class CategoriesItemsList with ChangeNotifier {
           Api.getCategories,
           body: (!IConstants.isEnterprise || _isWeb) ? {
             "mode": "getAll",
-            "branch": PrefUtils.prefs.getString('branch'),
+            "branch": PrefUtils.prefs!.getString('branch'),
             "language_id": IConstants.languageId,
           } : {
-            "branch": PrefUtils.prefs.getString('branch'),
+            "branch": PrefUtils.prefs!.getString('branch'),
             "language_id": IConstants.languageId,
           }
       );
       final responseJson = json.decode(utf8.decode(response.bodyBytes));
       debugPrint("fetchCategory...." + {
         "mode": "getAll",
-        "branch": PrefUtils.prefs.getString('branch'),
+        "branch": PrefUtils.prefs!.getString('branch'),
         "language_id": IConstants.languageId,
       }.toString());
       debugPrint("fetchCategory...." + responseJson.toString());
@@ -122,7 +122,7 @@ class CategoriesItemsList with ChangeNotifier {
           .post(
           url,
           body: { // await keyword is used to wait to this operation is complete.
-            "branch": PrefUtils.prefs.getString('branch'),
+            "branch": PrefUtils.prefs!.getString('branch'),
             "language_id": IConstants.languageId,
             "allKey": S.current.all,
           }
@@ -150,8 +150,6 @@ class CategoriesItemsList with ChangeNotifier {
                   "sub-category/icons/" +
                   data[i]['icon_image'].toString(),
               parentId: data[i]['parentId'].toString(),
-                catBanner: IConstants.API_IMAGE +
-                    "sub-category/banners/" + data[i]['bannerImage'].toString()
             ));
             itembloc.nesteditem.add(_itemNested);
           } else if(prevScreen == "subitemScreen") { //....new subitemScreen.......
@@ -162,8 +160,6 @@ class CategoriesItemsList with ChangeNotifier {
                   "sub-category/icons/" +
                   data[i]['icon_image'].toString(),
               parentId: data[i]['parentId'].toString(),
-                catBanner: IConstants.API_IMAGE +
-                    "sub-category/banners/" + data[i]['bannerImage'].toString()
             ));
             itembloc.subnesteditem.add(_itemsubNested);
 
@@ -176,8 +172,6 @@ class CategoriesItemsList with ChangeNotifier {
                     "sub-category/icons/" +
                     data[i]['icon_image'].toString(),
                 parentId: data[i]['parentId'].toString(),
-                  catBanner: IConstants.API_IMAGE +
-                      "sub-category/banners/" + data[i]['bannerImage'].toString(),
               ));
               itembloc.subnesteditem.add(_itemsubNested);}
           } else {
@@ -200,8 +194,6 @@ class CategoriesItemsList with ChangeNotifier {
                     data[i]['icon_image'].toString(),
                 parentId: data[i]['parentId'].toString(),
                 featuredCategoryBColor: list[_random.nextInt(list.length)],
-                  catBanner: IConstants.API_IMAGE +
-                      "sub-category/banners/" + data[i]['bannerImage'].toString(),
               ));
             }
           }

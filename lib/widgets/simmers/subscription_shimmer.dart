@@ -5,13 +5,13 @@ import '../../assets/ColorCodes.dart';
 import 'package:shimmer/shimmer.dart';
 
 class SubscriptionShimmer extends StatelessWidget {
-  const SubscriptionShimmer({Key key}) : super(key: key);
+  const SubscriptionShimmer({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Shimmer.fromColors(
-      baseColor: ColorCodes.baseColor,
-      highlightColor: ColorCodes.lightGreyWebColor,
+      baseColor: ColorCodes.shimmerColor,
+      highlightColor: ColorCodes.shimmerColor,
       child: Column(
         children: [
           Row(
@@ -24,7 +24,7 @@ class SubscriptionShimmer extends StatelessWidget {
                     width: 150,
                     height: 20,
                     decoration: BoxDecoration(
-                      color: Colors.black,
+                      color: ColorCodes.shimmerColor,
                       borderRadius: BorderRadius.circular(16),
                     ),
                   ),
@@ -33,7 +33,7 @@ class SubscriptionShimmer extends StatelessWidget {
                     width: 150,
                     height: 20,
                     decoration: BoxDecoration(
-                      color: Colors.black,
+                      color: ColorCodes.shimmerColor,
                       borderRadius: BorderRadius.circular(16),
                     ),
                   ),
@@ -42,7 +42,7 @@ class SubscriptionShimmer extends StatelessWidget {
                     width: 150,
                     height: 20,
                     decoration: BoxDecoration(
-                      color: Colors.black,
+                      color: ColorCodes.shimmerColor,
                       borderRadius: BorderRadius.circular(16),
                     ),
                   ),
@@ -51,15 +51,15 @@ class SubscriptionShimmer extends StatelessWidget {
             ],
           ),
           SizedBox(height: 10,),
-          Padding(padding: const EdgeInsets.all(8.0), child: Container( height: 80, decoration: BoxDecoration(color: Colors.black, ),),),
+          Padding(padding: const EdgeInsets.all(8.0), child: Container( height: 80, decoration: BoxDecoration(color: ColorCodes.shimmerColor, ),),),
           Divider(),
-          Padding(padding: const EdgeInsets.all(8.0), child: Container( height: 80, decoration: BoxDecoration(color: Colors.black, ),),),
+          Padding(padding: const EdgeInsets.all(8.0), child: Container( height: 80, decoration: BoxDecoration(color: ColorCodes.shimmerColor, ),),),
           Divider(),
-          Padding(padding: const EdgeInsets.all(8.0), child: Container( height: 80, decoration: BoxDecoration(color: Colors.black, ),),),
+          Padding(padding: const EdgeInsets.all(8.0), child: Container( height: 80, decoration: BoxDecoration(color: ColorCodes.shimmerColor, ),),),
           Divider(),
-          Padding(padding: const EdgeInsets.all(8.0), child: Container( height: 80, decoration: BoxDecoration(color: Colors.black, ),),),
+          Padding(padding: const EdgeInsets.all(8.0), child: Container( height: 80, decoration: BoxDecoration(color: ColorCodes.shimmerColor, ),),),
           Divider(),
-          Padding(padding: const EdgeInsets.all(8.0), child: Container( height: 80, decoration: BoxDecoration(color: Colors.black, ),),),
+          Padding(padding: const EdgeInsets.all(8.0), child: Container( height: 80, decoration: BoxDecoration(color: ColorCodes.shimmerColor, ),),),
 
         ],
       ),

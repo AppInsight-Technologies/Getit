@@ -1,31 +1,26 @@
   import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import '../../controller/mutations/cart_mutation.dart';
-import '../../models/VxModels/VxStore.dart';
-import '../../models/newmodle/home_page_modle.dart';
-import '../../repository/fetchdata/view_all_product.dart';
-import '../../widgets/components/sellingitem_component.dart';
-import '../../widgets/simmers/ItemWeb_shimmer.dart';
+import '../../constants/features.dart';
+import '../../rought_genrator.dart';
+import '../controller/mutations/cart_mutation.dart';
+import '../models/VxModels/VxStore.dart';
+import '../models/newmodle/home_page_modle.dart';
+import '../repository/fetchdata/view_all_product.dart';
+import '../components/sellingitem_component.dart';
+import '../widgets/simmers/ItemWeb_shimmer.dart';
 import 'package:velocity_x/velocity_x.dart';
-import '../assets/images.dart';
 import '../data/calculations.dart';
-import '../data/hiveDB.dart';
 import '../generated/l10n.dart';
-import '../main.dart';
 import '../screens/cart_screen.dart';
 import '../screens/searchitem_screen.dart';
-import '../widgets/badge.dart';
 import '../widgets/bottom_navigation.dart';
-import 'package:hive/hive.dart';
 import '../widgets/simmers/item_list_shimmer.dart';
 import '../assets/ColorCodes.dart';
 import 'package:provider/provider.dart';
 import 'dart:io';
-import 'package:hive_flutter/hive_flutter.dart';
 
 import '../constants/IConstants.dart';
-import '../widgets/selling_items.dart';
 import '../providers/sellingitems.dart';
 import '../utils/ResponsiveLayout.dart';
 import '../screens/home_screen.dart';
@@ -36,19 +31,21 @@ import '../utils/prefUtils.dart';
 
 class SellingitemScreen extends StatefulWidget {
   static const routeName = '/sellingitem-screen';
+
+  Map<String,String> params;
+  SellingitemScreen(this.params);
   @override
   _SellingitemScreenState createState() => _SellingitemScreenState();
 }
 
-class _SellingitemScreenState extends State<SellingitemScreen> {
+class _SellingitemScreenState extends State<SellingitemScreen>with Navigations {
   var _isLoading = true;
   bool _isWeb =false;
-  //SharedPreferences prefs;
-  MediaQueryData queryData;
+   MediaQueryData? queryData;
   bool iphonex = false;
   bool _checkmembership = false;
-
-  Future<OfferByCart>  futureproducts ;
+   Future<OfferByCart>?  futureproducts ;
+  String? title;
 
   @override
   void initState() {
@@ -70,26 +67,30 @@ class _SellingitemScreenState extends State<SellingitemScreen> {
 
     Future.delayed(Duration.zero, () async {
       //prefs = await SharedPreferences.getInstance();
-      final routeArgs = ModalRoute.of(context).settings.arguments as Map<String, dynamic>;
-      final seeallpress = routeArgs['seeallpress'];
-
-      if(seeallpress == "featured") {
-        futureproducts =  viewProducts.getData(ViewProductOf.featured,status: (onloadcompleate){
-          setState(() {
-            _isLoading = !onloadcompleate;
-          });
+      final routeArgs = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+      final seeallpress = widget.params['seeallpress'];
+       title = widget.params['title']!;
+       if(seeallpress == "featured") {
+        setState(() {
+          futureproducts =  viewProducts.getData(ViewProductOf.featured,status: (onloadcompleate){
+            setState(() {
+              _isLoading = !onloadcompleate;
+              title =  (VxState.store as GroceStore).homescreen.data!.featuredByCart!.label.toString();
+            });
         });
-
+        });
       } else if(seeallpress == "offers"){
         futureproducts =  viewProducts.getData(ViewProductOf.offer,status: (onloadcompleate){
           setState(() {
             _isLoading = !onloadcompleate;
+            title =  (VxState.store as GroceStore).homescreen.data!.offerByCart!.label.toString();
           });
         });
       }else if(seeallpress == "forget"){
         futureproducts =  viewProducts.getData(ViewProductOf.itemData,status: (onloadcompleate){
           setState(() {
             _isLoading = !onloadcompleate;
+            title =  title.toString();
           });
         });
       }
@@ -97,6 +98,7 @@ class _SellingitemScreenState extends State<SellingitemScreen> {
         futureproducts =  viewProducts.getData(ViewProductOf.discount,status: (onloadcompleate){
           setState(() {
             _isLoading = !onloadcompleate;
+            title =  (VxState.store as GroceStore).homescreen.data!.discountByCart!.label.toString();
           });
         });
       }
@@ -121,7 +123,7 @@ class _SellingitemScreenState extends State<SellingitemScreen> {
       }
       int _nestedIndex = 0;
       setState(() {
-        if (PrefUtils.prefs.getString("membership") == "1") {
+        if (PrefUtils.prefs!.getString("membership") == "1") {
           _checkmembership = true;
         } else {
           _checkmembership = false;
@@ -147,11 +149,12 @@ class _SellingitemScreenState extends State<SellingitemScreen> {
       widgetsInRow = 3;
     }
     // double aspectRatio = (deviceWidth - (20 + ((widgetsInRow - 1) * 10))) / widgetsInRow / 160;
-    double aspectRatio =   (_isWeb && !ResponsiveLayout.isSmallScreen(context))?
-    (deviceWidth - (20 + ((widgetsInRow - 1) * 10))) / widgetsInRow / 360:
-    (deviceWidth - (20 + ((widgetsInRow - 1) * 10))) / widgetsInRow / 170;
-    final routeArgs = ModalRoute.of(context).settings.arguments as Map<String, dynamic>;
-    final title = routeArgs['title'];
+    double aspectRatio =   (_isWeb && !ResponsiveLayout.isSmallScreen(context))? (!Features.ismultivendor) ?
+    (deviceWidth - (20 + ((widgetsInRow - 1) * 10))) / widgetsInRow / 335:
+    (deviceWidth - (20 + ((widgetsInRow - 1) * 10))) / widgetsInRow / 170 :
+    Features.btobModule?(deviceWidth - (20 + ((widgetsInRow - 1) * 10))) / widgetsInRow / 210:(deviceWidth - (20 + ((widgetsInRow - 1) * 10))) / widgetsInRow / 160;
+    final routeArgs = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+
 
     _buildBottomNavigationBar() {
       return VxBuilder(
@@ -161,69 +164,19 @@ class _SellingitemScreenState extends State<SellingitemScreen> {
           final box = (VxState.store as GroceStore).CartItemList;
           if (box.isEmpty) return SizedBox.shrink();
           return BottomNaviagation(
-            itemCount: CartCalculations.itemCount.toString() + " " + S.of(context).items,
-            title: S.current.view_cart,
+            itemCount: CartCalculations.itemCount.toString() + " " + S .of(context).items,
+            title: S .current.view_cart,
             total: _checkmembership ? (CartCalculations.totalMember).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit)
                 :
             (CartCalculations.total).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),
             onPressed: (){
               setState(() {
-                Navigator.of(context)
-                    .pushNamed(CartScreen.routeName, arguments: {
-                  "after_login": ""
-                });
+                Navigation(context, name: Routename.Cart, navigatore: NavigatoreTyp.Push,qparms: {"afterlogin":null});
               });
             },
           );
         },
       );
-
-      /*if(Calculations.itemCount > 0) {
-        return Container(
-          width: MediaQuery
-              .of(context)
-              .size
-              .width,
-          height: 50.0,
-          child: Row(
-            mainAxisSize: MainAxisSize.max,
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: <Widget>[
-              Container(
-                height:50,
-                width:MediaQuery.of(context).size.width * 35/100,
-                child: Column(
-                  children: <Widget>[
-                    SizedBox(
-                      height: 15.0,
-                    ),
-                    _checkmembership
-                        ?
-                    Text(IConstants.currencyFormat + (Calculations.totalMember).toString(), style: TextStyle(color: Colors.black),)
-                        :
-                    Text(IConstants.currencyFormat + (Calculations.total).toString(), style: TextStyle(color: Colors.black),),
-                    Text(Calculations.itemCount.toString() + " item", style: TextStyle(color:Colors.black,fontWeight: FontWeight.w400,fontSize: 9),)
-                  ],
-                ),),
-              GestureDetector(
-                  onTap: () =>
-                  {
-                    setState(() {
-                      Navigator.of(context).pushNamed(CartScreen.routeName);
-                    })
-                  },
-                  child: Container(color: Theme.of(context).primaryColor, height:50,width:MediaQuery.of(context).size.width*65/100,
-                      child:Column(children:[
-                        SizedBox(height: 17,),
-                        Text('VIEW CART', style: TextStyle(fontSize: 12.0, color: Colors.white, fontWeight: FontWeight.bold),textAlign: TextAlign.center,),
-                      ]
-                      )
-                  )
-              ),
-            ],
-          ),
-        );
-      }*/
     }
 
     gradientappbarmobile() {
@@ -233,16 +186,18 @@ class _SellingitemScreenState extends State<SellingitemScreen> {
         elevation: (IConstants.isEnterprise)?0:1,
         automaticallyImplyLeading: false,
         leading: IconButton(
-            icon: Icon(Icons.arrow_back, color: ColorCodes.menuColor),
-            onPressed: () {
-              Navigator.of(context).popUntil(ModalRoute.withName(HomeScreen.routeName,));
+            icon: Icon(Icons.arrow_back, color: ColorCodes.iconColor,
+              size: 25,),
+            onPressed: () async {
+             // Navigator.of(context).popUntil(ModalRoute.withName(HomeScreen.routeName,));
+              Navigation(context, navigatore: NavigatoreTyp.Pop);
               return Future.value(false);
             }
         ),
         actions: [
           GestureDetector(
             onTap: () {
-              Navigator.of(context).pushNamed(SearchitemScreen.routeName,);
+              Navigation(context, navigatore: NavigatoreTyp.Push,name: Routename.search);
             },
             child: Container(
               height: 25,
@@ -255,7 +210,7 @@ class _SellingitemScreenState extends State<SellingitemScreen> {
               child: Icon(
                 Icons.search,
                 size: 25,
-                color: ColorCodes.whiteColor,
+                color: ColorCodes.iconColor,
               ),
             ),
           ),
@@ -302,7 +257,7 @@ class _SellingitemScreenState extends State<SellingitemScreen> {
           //       child: GestureDetector(
           //         onTap: () {
           //           Navigator.of(context).pushNamed(CartScreen.routeName, arguments: {
-          //             "after_login": ""
+          //             "afterlogin": ""
           //           });
           //         },
           //         child: Container(
@@ -334,15 +289,15 @@ class _SellingitemScreenState extends State<SellingitemScreen> {
         ],
         titleSpacing: 0,
         title: Text(title??"",
-          style: TextStyle(color: ColorCodes.menuColor),),
+          style: TextStyle(color: ColorCodes.iconColor, fontWeight: FontWeight.bold, fontSize: 18),),
         flexibleSpace: Container(
           decoration: BoxDecoration(
               gradient: LinearGradient(
                   begin: Alignment.topRight,
                   end: Alignment.bottomLeft,
                   colors: [
-                    ColorCodes.accentColor,
-                    ColorCodes.primaryColor
+                    ColorCodes.appbarColor,
+                    ColorCodes.appbarColor2
                   ]
               )
           ),
@@ -359,14 +314,17 @@ class _SellingitemScreenState extends State<SellingitemScreen> {
               Align(
                 alignment: Alignment.center,
                 child: Container(
+                  constraints:(Vx.isWeb &&
+                      !ResponsiveLayout.isSmallScreen(context))
+                      ? BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.90)
+                      : null,
                   child:
                   FutureBuilder<OfferByCart> (
                     future: futureproducts,
                     builder: (BuildContext context, AsyncSnapshot<OfferByCart> snapshot){
-                      final routeArgs = ModalRoute.of(context).settings.arguments as Map<String, dynamic>;
-                      final seeallpress = routeArgs['seeallpress'];
+                      final routeArgs = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+                      final seeallpress = widget.params['seeallpress'];
                       switch(snapshot.connectionState){
-
 
                         case ConnectionState.none:
                           return SizedBox.shrink();
@@ -381,42 +339,22 @@ class _SellingitemScreenState extends State<SellingitemScreen> {
                           if(snapshot.data!=null)
                             return GridView.builder(
                                 shrinkWrap: true,
-                                itemCount:snapshot.data.data.length,
+                                itemCount:snapshot.data!.data!.length,
                                 controller: new ScrollController(keepScrollOffset: false),
                                 gridDelegate: new SliverGridDelegateWithFixedCrossAxisCount(
-                                  /*crossAxisCount: 2,
-                              childAspectRatio: 0.55,
-                              crossAxisSpacing: 3,
-                              mainAxisSpacing: 3,*/
                                   crossAxisCount: widgetsInRow,
                                   crossAxisSpacing: 3,
                                   childAspectRatio: aspectRatio,
                                   mainAxisSpacing: 3,
                                 ),
                                 itemBuilder: (BuildContext context, int index) {
-                                  debugPrint("ss1.."+routeArgs['seeallpress'].toString());
-                                  // debugPrint("delivery:note...."+snapshot.data.data[index].duration.toString()+"  "+ snapshot.data.data[index].toString());
-                                  return SellingItemsv2("sellingitem_screen",routeArgs['seeallpress'], snapshot.data.data[index]);
-                                  /* return SellingItems(
-                             "sellingitem_screen",
-                             snapshot.data.data[index].id,
-                             snapshot.data.data[index].title,
-                             snapshot.data.data[index].imageUrl,
-                             snapshot.data.data[index].brand,
-                             "",
-                             snapshot.data.data[index].veg_type,
-                             snapshot.data.data[index].type,
-                             snapshot.data.data[index].eligible_for_express,
-                             snapshot.data.data[index].delivery,
-                             snapshot.data.data[index].duration,
-                             snapshot.data.data[index].durationType,
-                             snapshot.data.data[index].note,
-                             snapshot.data.data[index].subscribe,
-                             snapshot.data.data[index].paymentmode,
-                             snapshot.data.data[index].cronTime,
-                             snapshot.data.data[index].name,
-
-                           );*/
+                                  return SellingItemsv2(
+                                    fromScreen: "sellingitem_screen",
+                                      seeallpress: widget.params['seeallpress'].toString(),
+                                      itemdata: snapshot.data!.data![index],
+                                      notid: "",
+                                      //"sellingitem_screen",widget.params['seeallpress'].toString(), snapshot.data!.data![index],""
+                                  );
                                 });
                           else
                             return SizedBox.shrink();
@@ -427,7 +365,7 @@ class _SellingitemScreenState extends State<SellingitemScreen> {
                 ),
 
               ),
-              if(_isWeb) Footer(address: PrefUtils.prefs.getString("restaurant_address"))
+              if(_isWeb) Footer(address: PrefUtils.prefs!.getString("restaurant_address")!)
             ],
           ),
         ),
@@ -441,7 +379,7 @@ class _SellingitemScreenState extends State<SellingitemScreen> {
       body: Column(
         children: <Widget>[
           if(_isWeb && !ResponsiveLayout.isSmallScreen(context))
-            Header(false, false),
+            Header(false),
           _body(),
         ],
       ),

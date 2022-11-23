@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import '../../constants/features.dart';
 import '../generated/l10n.dart';
 import 'package:package_info/package_info.dart';
 import '../constants/IConstants.dart';
+import '../rought_genrator.dart';
 import '../screens/policy_screen.dart';
 import '../assets/ColorCodes.dart';
 import '../utils/prefUtils.dart';
@@ -12,9 +15,9 @@ class PrivacyScreen extends StatefulWidget {
   _PrivacyScreenState createState() => _PrivacyScreenState();
 }
 
-class _PrivacyScreenState extends State<PrivacyScreen> {
+class _PrivacyScreenState extends State<PrivacyScreen> with Navigations {
   bool _isLoading = true;
-  PackageInfo packageInfo;
+  late PackageInfo packageInfo;
 
   @override
   void initState() {
@@ -31,7 +34,7 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: gradientappbarmobile(),
-        backgroundColor: Color(0xffe8e8e8),
+        backgroundColor: ColorCodes.baseColorlight,
 
         body: _isLoading ? Center(
           child: CircularProgressIndicator(),
@@ -39,27 +42,17 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
           child: Column(
             children: <Widget>[
               SizedBox(height: 30.0,),
-              if(PrefUtils.prefs.getString("privacy") !="")
+              if(PrefUtils.prefs!.getString("privacy") !="")
               GestureDetector(
                 onTap: () async {
-                  //SharedPreferences prefs = await SharedPreferences.getInstance();
-/*                  PrefUtils.prefs.setString('pressed', "termsuse");
-                  Navigator.of(context).pushNamed(
-                    PolicyScreen.routeName,
-                  );*/
-                  Navigator.of(context).pushNamed(
-                      PolicyScreen.routeName,
-                      arguments: {
-                        'title' : S.of(context).privacy,
-                        'body' : PrefUtils.prefs.getString("privacy"),
-                      }
-                  );
+                  Navigation(context, name: Routename.Policy, navigatore: NavigatoreTyp.Push,
+                      parms: {"title": S.of(context).privacy/*, "body" : PrefUtils.prefs!.getString("privacy").toString()*/});
                 },
                 child: Row(
                   children: <Widget>[
                     SizedBox(width: 10.0,),
                     Text(
-                      S.of(context).privacy
+                      S .of(context).privacy
                       // "Privacy"
                       ,
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.0),),
@@ -69,29 +62,23 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
                   ],
                 ),
               ),
-              if(PrefUtils.prefs.getString("privacy") !="")
+              if(PrefUtils.prefs!.getString("privacy") !="")
               SizedBox(height: 5.0,),
-              if(PrefUtils.prefs.getString("privacy") !="")
+              if(PrefUtils.prefs!.getString("privacy") !="")
               Divider(),
               if(IConstants.returnsPolicy !="")
               SizedBox(height: 5.0,),
               if(IConstants.returnsPolicy !="")
               GestureDetector(
                 onTap: () async {
-                  //SharedPreferences prefs = await SharedPreferences.getInstance();
-                  Navigator.of(context).pushNamed(
-                      PolicyScreen.routeName,
-                      arguments: {
-                        'title' : S.of(context).returns,
-                        'body' : IConstants.returnsPolicy,
-                      }
-                  );
+                  Navigation(context, name: Routename.Policy, navigatore: NavigatoreTyp.Push,
+                      parms: {"title": S.of(context).returns/*, "body" : IConstants.returnsPolicy*/});
                 },
                 child: Row(
                   children: <Widget>[
                     SizedBox(width: 10.0,),
                     Text(
-                      S.of(context).returns
+                      S .of(context).returns
                       // "Return"
                       ,
                       style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.0),),
@@ -110,20 +97,14 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
               if(IConstants.refundPolicy !="")
               GestureDetector(
                 onTap: () async {
-                  //SharedPreferences prefs = await SharedPreferences.getInstance();
-                  Navigator.of(context).pushNamed(
-                      PolicyScreen.routeName,
-                      arguments: {
-                        'title' : S.of(context).refund,
-                        'body' : IConstants.refundPolicy,
-                      }
-                  );
+                  Navigation(context, name: Routename.Policy, navigatore: NavigatoreTyp.Push,
+                      parms: {"title": S.of(context).refund/*, "body" : IConstants.refundPolicy*/});
                 },
                 child: Row(
                   children: <Widget>[
                     SizedBox(width: 10.0,),
                     Text(
-                        S.of(context).refund,
+                        S .of(context).refund,
                      // "Refund"
 
                       style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.0),),
@@ -142,20 +123,14 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
               if(IConstants.walletPolicy !="")
               GestureDetector(
                 onTap: () async {
-                  //SharedPreferences prefs = await SharedPreferences.getInstance();
-                  Navigator.of(context).pushNamed(
-                      PolicyScreen.routeName,
-                      arguments: {
-                        'title' :S.of(context).wallet,
-                        'body' : IConstants.walletPolicy,
-                      }
-                  );
+                  Navigation(context, name: Routename.Policy, navigatore: NavigatoreTyp.Push,
+                      parms: {"title": S.of(context).wallet/*, "body" :IConstants.walletPolicy*/});
                 },
                 child: Row(
                   children: <Widget>[
                     SizedBox(width: 10.0,),
                     Text(
-                        S.of(context).wallet,
+                        S .of(context).wallet,
                       // "Wallet",
                       style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.0),),
                     Spacer(),
@@ -173,20 +148,14 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
               if(IConstants.restaurantTerms !="")
               GestureDetector(
                 onTap: () async {
-                  //SharedPreferences prefs = await SharedPreferences.getInstance();
-                  Navigator.of(context).pushNamed(
-                      PolicyScreen.routeName,
-                      arguments: {
-                        'title' :  S.of(context).terms_of_use,
-                        'body' : IConstants.restaurantTerms,
-                      }
-                  );
+                  Navigation(context, name: Routename.Policy, navigatore: NavigatoreTyp.Push,
+                      parms: {"title": S.of(context).terms_of_use, /*"body" :IConstants.restaurantTerms*/});
                 },
                 child: Row(
                   children: <Widget>[
                     SizedBox(width: 10.0,),
                     Text(
-                        S.of(context).terms_of_service,
+                        S .of(context).terms_of_service,
                       // "Terms of Use",
                       style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.0),),
                     Spacer(),
@@ -204,7 +173,7 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
               Row(
                 children: <Widget>[
                   SizedBox(width: 10.0,),
-                  Text(S.of(context).app_version,
+                  Text(S .of(context).app_version,
                     // "App version",
 
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.0),),
@@ -216,8 +185,8 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
                 children: <Widget>[
                   SizedBox(width: 10.0,),
                   Text(
-                    // S.of(context).v1_live,
-                     S.of(context).version+ packageInfo.version + S.of(context).live,
+                    // S .of(context).v1_live,
+                     S .of(context).version+ packageInfo.version + S .of(context).live,
                     //"Version " + packageInfo.version + " Live",
                     style: TextStyle(fontSize: 14.0),),
                 ],
@@ -236,35 +205,29 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
       elevation: (IConstants.isEnterprise)?0:1,
       automaticallyImplyLeading: false,
       leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: ColorCodes.menuColor),
-          onPressed: () {
-            Navigator.of(context).pop();
+          icon: Icon(Icons.arrow_back, color: ColorCodes.iconColor),
+          onPressed: () async{
+           Navigator.of(context).pop();
+            //context.go('/');
+           // Navigation(context, navigatore: NavigatoreTyp.homenav);
             // Navigator.of(context).popUntil(ModalRoute.withName(HomeScreen.routeName,));
-            return Future.value(false);
+
           }
       ),
       titleSpacing: 0,
       title: Text(
-          S.of(context).privacy_others,
+          S .of(context).privacy_others,
         // 'Privacy & Others',
-        style: TextStyle(color:ColorCodes.menuColor,fontWeight: FontWeight.w800),
+        style: TextStyle(color: ColorCodes.iconColor, fontWeight: FontWeight.bold, fontSize: 18),
       ),
       flexibleSpace: Container(
         decoration: BoxDecoration(
-            boxShadow: [
-              BoxShadow(
-                color: ColorCodes.grey.withOpacity(0.2),
-                spreadRadius: 5,
-                blurRadius: 5,
-                offset: Offset(0, 5),
-              )
-            ],
             gradient: LinearGradient(
                 begin: Alignment.topRight,
                 end: Alignment.bottomLeft,
                 colors: [
-                  ColorCodes.accentColor,
-                  ColorCodes.primaryColor
+                  ColorCodes.appbarColor,
+                  ColorCodes.appbarColor2
                 ]
             )
         ),

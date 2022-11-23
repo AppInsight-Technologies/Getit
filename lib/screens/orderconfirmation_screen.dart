@@ -4,83 +4,67 @@ import 'package:firebase_dynamic_links/firebase_dynamic_links.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import '../../controller/mutations/cart_mutation.dart';
-import '../../models/VxModels/VxStore.dart';
-import '../../models/newmodle/cartModle.dart';
-import '../../providers/sellingitems.dart';
-import '../../screens/bloc.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+import '../../repository/authenticate/AuthRepo.dart';
+import '../../constants/features.dart';
+import '../../controller/mutations/home_screen_mutation.dart';
+import '../../screens/home_screen.dart';
+import '../../utils/facebook_app_events.dart';
+import '../controller/mutations/cart_mutation.dart';
+import '../models/VxModels/VxStore.dart';
+import '../models/newmodle/cartModle.dart';
+import '../providers/sellingitems.dart';
+import '../rought_genrator.dart';
 import 'package:velocity_x/velocity_x.dart';
 import '../assets/images.dart';
 import '../constants/api.dart';
 import '../constants/features.dart';
 import '../generated/l10n.dart';
 import '../providers/branditems.dart';
-import '../screens/orderhistory_screen.dart';
 import '../widgets/simmers/orderconfirmation_shimmer.dart';
-import 'package:hive/hive.dart';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import 'package:share/share.dart';
 
 import '../assets/ColorCodes.dart';
-import '../screens/home_screen.dart';
 import '../constants/IConstants.dart';
-import '../data/hiveDB.dart';
-import '../main.dart';
 import '../widgets/footer.dart';
 import '../utils/ResponsiveLayout.dart';
 import '../widgets/header.dart';
 import '../utils/prefUtils.dart';
 import '../providers/cartItems.dart';
+import 'orderhistory_screen.dart';
 
 class OrderconfirmationScreen extends StatefulWidget {
   static const routeName = '/orderconfirmation-screen';
 
+  Map<String,String> params;
+  OrderconfirmationScreen(this.params);
   @override
   OrderconfirmationScreenState createState() => OrderconfirmationScreenState();
 }
 
-class OrderconfirmationScreenState extends State<OrderconfirmationScreen> {
+class OrderconfirmationScreenState extends State<OrderconfirmationScreen> with Navigations{
   bool _isOrderstatus = true;
   bool _isLoading = true;
   bool _isWeb = false;
   var _address = "";
-  double wid;
-  double maxwid;
+  double? wid;
+  double? maxwid;
   var orderid;
-  MediaQueryData queryData;
+  MediaQueryData? queryData;
   bool iphonex = false;
   String referalCode = "";
-  Uri dynamicUrl;
+  Uri? dynamicUrl;
   var name = "";
   double amount = 0.00;
-  //Box<Product> productBox;
   List<CartItem> productBox=[];
-  HomeDisplayBloc _bloc;
   GroceStore store = VxState.store;
   @override
   void initState() {
-    //Hive.openBox<Product>(productBoxName);
-    productBox = /*Hive.box<Product>(productBoxName)*/(VxState.store as GroceStore).CartItemList;
-    _bloc = HomeDisplayBloc();
-    /*try {
-      if (Platform.isIOS || Platform.isAndroid) {
-        final document = await getApplicationDocumentsDirectory();
-        Hive.init(document.path);
-        Hive.registerAdapter(ProductAdapter());
-        Hive.openBox<Product>(productBoxName);
-
-      }
-    } catch (e) {
-      Hive.registerAdapter(ProductAdapter());
-      Hive.openBox<Product>(productBoxName);
-    }*/
-
-
-    PrefUtils.prefs.remove("subscriptionorderId");
+    productBox =  (VxState.store as GroceStore).CartItemList;
+    PrefUtils.prefs!.remove("subscriptionorderId");
     Future.delayed(Duration.zero, () async {
-      // debugPrint("membership....41  "+PrefUtils.prefs.getString("membership"));
       try {
         if (Platform.isIOS) {
           setState(() {
@@ -98,22 +82,10 @@ class OrderconfirmationScreenState extends State<OrderconfirmationScreen> {
         });
       }
       setState(() {
-       /* if (PrefUtils.prefs.getString('FirstName') != null) {
-          if (PrefUtils.prefs.getString('LastName') != null) {
-            name = PrefUtils.prefs.getString('FirstName') +
-                " " +
-                PrefUtils.prefs.getString('LastName');
-          } else {
-            name = PrefUtils.prefs.getString('FirstName');
-          }
-        } else {
-          name = "";
-        }*/
-        name = store.userData.username;
+        name = store.userData.username!;
       });
 
-      referalCode= PrefUtils.prefs.getString('myreffer');
-      //orderid =  PrefUtils.prefs.getString("orderId");
+      referalCode= store.userData.myref!;
 
 
       var referData;
@@ -122,23 +94,15 @@ class OrderconfirmationScreenState extends State<OrderconfirmationScreen> {
         setState(() {
           amount = double.parse(referData.referEarn.amount);
         });
-
-        debugPrint("amount...order"+amount.toString());
       });
       final routeArgs = ModalRoute
-          .of(context)
+          .of(context)!
           .settings
           .arguments as Map<String, String>;
 
-      final orderstatus = routeArgs['orderstatus'];
-      orderid = routeArgs['orderid'];
+      final orderstatus = widget.params['orderstatus'];
+      orderid = widget.params['orderid'];
       if(orderstatus == "success"){
-        //  debugPrint("membership....42  "+PrefUtils.prefs.getString("membership"));
-        /* setState(() {
-          _isOrderstatus = true;
-          _isLoading = false;
-        });*/
-
          cartcontroller.clear((value) {
            if(value){
              setState(() {
@@ -147,15 +111,6 @@ class OrderconfirmationScreenState extends State<OrderconfirmationScreen> {
              });
            }
          });
-    /*    await Provider.of<CartItems>(context, listen: false).emptyCart().then((_) {
-          // debugPrint("membership....43  "+PrefUtils.prefs.getString("membership"));
-          Hive.box<Product>(productBoxName).clear();
-          //debugPrint("membership....50  "+PrefUtils.prefs.getString("membership"));
-          setState(() {
-            _isOrderstatus = true;
-            _isLoading = false;
-          });
-        });*/
         final sellingitemData = Provider.of<SellingItemsList>(context, listen: false);
         for(int i = 0; i < sellingitemData.featuredVariation.length; i++) {
           sellingitemData.featuredVariation[i].varQty = 0;
@@ -180,72 +135,137 @@ class OrderconfirmationScreenState extends State<OrderconfirmationScreen> {
           cartItemsData.items[i].itemQty = 0;
         }
 
-      } else {
-        // debugPrint("membership....44  "+PrefUtils.prefs.getString("membership"));
+      }
+      else {
         for(int i = 0; i < productBox.length; i++) {
           if (productBox[i].mode == "1"){
-            PrefUtils.prefs.setString("membership", "0");
+            PrefUtils.prefs!.setString("membership", "0");
           }
         }
-        /* Provider.of<CartItems>(context, listen: false).emptyCart().then((_) {
-          //Hive.box<Product>(productBoxName).deleteFromDisk();
-          Hive.box<Product>(productBoxName).clear();
-          final orderId = routeArgs['orderId'];
-          paymentStatus(orderId);
-        });*/
-        final orderId = routeArgs['orderId'];
-        paymentStatus(orderId);
+        final orderId = widget.params['orderid'];
+        paymentStatus(orderId!);
       }
-
-      // debugPrint("membership....51  "+PrefUtils.prefs.getString("membership"));
-      createReferralLink(referalCode);
-      // debugPrint("membership....50  "+PrefUtils.prefs.getString("membership"));
-
-
     });
-    // debugPrint("membership....2  "+PrefUtils.prefs.getString("membership"));
     super.initState();
   }
 
   Future<String> createReferralLink(String referralCode) async {
     final DynamicLinkParameters dynamicLinkParameters = DynamicLinkParameters(
-        uriPrefix: 'https://denimers.page.link',
+        uriPrefix: 'https://itgetpage.page.link',
         link: Uri.parse('https://referandearn.com/refer?code=$referralCode'),
         androidParameters: AndroidParameters(
           packageName: IConstants.androidId,
         ),
-        iosParameters: IosParameters(
+        iosParameters: IOSParameters(
             bundleId: IConstants.androidId,
             appStoreId: IConstants.appleId
         )
-      /* socialMetaTagParameters: SocialMetaTagParameters(
-        title: 'Refer A Friend',
-        description: 'Refer and earn',
-        imageUrl: Uri.parse(
-            'https://www.insperity.com/wp-content/uploads/Referral-_Program1200x600.png'),
-      ),*/
     );
 
     final ShortDynamicLink shortLink =
-    await dynamicLinkParameters.buildShortLink();
+    await (await FirebaseDynamicLinks.instance).buildShortLink(dynamicLinkParameters);
     dynamicUrl = shortLink.shortUrl;
     return dynamicUrl.toString();
   }
 
+  // Future<void> paymentStatus(String orderId) async { // imp feature in adding async is the it automatically wrap into Future.
+  //   try {
+  //     debugPrint("payment status....."+{ // await keyword is used to wait to this operation is complete.
+  //       "branch": PrefUtils.prefs!.getString('branch'),
+  //     }.toString());
+  //     final response = await http.post(
+  //         Api.getOrderStatus + orderId,
+  //         body: { // await keyword is used to wait to this operation is complete.
+  //           "branch": PrefUtils.prefs!.getString('branch'),
+  //         }
+  //     );
+  //     final responseJson = json.decode(response.body);
+  //     debugPrint("responsjson...."+responseJson['status'].toString());
+  //     if(responseJson['status'].toString() == "yes") {
+  //       PrefUtils.prefs!.remove("orderId");
+  //       for(int i = 0; i < productBox.length; i++) {
+  //         // if(Features.isfacebookappevent)
+  //         //   FaceBookAppEvents.facebookAppEvents.logPurchase(parameters: {
+  //         //   "id":orderId,
+  //         // },amount: amount,currency:IConstants.currencyFormat);
+  //         if (productBox[i].mode == "1"){
+  //           PrefUtils.prefs!.setString("membership", "2");
+  //           auth.getuserProfile(onsucsess: (value){
+  //           }, onerror: (){
+  //           });
+  //         }
+  //       }
+  //       cartcontroller.clear((value) {
+  //         if(value){
+  //           setState(() {
+  //             _isOrderstatus = true;
+  //             _isLoading = false;
+  //           });
+  //         }
+  //       });
+  //       final sellingitemData = Provider.of<SellingItemsList>(context, listen: false);
+  //       for(int i = 0; i < sellingitemData.featuredVariation.length; i++) {
+  //         sellingitemData.featuredVariation[i].varQty = 0;
+  //       }
+  //
+  //       for (int i = 0; i < sellingitemData.itemspricevarOffer.length; i++) {
+  //         sellingitemData.itemspricevarOffer[i].varQty = 0;
+  //         break;
+  //       }
+  //       for(int i = 0; i < sellingitemData.itemspricevarSwap.length; i++) {
+  //         sellingitemData.itemspricevarSwap[i].varQty = 0;
+  //         break;
+  //       }
+  //
+  //       for(int i = 0; i < sellingitemData.discountedVariation.length; i++) {
+  //         sellingitemData.discountedVariation[i].varQty = 0;
+  //         break;
+  //       }
+  //
+  //       final cartItemsData = Provider.of<CartItems>(context, listen: false);
+  //       for(int i = 0; i < cartItemsData.items.length; i++) {
+  //         cartItemsData.items[i].itemQty = 0;
+  //       }
+  //
+  //     }
+  //     else {
+  //       for(int i = 0; i < productBox.length; i++) {
+  //         if (productBox[i].mode == "1"){
+  //           PrefUtils.prefs!.setString("membership", "0");
+  //         }
+  //       }
+  //       setState(() {
+  //         _isOrderstatus = false;
+  //         _isLoading = false;
+  //       });
+  //
+  //     }
+  //
+  //   } catch (error) {
+  //     throw error;
+  //   }
+  // }
   Future<void> paymentStatus(String orderId) async { // imp feature in adding async is the it automatically wrap into Future.
+    debugPrint("paymentStatus....."+orderId);
+    var url = Api.getOrderStatus + orderId;
     try {
-      final response = await http.post(
-          Api.getOrderStatus,
+      final response = await http
+          .post(
+          url,
           body: { // await keyword is used to wait to this operation is complete.
-            "branch": PrefUtils.prefs.getString('branch'),
+            "branch": PrefUtils.prefs!.getString('branch')??"999",
           }
       );
       final responseJson = json.decode(response.body);
+      debugPrint("responseJson....."+responseJson.toString());
       if(responseJson['status'].toString() == "yes") {
-        PrefUtils.prefs.remove("orderId");
+        PrefUtils.prefs!.remove("orderId");
         for(int i = 0; i < productBox.length; i++) {
           if (productBox[i].mode == "1"){
-            PrefUtils.prefs.setString("membership", "2");
+            PrefUtils.prefs!.setString("membership", "2");
+            auth.getuserProfile(onsucsess: (value){
+            }, onerror: (){
+            });
           }
         }
         cartcontroller.clear((value) {
@@ -256,103 +276,71 @@ class OrderconfirmationScreenState extends State<OrderconfirmationScreen> {
             });
           }
         });
-      /*  Provider.of<CartItems>(context, listen: false).emptyCart().then((_) {
-          Hive.box<Product>(productBoxName).clear();
-          setState(() {
-            _isOrderstatus = true;
-            _isLoading = false;
-          });
-        });*/
-        final sellingitemData = Provider.of<SellingItemsList>(context, listen: false);
-        for(int i = 0; i < sellingitemData.featuredVariation.length; i++) {
-          sellingitemData.featuredVariation[i].varQty = 0;
-        }
-
-        for (int i = 0; i < sellingitemData.itemspricevarOffer.length; i++) {
-          sellingitemData.itemspricevarOffer[i].varQty = 0;
-          break;
-        }
-        for(int i = 0; i < sellingitemData.itemspricevarSwap.length; i++) {
-          sellingitemData.itemspricevarSwap[i].varQty = 0;
-          break;
-        }
-
-        for(int i = 0; i < sellingitemData.discountedVariation.length; i++) {
-          sellingitemData.discountedVariation[i].varQty = 0;
-          break;
-        }
-
-        final cartItemsData = Provider.of<CartItems>(context, listen: false);
-        for(int i = 0; i < cartItemsData.items.length; i++) {
-          cartItemsData.items[i].itemQty = 0;
-        }
-
       } else {
         for(int i = 0; i < productBox.length; i++) {
           if (productBox[i].mode == "1"){
-            PrefUtils.prefs.setString("membership", "0");
+            PrefUtils.prefs!.setString("membership", "0");
           }
         }
         setState(() {
           _isOrderstatus = false;
           _isLoading = false;
         });
-        /*Provider.of<CartItems>(context, listen: false).emptyCart().then((_) {
-          Hive.box<Product>(productBoxName).clear();
-          setState(() {
-            _isOrderstatus = false;
-            _isLoading = false;
-          });
-        });*/
+        if(Vx.isWeb)
+          PrefUtils.prefs!.remove("orderId");
+       // await _cancelOrderback();
       }
-/*      if(responseJson['status'].toString() == "200") {
-        if(status == "paid") {
-          Navigator.of(context).pushReplacementNamed(
-              OrderconfirmationScreen.routeName,
-              arguments: {
-                'orderstatus' : "success",
-              }
-          );
-        } else {
-          Navigator.of(context).pushReplacementNamed(
-              OrderconfirmationScreen.routeName,
-              arguments: {
-                'orderstatus' : "failure",
-              }
-          );
-        }
-      } else {
-      }*/
+    } catch (error) {
+      throw error;
+    }
+  }
+  Future<void> _cancelOrderback() async { // imp feature in adding async is the it automatically wrap into Future.
+    try {
+      debugPrint("cancel...order.."+{ // await keyword is used to wait to this operation is complete.
+        "id": PrefUtils.prefs!.getString('orderId'),
+        "note": "Payment cancelled by user",
+        "branch": PrefUtils.prefs!.getString('branch')??"999",
+      }.toString());
+      final response = await http.post(
+          Api.cancelOrderBack,
+          body: { // await keyword is used to wait to this operation is complete.
+            "id": PrefUtils.prefs!.getString('orderId'),
+            "note": "Payment cancelled by user",
+            "branch": PrefUtils.prefs!.getString('branch')??"999",
+          }
+      );
+      final responseJson = json.decode(response.body);
+      if(responseJson['status'].toString() == "200"){
+        PrefUtils.prefs!.remove("orderId");
+      }
 
     } catch (error) {
+      Fluttertoast.showToast(msg: S .of(context).something_went_wrong,//"Something went wrong!!!",
+        fontSize: MediaQuery.of(context).textScaleFactor *13,);
       throw error;
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.light.copyWith(
-      statusBarColor: ColorCodes.discountoff,
-      statusBarIconBrightness: Brightness.dark,
-    ));
+
     return WillPopScope(
       onWillPop: () { // this is the block you need
-        //Hive.openBox<Product>(productBoxName);
-        // Navigator.of(context).popUntil(ModalRoute.withName(HomeScreen.routeName,));
-        Navigator.of(context).pushNamedAndRemoveUntil(
-            '/home-screen', (Route<dynamic> route) => false);
+        HomeScreenController(user: (VxState.store as GroceStore).userData.id ??
+            PrefUtils.prefs!.getString("tokenid"),
+            branch: (VxState.store as GroceStore).userData.branch ?? "999",
+            rows: "0");
+        Navigation(context, navigatore: NavigatoreTyp.homenav);
         return Future.value(false);
       },
       child: Scaffold(
-        /*  appBar: ResponsiveLayout.isSmallScreen(context) ?
-            gradientappbarmobile() : null,*/
-        backgroundColor: Color(0xffF3F3F3),
+        backgroundColor: ColorCodes.lightsteelblue,
 
         body:SafeArea(
           child: Column(
             children: <Widget>[
               if(_isWeb && !ResponsiveLayout.isSmallScreen(context))
-                Header(false, false),
+                Header(false),
               _body(),
             ],
           ),
@@ -367,7 +355,6 @@ class OrderconfirmationScreenState extends State<OrderconfirmationScreen> {
   }
   _bodymobile() {
 
-    debugPrint("doble amount...."+amount.toString());
     return _isLoading ?
     Center(
       child: OrderConfirmationShimmer(),//CircularProgressIndicator(),
@@ -378,75 +365,67 @@ class OrderconfirmationScreenState extends State<OrderconfirmationScreen> {
         child: Column(
             mainAxisAlignment: MainAxisAlignment.start,
             crossAxisAlignment: CrossAxisAlignment.start,
-            // mainAxisAlignment: MainAxisAlignment.start,
-            // crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Stack(
-                children: [
-                  /*Container(
-                  //  color: ColorCodes.discountoff,
-                    child: Image.asset(Images.orderconfirm,
-                    width: MediaQuery.of(context).size.width,
-                    height: MediaQuery.of(context).size.height / 2.85)
-                  ),*/
 
-                  Container(
-                    color: ColorCodes.discountoff,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        crossAxisAlignment: CrossAxisAlignment.start,
+              Container(
+
+                height:MediaQuery.of(context).size.height/2.5,
+                color: ColorCodes.varcolor,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _isOrderstatus ? Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        child: Align(
+                          alignment: Alignment.topLeft,
+                          child: Icon(
+                            Icons.check_circle, color: ColorCodes.primaryColor, size: 50,),
+                        ),
+                      )
+                          :
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        child: Align(
+                          alignment: Alignment.topRight,
+                          child: Icon(Icons.cancel, color: Colors.red, size: 50.0),
+                        ),
+                      ),
+                      SizedBox(height: 20),
+                      Text(
+                        S .of(context).hi//'Thank You for Choosing '
+                            + name + ',',
+                        style: TextStyle(fontSize: 20.0, color: ColorCodes.primaryColor),
+                        textAlign: TextAlign.left,
+                      ),
+                      SizedBox(height: 20),
+                      Text(
+                        S .of(context).thanks_choosing_confirm//'Thank You for Choosing '
+                            /*+ IConstants.APP_NAME + '.'*/,
+                        style: TextStyle(fontSize: 25.0, color: ColorCodes.primaryColor),
+                        // textAlign: TextAlign.center,
+                      ),
+                      SizedBox(height: 20),
+                      Row(
                         children: [
-                          _isOrderstatus ? Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 20),
-                            child: Align(
-                              alignment: Alignment.topLeft,
-                              child: Icon(
-                                Icons.check_circle, color: ColorCodes.whiteColor, size: 50,),
-                            ),
-                          )
-                              :
-                          Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 10),
-                            child: Align(
-                              alignment: Alignment.topRight,
-                              child: Icon(Icons.cancel, color: Colors.red, size: 50.0),
-                            ),
-                          ),
-                          SizedBox(height: 10),
                           Text(
-                            S.of(context).hi//'Thank You for Choosing '
-                                + name + ',',
-                            style: TextStyle(fontSize: 19.0, color: ColorCodes.whiteColor, fontWeight: FontWeight.bold),
-                            textAlign: TextAlign.left,
+                            S .of(context).order + "#" +orderid,
+                            style: TextStyle(fontSize: 16 , color: ColorCodes.primaryColor),
                           ),
-                          SizedBox(height: 15),
-                          Text(
-                            "Your Order has been placed Successfully!",//'Thank You for Choosing ',
-                            style: TextStyle(fontSize: 24.0, color: ColorCodes.whiteColor, fontWeight: FontWeight.bold),
-                            // textAlign: TextAlign.center,
-                          ),
-                          SizedBox(height: 20),
-                          Row(
-                            children: [
-                              Text(
-                                S.of(context).order + "#" +orderid,
-                                style: TextStyle(fontSize: 16 , color: ColorCodes.whiteColor, fontWeight: FontWeight.bold),
-                              ),
 
-                            ],
-                          ),
-                          SizedBox(
-                            height: 10,
-                          ),
                         ],
                       ),
-                    ),
+                      SizedBox(
+                        height: 10,
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
               SizedBox(height: 10),
+
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20,vertical: 10),
                 child: Container(
@@ -456,25 +435,28 @@ class OrderconfirmationScreenState extends State<OrderconfirmationScreen> {
                     children: [
                       GestureDetector(
                         onTap: (){
-                          // debugPrint("membership....40  "+PrefUtils.prefs.getString("membership"));
-                          _isWeb?
-                          Navigator.of(context).pushNamed(
-                              OrderhistoryScreen.routeName,
-                              arguments: {
-                                'orderid': orderid.toString(),
-                                "fromScreen" : "weborderConfirmation",
-                                // 'orderStatus':widget.ostatus,
-
-                              })
-                          :
-                          Navigator.of(context).pushNamed(
-                              OrderhistoryScreen.routeName,
-                              arguments: {
-                                'orderid': orderid.toString(),
-                                "fromScreen" : "orderConfirmation",
-                                // 'orderStatus':widget.ostatus,
-
-                              });
+                          if(_isWeb) {
+                            (Vx.isWeb &&
+                                !ResponsiveLayout.isSmallScreen(context)) ?
+                            OrderhistoryWeb(
+                                context, orderid: orderid.toString(),
+                                fromscreen: "weborderConfirmation")
+                                :
+                            Navigation(context, name: Routename.OrderHistory,
+                                navigatore: NavigatoreTyp.Push,
+                                qparms: {
+                                  'orderid': orderid.toString(),
+                                  "fromScreen": "weborderConfirmation",
+                                });
+                          }
+                          else {
+                            Navigation(context, name: Routename.OrderHistory,
+                                navigatore: NavigatoreTyp.Push,
+                                qparms: {
+                                  'orderid': orderid.toString(),
+                                  "fromScreen": "orderConfirmation",
+                                });
+                          }
                         },
                         child: Container(
                           width: MediaQuery.of(context).size.width ,
@@ -484,41 +466,25 @@ class OrderconfirmationScreenState extends State<OrderconfirmationScreen> {
                             borderRadius: BorderRadius.circular(5.0),
                             border: Border.all(
                               width: 1.0,
-                              color: ColorCodes.discountoff,
+                              color: ColorCodes.primaryColor,
                             ),
                           ),
                           child: Text(
-                            S.of(context).view_details,//"LOGIN USING OTP",
+                            S .of(context).view_details,//"LOGIN USING OTP",
                             textAlign: TextAlign.center,
                             style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 15.0,
-                                color: ColorCodes.discountoff),
+                                color: ColorCodes.primaryColor),
                           ),
                         ),
                       ),
-                      SizedBox(height: 25,),
-                      Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: <Widget>[
-                          Image.asset(Images.nowishlistfound,
-                          height: 250,),
-                          SizedBox(height: 15,),
-                          Text("Thank You for shipping with us",
-                            //"You have no past orders",
-                            style: TextStyle(fontSize: 17.0, fontWeight: FontWeight.bold, color: ColorCodes.darkGrey),),
-                        ],
-                      ),
-
-
 
                     ],
                   ),
                 ),
               ),
               SizedBox(height: 15),
-              if(Features.isReferEarn)
-                (amount > 0)?
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20,vertical: 10),
                   child: Container(
@@ -526,21 +492,23 @@ class OrderconfirmationScreenState extends State<OrderconfirmationScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        Image.asset(Images.gift, height: 100.0, width: 50.0),
-                        Text(S.of(context).share_get + IConstants.currencyFormat + amount.toString(),
+                        Image.asset(Images.gift, height: 100.0, width: 50.0,color: ColorCodes.primaryColor,),
+                        Features.iscurrencyformatalign?
+                        Text(S .of(context).share_get + amount.toString() + IConstants.currencyFormat,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(fontWeight: FontWeight.bold,fontSize: 18),):
+                        Text(S .of(context).share_get + IConstants.currencyFormat + amount.toString(),
                           textAlign: TextAlign.center,
                           style: TextStyle(fontWeight: FontWeight.bold,fontSize: 18),),
                         SizedBox(height:8),
-                        Text(S.of(context).inwallet_invite_friends + IConstants.APP_NAME + S.of(context).with_unique_referal ,
+                        Text(S .of(context).inwallet_invite_friends + IConstants.APP_NAME + S .of(context).with_unique_referal ,
                             textAlign: TextAlign.center),
-                        // Text(S.of(context).with_unique_referal ,
-                        //     textAlign: TextAlign.center),
                         SizedBox(height:10),
                         GestureDetector(
                           onTap: (){
-                            Share.share('Download ' +
+                            Share.share(/*'Download '*/S.of(context).download +
                                 IConstants.APP_NAME +
-                                ' from Google Play Store and use my referral code ('+ referalCode +')'+" "+dynamicUrl.toString());
+                                /*' from Google Play Store and use my referral code ('*/ S.of(context).from_googleplay+ VxState.store.userData.myref +')'+" "+dynamicUrl.toString());
                           },
                           child: Container(
                             width: MediaQuery.of(context).size.width ,
@@ -554,24 +522,23 @@ class OrderconfirmationScreenState extends State<OrderconfirmationScreen> {
                               ),
                             ),
                             child: Text(
-                              S.of(context).share_now,//"LOGIN USING OTP",
+                              S .of(context).share_now,//"LOGIN USING OTP",
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  fontSize: 15.0,
+                                  fontSize: 16.0,
                                   color: ColorCodes.greenColor),
                             ),
                           ),
                         ),
-
-
                       ],
                     ),
                   ),
-                ):
-                SizedBox.shrink(),
+                ),
+                    //:
+               // SizedBox.shrink(),
 
-              if(_isWeb && !ResponsiveLayout.isSmallScreen(context)) Footer(address: PrefUtils.prefs.getString("restaurant_address")),
+              if(_isWeb && !ResponsiveLayout.isSmallScreen(context)) Footer(address: PrefUtils.prefs!.getString("restaurant_address")!),
             ]
         ),
       ),
@@ -579,10 +546,9 @@ class OrderconfirmationScreenState extends State<OrderconfirmationScreen> {
     );
   }
   _bodyweb() {
-
     queryData = MediaQuery.of(context);
-    wid= queryData.size.width;
-    maxwid=wid*0.90;
+    wid= queryData!.size.width;
+    maxwid=wid!*0.90;
     return  _isLoading ?
     Center(
       child: OrderConfirmationShimmer(),//CircularProgressIndicator(),
@@ -596,8 +562,6 @@ class OrderconfirmationScreenState extends State<OrderconfirmationScreen> {
           child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.center,
-              // mainAxisAlignment: MainAxisAlignment.start,
-              // crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
 
                 Container(
@@ -630,14 +594,14 @@ class OrderconfirmationScreenState extends State<OrderconfirmationScreen> {
                         ),
                         SizedBox(height: 20),
                         Text(
-                          S.of(context).hi//'Thank You for Choosing '
+                          S .of(context).hi//'Thank You for Choosing '
                               + name + ',',
                           style: TextStyle(fontSize: 20.0, color: ColorCodes.whiteColor),
                           textAlign: TextAlign.left,
                         ),
                         SizedBox(height: 20),
                         Text(
-                          S.of(context).thanks_choosing_confirm//'Thank You for Choosing '
+                          S .of(context).thanks_choosing_confirm//'Thank You for Choosing '
                               + IConstants.APP_NAME + '.',
                           style: TextStyle(fontSize: 25.0, color: ColorCodes.whiteColor),
                           // textAlign: TextAlign.center,
@@ -646,7 +610,7 @@ class OrderconfirmationScreenState extends State<OrderconfirmationScreen> {
                         Row(
                           children: [
                             Text(
-                              S.of(context).order + "#" +orderid,
+                              S .of(context).order + "#" +orderid,
                               style: TextStyle(fontSize: 16 , color: ColorCodes.whiteColor),
                             ),
 
@@ -670,12 +634,14 @@ class OrderconfirmationScreenState extends State<OrderconfirmationScreen> {
                       children: [
                         GestureDetector(
                           onTap: (){
-                            Navigator.of(context).pushNamed(
-                                OrderhistoryScreen.routeName,
-                                arguments: {
+                            (Vx.isWeb &&
+                                !ResponsiveLayout.isSmallScreen(context)) ?
+                            OrderhistoryWeb(
+                                context, orderid: orderid.toString(),)
+                                :
+                            Navigation(context, name:Routename.OrderHistory,navigatore: NavigatoreTyp.Push,
+                                qparms: {
                                   'orderid': orderid.toString(),
-                                  // 'orderStatus':widget.ostatus,
-
                                 });
                           },
                           child: Container(
@@ -686,16 +652,16 @@ class OrderconfirmationScreenState extends State<OrderconfirmationScreen> {
                               borderRadius: BorderRadius.circular(5.0),
                               border: Border.all(
                                 width: 1.0,
-                                color: ColorCodes.discountoff,
+                                color: ColorCodes.greenColor,
                               ),
                             ),
                             child: Text(
-                              S.of(context).view_details,//"LOGIN USING OTP",
+                              S .of(context).view_details,//"LOGIN USING OTP",
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 15.0,
-                                  color: ColorCodes.discountoff),
+                                  color: ColorCodes.greenColor),
                             ),
                           ),
                         ),
@@ -714,52 +680,11 @@ class OrderconfirmationScreenState extends State<OrderconfirmationScreen> {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           crossAxisAlignment: CrossAxisAlignment.center,
-                          // children: [
-                          //   Image.asset(Images.gift, height: 100.0, width: 50.0),
-                          //   Text(S.of(context).share_get + IConstants.currencyFormat + amount.toString(),
-                          //     textAlign: TextAlign.center,
-                          //     style: TextStyle(fontWeight: FontWeight.bold,fontSize: 18),),
-                          //   SizedBox(height:8),
-                          //   Text(S.of(context).inwallet_invite_friends + IConstants.APP_NAME + S.of(context).with_unique_referal ,
-                          //       textAlign: TextAlign.center),
-                          //   // Text(S.of(context).with_unique_referal ,
-                          //   //     textAlign: TextAlign.center),
-                          //   SizedBox(height:10),
-                          //   GestureDetector(
-                          //     onTap: (){
-                          //       Share.share('Download ' +
-                          //           IConstants.APP_NAME +
-                          //           ' from Google Play Store and use my referral code ('+ referalCode +')'+" "+dynamicUrl.toString());
-                          //     },
-                          //     child: Container(
-                          //       width: (_isWeb && !ResponsiveLayout.isSmallScreen(context))?MediaQuery.of(context).size.width*0.50:MediaQuery.of(context).size.width,
-                          //       // height: 32,
-                          //       padding: EdgeInsets.all(15.0),
-                          //       decoration: BoxDecoration(
-                          //         borderRadius: BorderRadius.circular(5.0),
-                          //         border: Border.all(
-                          //           width: 1.0,
-                          //           color: ColorCodes.greenColor,
-                          //         ),
-                          //       ),
-                          //       child: Text(
-                          //         S.of(context).share_now,//"LOGIN USING OTP",
-                          //         textAlign: TextAlign.center,
-                          //         style: TextStyle(
-                          //             fontWeight: FontWeight.bold,
-                          //             fontSize: 15.0,
-                          //             color: ColorCodes.greenColor),
-                          //       ),
-                          //     ),
-                          //   ),
-                          //
-                          //
-                          // ],
                         ),
                       ),
                     ),
 
-                if(_isWeb && !ResponsiveLayout.isSmallScreen(context)) Footer(address: PrefUtils.prefs.getString("restaurant_address")),
+                if(_isWeb && !ResponsiveLayout.isSmallScreen(context)) Footer(address: PrefUtils.prefs!.getString("restaurant_address")!),
               ]
           ),
         ),
@@ -774,16 +699,16 @@ class OrderconfirmationScreenState extends State<OrderconfirmationScreen> {
       elevation: (IConstants.isEnterprise)?0:1,
 
       automaticallyImplyLeading: false,
-      leading: IconButton(icon: Icon(Icons.arrow_back, color: ColorCodes.menuColor),onPressed: () {
-        SchedulerBinding.instance.addPostFrameCallback((_) {
+      leading: IconButton(icon: Icon(Icons.arrow_back, color: ColorCodes.iconColor),onPressed: () {
+        SchedulerBinding.instance!.addPostFrameCallback((_) {
           Navigator.of(context).pushNamedAndRemoveUntil(
               '/home-screen', (Route<dynamic> route) => false);
         });
       } ),
       title: Text(
-        S.of(context).order_confirmation,
+        S .of(context).order_confirmation,
         //'Order Confirmation',
-        style: TextStyle(color: ColorCodes.menuColor),
+        style: TextStyle(color: ColorCodes.iconColor, fontWeight: FontWeight.bold, fontSize: 18),
       ),
       titleSpacing: 0,
       flexibleSpace: Container(
@@ -792,8 +717,8 @@ class OrderconfirmationScreenState extends State<OrderconfirmationScreen> {
                 begin: Alignment.topRight,
                 end: Alignment.bottomLeft,
                 colors: [
-                  ColorCodes.accentColor,
-                  ColorCodes.primaryColor
+                  ColorCodes.appbarColor,
+                  ColorCodes.appbarColor2
                 ]
             )
         ),

@@ -6,13 +6,13 @@ import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:shimmer/shimmer.dart';
 
 class SingelItemShimmer extends StatelessWidget {
-  const SingelItemShimmer({Key key}) : super(key: key);
+  const SingelItemShimmer({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Shimmer.fromColors(
-      baseColor: ColorCodes.baseColor,
-      highlightColor: ColorCodes.lightGreyWebColor,
+      baseColor: ColorCodes.shimmerColor,
+      highlightColor: ColorCodes.shimmerColor,
       child: Column(
         children: [
           Divider(),
@@ -43,7 +43,7 @@ class SingelItemShimmer extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.center,
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: <Widget>[
-                            Text(  S.of(context).item,
+                            Text(  S .of(context).item,
                               //"item",
                             ),
                           ],
@@ -91,7 +91,7 @@ class SingelItemShimmer extends StatelessWidget {
                                     crossAxisAlignment: CrossAxisAlignment.center,
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: <Widget>[
-                                      Text(S.of(context).item,
+                                      Text(S .of(context).item,
                                       //  "item",
                                       ),
                                     ],
@@ -107,8 +107,8 @@ class SingelItemShimmer extends StatelessWidget {
                       ),
                     ),
                     Shimmer.fromColors(
-                      baseColor: ColorCodes.baseColor,
-                      highlightColor: ColorCodes.lightGreyWebColor,
+                      baseColor: ColorCodes.shimmerColor,
+                      highlightColor: ColorCodes.shimmerColor,
                       child: Column(
                         children: [
                           new ListView.builder(
@@ -120,8 +120,8 @@ class SingelItemShimmer extends StatelessWidget {
                                 margin: EdgeInsets.only(left: 10.0, bottom: 10.0),
                                 width: MediaQuery.of(context).size.width * 0.6,
                                 child: Shimmer.fromColors(
-                                  baseColor: ColorCodes.baseColor,
-                                  highlightColor: ColorCodes.lightGreyWebColor,
+                                  baseColor: ColorCodes.shimmerColor,
+                                  highlightColor: ColorCodes.shimmerColor,
                                   child: Container(
                                     height: 90.0,
                                     color: Theme.of(context).buttonColor,

@@ -1,4 +1,4 @@
-name: denimers_be
+name: getit
 description: Denimers E-commerce App
 
 # The following line prevents the package from being accidentally published to
@@ -18,20 +18,21 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 version: 1.0.0+1
 
 environment:
-  sdk: ">=2.7.0 <3.0.0"
+  sdk: ">=2.12.0 <3.0.0"
 
 dependencies:
-  platform: ^3.1.0
   flutter:
     sdk: flutter
   rxdart: # https://pub.dev/packages/rxdart
   carousel_slider:
-  provider: ^5.0.0
+  platform: ^3.1.0
+  provider:
   timer_builder:
   shared_preferences:
   parse_server_sdk:
   http:
   fluttertoast:
+
   flutter_sidebar:
   #sqflite: ^1.2.0
   #bottom_navy_bar: ^5.3.2
@@ -45,10 +46,13 @@ dependencies:
   #gradient_widgets: ^0.5.2
   #    gradient_app_bar:
   new_gradient_app_bar:
+  sentry_flutter:
   google_maps_flutter:
   flutter_google_maps:
-  geolocator: ^5.3.2+2
-  #flutter_inappwebview: ^4.0.0+4
+  #    geolocator:
+  geocoding: ^2.0.1
+  firebase_crashlytics: ^2.5.1
+  #    flutter_inappwebview: ^5.3.2
   flutter_spinkit:
   share:
   launch_review:
@@ -56,23 +60,24 @@ dependencies:
   geocoder:
   material_floating_search_bar:
   search_map_place:
-  location: 3.2.3
-  #flutter_facebook_login:
-  firebase_messaging: ^7.0.0
+  location:
+  flutter_facebook_login:
+  firebase_messaging: ^11.2.4
+  firebase_core:
   flutter_svg:
   #  cached_network_image: ^2.0.0
-  cached_network_image: ^2.0.0
+  cached_network_image:
   # app_settings:
   connectivity:
   url_launcher:
   flutter_html:
   flutter_webview_plugin:
-  apple_sign_in:
+  sign_in_apple: ^2.0.0
   scrollable_positioned_list:
-  readmore: ^2.0.0
+  readmore:
   sms_autofill:
   getflutter:
-  crisp:
+  crisp: ^0.3.1
   introduction_screen:
   simple_tooltip:
   cupertino_icons:
@@ -81,7 +86,7 @@ dependencies:
   hive_flutter:
   js:
   sizer:
-  #razorpay_flutter:
+  razorpay_flutter:
   #  google_maps: ^3.4.1
   flutter_google_places_web:
   google_maps_flutter_web:
@@ -95,50 +100,63 @@ dependencies:
   get_it:
   pub_semver:
   package_info:
-  in_app_update: 2.0.0
-  flutter_statusbarcolor:
+  in_app_update:
+  flutter_statusbarcolor_ns: ^0.4.0
   #ffi: ^1.0.0
-  ffi: ^1.0.0
+  ffi:
   eventify:
-  cashfree_pg: 1.2.4+20
-  #flutter_facebook_login_web:
+  cashfree_pg: ^2.0.10+30
+  flutter_facebook_login_web:
   bloc: #^7.0.0
+  flutter_login_facebook: ^1.2.0
   firebase_analytics:
-  firebase_dynamic_links: ^0.6.3
-  collection: ^1.12.0
+  firebase_dynamic_links:
+  collection:
   #    paytm_allinonesdk:  #1.0.3 for solving conflict between Image_picker0.6.7+22 and paytm all in one sdk
   syncfusion_flutter_datepicker:
-  permission_handler: ^5.1.0+2
+  permission_handler: 8.2.0
   custom_radio_grouped_button:
-  device_apps: ^1.3.0
-  dots_indicator: ^2.0.0
-
+  device_apps:
   velocity_x:
   auto_size_text:
   font_awesome_flutter:
   image_picker:
   google_fonts:
-  image_picker_web: ^1.0.0
+  image_picker_web:
   page_transition:
   timeago:
-  dotted_line: ^3.0.0
-  flutter_rating_bar: ^4.0.0
+  dotted_line:
+  flutter_rating_bar:
   in_app_review:
-  floating_bottom_navigation_bar: ^1.4.1
+  facebook_app_events:
+  go_router: ^3.0.1
+  geolocator: ^8.0.3
+  pdf: ^3.7.4
+  open_file: ^3.2.1
+  printing: ^5.8.0
+  awesome_dialog: ^2.1.3
+
   flutter_localizations:
     sdk: flutter
+
+#    facebook_app_events:
+#        path: customplugin/facebook_app_events-0.13.5
 
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   splashscreen: ^1.2.0
-  flutter_launcher_icons: "^0.7.3"
+  flutter_launcher_icons: ^0.8.1
   hive_generator: ^0.8.2
   build_runner: ^1.10.6
 
 dependency_overrides:
-  flutter_svg: ^0.18.0
+  #flutter_svg: ^0.18.0
+  firebase_messaging_platform_interface: 3.1.6
+  image: ^3.0.1
+  crypto: ^3.0.0
+  http: ^0.12.0+4
 
 flutter_icons:
   android: true
@@ -146,8 +164,8 @@ flutter_icons:
   #image_path: "assets/images/icon1.png"
   image_path_android: assets/images/icon_android.png
   image_path_ios: assets/images/icon_ios.png
-#  adaptive_icon_background: assets/images/icon_background.png
-#  adaptive_icon_foreground: assets/images/ic_foreground.png
+  adaptive_icon_background: assets/images/icon_background.png
+  #adaptive_icon_foreground: assets/images/ic_foreground.png
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -157,6 +175,8 @@ flutter_icons:
 flutter:
   assets:
     - assets/images/.
+    - assets/data/.
+    - assets/fonts/Lato-Regular.ttf
 
   fonts:
     - family: Lato

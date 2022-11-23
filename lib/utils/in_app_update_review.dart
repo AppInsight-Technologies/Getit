@@ -95,7 +95,7 @@ class InAppReviews{
   String _microsoftStoreId = '';
   Availability _availability = Availability.loading;
   initialize(){
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
+    WidgetsBinding.instance!.addPostFrameCallback((_) async {
       try {
           final isAvailable = await _inAppReview.isAvailable();
 

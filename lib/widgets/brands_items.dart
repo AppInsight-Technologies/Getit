@@ -2,12 +2,13 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import '../../models/newmodle/home_page_modle.dart';
+import '../../rought_genrator.dart';
 
 import '../screens/brands_screen.dart';
 import '../assets/images.dart';
 
 
-class BrandsItems extends StatelessWidget {
+class BrandsItems extends StatelessWidget  with Navigations{
 
   AllBrands allBrand;
   final int indexvalue;
@@ -21,13 +22,17 @@ class BrandsItems extends StatelessWidget {
         cursor: SystemMouseCursors.click,
         child: GestureDetector(
           onTap: () {
-            Navigator.of(context).pushNamed(
-                BrandsScreen.routeName,
-                arguments: {
-                  'brandId' : allBrand.id,
-                  'indexvalue' : indexvalue.toString(),
-                }
-            );
+            Navigation(context,name: Routename.BrandsScreen,navigatore: NavigatoreTyp.Push,qparms: {
+              'brandId' : allBrand.id,
+              'indexvalue' : indexvalue.toString(),
+            });
+            // Navigator.of(context).pushNamed(
+            //     BrandsScreen.routeName,
+            //     arguments: {
+            //       'brandId' : allBrand.id,
+            //       'indexvalue' : indexvalue.toString(),
+            //     }
+            // );
           },
           child: Column(
               children: <Widget>[

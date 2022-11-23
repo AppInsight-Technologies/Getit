@@ -2,52 +2,48 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 class SellingItemsFields with ChangeNotifier {
-  final String id;
-  final String title;
-  final String imageUrl;
-  final String brand;
-  final String itemqty;
-  final String varid;
-  final String menuid;
-  final String varname;
-  final String varmrp;
-  final String varprice;
-  final String varmemberprice;
-  final String varmemberid;
-  final String varstock;
-  final String varminitem;
-  final String varmaxitem;
-  final int varLoyalty;
+  final String? id;
+  final String? title;
+  final String? imageUrl;
+  final String? brand;
+  final String? itemqty;
+  final String? varid;
+  final String? menuid;
+  final String? varname;
+  final String? varmrp;
+  final String? varprice;
+  final String? varmemberprice;
+  final String? varmemberid;
+  final String? varstock;
+  final String? varminitem;
+  final String? varmaxitem;
+  final int? varLoyalty;
   int varQty=0;
-  Color varcolor;
-  final int mode;
-  final bool discountDisplay;
-  final bool membershipDisplay;
-  final String description;
-  final String manufacturedesc;
-  final String offerId;
-  final String offerTitle;
-  Color border;
-  final String veg_type;
-  final String type;
-  final String eligible_for_express;
-  final String delivery;
-  final String duration;
-  final String durationType;
-  final String note;
-  final String subscribe;
-  final String paymentmode;
-  final String cronTime;
-  final String name;
-  String offertext;
-  final String unit;
-  final String color;
-  final double weight;
-  final String varColor;
-  final String size;
-  final String fit;
-  final int wishlist;
-  bool isSelected;
+  Color? varcolor;
+  final int? mode;
+  final bool? discountDisplay;
+  final bool? membershipDisplay;
+  final String? description;
+  final String? manufacturedesc;
+  final String? offerId;
+  final String? offerTitle;
+  Color? border;
+  final String? veg_type;
+  final String? type;
+  final String? eligible_for_express;
+  final String? delivery;
+  final String? duration;
+  final String? durationType;
+  final String? note;
+  final String? subscribe;
+  final String? paymentmode;
+  final String? cronTime;
+  final String? name;
+  String? offertext;
+  final String? unit;
+  final double? weight;
+  final double? netWeight;
+  final String? salePrice;
 
   SellingItemsFields({
     this.id,
@@ -89,12 +85,8 @@ class SellingItemsFields with ChangeNotifier {
     this.name,
     this.offertext,
     this.unit,
-    this.color,
     this.weight,
-    this.varColor,
-    this.size,
-    this.fit,
-    this.wishlist,
-    this.isSelected
+    this.netWeight,
+    this.salePrice,
   });
 }

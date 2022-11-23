@@ -2,18 +2,19 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 
 class MembershipFields with ChangeNotifier {
-  final String name;
-  final String description;
-  final String avator;
-  final String typesid;
-  final String typesexpdate;
-  final String typesname;
-  final String typesprice;
-  final String typesdiscountprice;
-  final String typesduration;
-  String text;
-  Color backgroundcolor;
-  Color textcolor;
+  final String? name;
+  final String? description;
+  final String? avator;
+  final String? typesid;
+  final String? typesexpdate;
+  final String? typesname;
+  final String? typesprice;
+  final String? typesdiscountprice;
+  final String? typesduration;
+  String? text;
+  Color? backgroundcolor;
+  Color? textcolor;
+  Color? borderColor;
 
   MembershipFields({
     this.name,
@@ -28,5 +29,6 @@ class MembershipFields with ChangeNotifier {
     this.text,
     this.backgroundcolor,
     this.textcolor,
+    this.borderColor
   });
 }

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../constants/features.dart';
 import 'package:new_gradient_app_bar/new_gradient_app_bar.dart';
-
+import '../../rought_genrator.dart' as nav;
 import '../generated/l10n.dart';
 import 'package:provider/provider.dart';
+import '../rought_genrator.dart' ;
 import '../screens/searchitem_screen.dart';
 import '../providers/notificationitems.dart';
 import '../widgets/categories_item.dart';
@@ -14,11 +16,28 @@ import 'notification_screen.dart';
 
 class NotSubcategoryScreen extends StatefulWidget {
   static const routeName = '/not-subcategory-screen';
+
+
+  String subcategoryId = "";
+  String fromscreen = "";
+  String notificationId = "";
+  String notificationStatus = "";
+  Map<String,String>? notsub;
+
+  NotSubcategoryScreen(Map<String, String> params){
+    this.notsub= params;
+    this.subcategoryId = params["subcategoryId"]??"" ;
+    this.fromscreen = params["fromScreen"]??"";
+    this.notificationId = params["notificationId"]??"" ;
+    this.notificationStatus = params["notificationStatus"]??"";
+
+  }
+
   @override
   _NotSubcategoryScreenState createState() => _NotSubcategoryScreenState();
 }
 
-class _NotSubcategoryScreenState extends State<NotSubcategoryScreen> {
+class _NotSubcategoryScreenState extends State<NotSubcategoryScreen> with Navigations {
   bool _isLoading = true;
   var subcategoryData;
   bool _isInit = true;
@@ -27,15 +46,16 @@ class _NotSubcategoryScreenState extends State<NotSubcategoryScreen> {
   void initState() {
     super.initState();
     Future.delayed(Duration.zero, () async {
+      print("data click udate....."+widget.notificationStatus.toString());
       //SharedPreferences prefs = await SharedPreferences.getInstance();
-      final routeArgs = ModalRoute.of(context).settings.arguments as Map<String, String>;
-      final subcategoryId = routeArgs['subcategoryId'];
+      final routeArgs = ModalRoute.of(context)!.settings.arguments as Map<String, String>;
+      final subcategoryId = widget.subcategoryId;//routeArgs['subcategoryId'];
 
-      if(routeArgs['fromScreen'] == "ClickLink") {
-        Provider.of<NotificationItemsList>(context,listen: false).updateNotificationStatus(routeArgs['notificationId'], "1" );
+      if(/*routeArgs['fromScreen']*/widget.fromscreen == "ClickLink") {
+        Provider.of<NotificationItemsList>(context,listen: false).updateNotificationStatus(/*routeArgs['notificationId']!*/widget.notificationId, "1" );
       } else {
-        if(routeArgs['notificationStatus'] == "0"){
-          Provider.of<NotificationItemsList>(context,listen: false).updateNotificationStatus(routeArgs['notificationId'], "1" ).then((value){
+        if(/*routeArgs['notificationStatus']*/widget.notificationStatus == "2" || widget.notificationStatus == "0"){
+          Provider.of<NotificationItemsList>(context,listen: false).updateNotificationStatus(/*routeArgs['notificationId']!*/widget.notificationId, "1" ).then((value){
           });
         }
       }
@@ -64,8 +84,8 @@ class _NotSubcategoryScreenState extends State<NotSubcategoryScreen> {
 
 
       Provider.of<BrandItemsList>(context,listen: false).fetchShoppinglist();
-      Provider.of<BrandItemsList>(context,listen: false).GetRestaurant().then((value) async {
-      });
+      // Provider.of<BrandItemsList>(context,listen: false).GetRestaurant().then((value) async {
+      // });
     }
     _isInit = false;
     super.didChangeDependencies();
@@ -75,8 +95,8 @@ class _NotSubcategoryScreenState extends State<NotSubcategoryScreen> {
   Widget build(BuildContext context) {
     SystemChrome.setEnabledSystemUIOverlays(SystemUiOverlay.values);
     bool _isNotification = false;
-    final routeArgs = ModalRoute.of(context).settings.arguments as Map<String, String>;
-    if(routeArgs['fromScreen'] == "ClickLink") {
+    final routeArgs = ModalRoute.of(context)!.settings.arguments as Map<String, String>;
+    if(/*routeArgs['fromScreen']*/widget.fromscreen == "ClickLink") {
       _isNotification = false;
     } else {
       _isNotification = true;
@@ -85,13 +105,14 @@ class _NotSubcategoryScreenState extends State<NotSubcategoryScreen> {
     return _isNotification ?
     WillPopScope(
       onWillPop: (){
-        if(routeArgs['fromScreen'] == "ClickLink"){
-          Navigator.of(context).pushNamedAndRemoveUntil(
-              '/home-screen', (Route<dynamic> route) => false);
+        if(/*routeArgs['fromScreen'] */widget.fromscreen== "ClickLink"){
+        /*  Navigator.of(context).pushNamedAndRemoveUntil(
+              '/home-screen', (Route<dynamic> route) => false);*/
+          Navigation(context, /*name:Routename.Home,*/navigatore: NavigatoreTyp.homenav);
         }
         else {
-          Navigator.of(context).pushReplacementNamed(
-              NotificationScreen.routeName);
+          Navigation(context, navigatore: nav.NavigatoreTyp.PushReplacment,name: Routename.notify);
+
         }
         //Navigator.of(context).popUntil(ModalRoute.withName(HomeScreen.routeName,));
         return Future.value(false);
@@ -102,37 +123,35 @@ class _NotSubcategoryScreenState extends State<NotSubcategoryScreen> {
               begin: Alignment.topRight,
               end: Alignment.bottomLeft,
               colors: [
-                ColorCodes.accentColor,
-                ColorCodes.primaryColor
+                ColorCodes.appbarColor,
+                ColorCodes.appbarColor2
               ]
           ),
           elevation: (IConstants.isEnterprise)?0:1,
           automaticallyImplyLeading: false,
           leading: IconButton(
-              icon: Icon(Icons.arrow_back, color:ColorCodes.menuColor),
+              icon: Icon(Icons.arrow_back, color:ColorCodes.iconColor),
               onPressed: () {
-                if(routeArgs['fromScreen'] == "ClickLink"){
-                  Navigator.of(context).pop();
+                if(/*routeArgs['fromScreen'] */widget.fromscreen== "ClickLink"){
+                  Navigation(context, navigatore: NavigatoreTyp.Pop,);
                 }
                 else {
-                  Navigator.of(context).pushReplacementNamed(
-                      NotificationScreen.routeName);
+                  Navigation(context, navigatore: NavigatoreTyp.PushReplacment,name: Routename.notify);
                 }
                 //Navigator.of(context).pop();
                // Navigator.of(context).pushReplacementNamed(NotificationScreen.routeName);
               }
           ),
           title: Text(
-            S.of(context).categories, // "Categories",
-            style: TextStyle(color: ColorCodes.menuColor),
+            S .of(context).categories, // "Categories",
+            style: TextStyle(color: ColorCodes.iconColor, fontWeight: FontWeight.bold, fontSize: 18),
 
           ),
           actions: <Widget>[
             GestureDetector(
               onTap: () {
-                Navigator.of(context).pushNamed(
-                  SearchitemScreen.routeName,
-                );
+                Navigation(context, navigatore: NavigatoreTyp.Push,name: Routename.search);
+
               },
               child: Icon(
                 Icons.search,
@@ -174,7 +193,7 @@ class _NotSubcategoryScreenState extends State<NotSubcategoryScreen> {
               margin: EdgeInsets.all(5),
               child: CategoriesItem(
                   "NotSubcategoryScreen", "Offers", "", "", "", index,
-                  subcategoryData.catitems[index].imageUrl, subcategoryData.catitems[index].catBanner),
+                  subcategoryData.catitems[index].imageUrl),
             // backgroundColor: Colors.transparent
             );
           },
@@ -202,9 +221,10 @@ class _NotSubcategoryScreenState extends State<NotSubcategoryScreen> {
       onWillPop: () { // this is the block you need
         // Navigator.of(context).pushNamedAndRemoveUntil(
         //     '/home-screen', (Route<dynamic> route) => false);
-        if(routeArgs['fromScreen'] == "ClickLink"){
-          Navigator.of(context).pushNamedAndRemoveUntil(
-              '/home-screen', (Route<dynamic> route) => false);
+        if(/*routeArgs['fromScreen'] */widget.fromscreen== "ClickLink"){
+          /*Navigator.of(context).pushNamedAndRemoveUntil(
+              '/home-screen', (Route<dynamic> route) => false);*/
+          Navigation(context, /*name:Routename.Home,*/navigatore: NavigatoreTyp.homenav);
         }
         else {
           Navigator.of(context).pushReplacementNamed(
@@ -219,19 +239,18 @@ class _NotSubcategoryScreenState extends State<NotSubcategoryScreen> {
                 begin: Alignment.topRight,
                 end: Alignment.bottomLeft,
                 colors: [
-                  ColorCodes.accentColor,
-                  ColorCodes.primaryColor
+                  ColorCodes.appbarColor,
+                  ColorCodes.appbarColor2
                 ]
             ),
             title: Text(
-              S.of(context).categories,//"Categories",
+              S .of(context).categories,//"Categories",
             ),
             actions: <Widget>[
               GestureDetector(
                 onTap: () {
-                  Navigator.of(context).pushNamed(
-                    SearchitemScreen.routeName,
-                  );
+                  Navigation(context, navigatore: NavigatoreTyp.Push,name: Routename.search);
+
                 },
                 child: Icon(
                   Icons.search,
@@ -263,7 +282,7 @@ class _NotSubcategoryScreenState extends State<NotSubcategoryScreen> {
                 ),
                 elevation: 4,
                 margin: EdgeInsets.all(5),
-                child: CategoriesItem("NotSubcategoryScreen", "Offers", "", "", "", index, subcategoryData.catitems[index].imageUrl,subcategoryData.catitems[index].catBanner),
+                child: CategoriesItem("NotSubcategoryScreen", "Offers", "", "", "", index, subcategoryData.catitems[index].imageUrl),
               );
             },
 /*            itemBuilder: (ctx, i) => ChangeNotifierProvider.value (

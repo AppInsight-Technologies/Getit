@@ -25,23 +25,41 @@ class DeliveryslotitemsList with ChangeNotifier {
  List<DeliveryslotFields> _itemsPickup = [ ];
 
  Future<void> fetchDeliveryslots (String addressid) async { // imp feature in adding async is the it automatically wrap into Future.
-
+  debugPrint("addressid....."+addressid);
   _items.clear();
   _time.clear();
 
    try {
    _items.clear();
    _time.clear();
+   debugPrint("ghjk..."+{ // await keyword is used to wait to this operation is complete.
+    "address": addressid,
+    "branch": PrefUtils.prefs!.getString('branch'),
+    "ref":IConstants.refIdForMultiVendor,
+    "branchtype":IConstants.branchtype.toString()
+   }.toString());
    final response = await http.post(
-   Api.getDeliverySlots,
+   Api.getDeliverySlotsFull,
        body: { // await keyword is used to wait to this operation is complete.
         "address": addressid,
-        "branch": PrefUtils.prefs.getString('branch'),
+        "branch": PrefUtils.prefs!.getString('branch'),
+        "ref":IConstants.refIdForMultiVendor,
+        "branchtype":IConstants.branchtype.toString()
        }
    );
 
+   print("Api getDeliverySlotsFull.... "+Api.getDeliverySlotsFull.toString());
+   print("Params..."+{ // await keyword is used to wait to this operation is complete.
+    "address": addressid,
+    "branch": PrefUtils.prefs!.getString('branch'),
+    "ref":IConstants.refIdForMultiVendor,
+    "branchtype":IConstants.branchtype.toString()
+   }.toString());
+
    final responseJson = json.decode(utf8.decode(response.bodyBytes));
-   debugPrint("response...."+responseJson.toString());
+   debugPrint("response....getDeliverySlotsFull"+responseJson.toString());
+   _items.clear();
+   _time.clear();
    if(responseJson.toString() == "[]") {
 
    } else {
@@ -78,24 +96,31 @@ class DeliveryslotitemsList with ChangeNotifier {
      }
 
      Color selectedColor;
+     Color textColor;
+     Color borderColor;
      bool isSelect;
      if(i == 0) {
       selectedColor = ColorCodes.mediumgren;
+      textColor =  ColorCodes.greenColor;
       isSelect = true;
      } else {
       selectedColor = ColorCodes.whiteColor;
+      textColor =  ColorCodes.greenColor;
       isSelect = false;
      }
+     debugPrint("status...."+data[i]['status'].toString());
      _time.add(DeliveryslotFields(
       time: data[i]['time'],
       id: index,
       index: i.toString(),
-      /*selectedColor: selectedColor,
-      isSelect: isSelect,*/
+      status:data[i]['status'].toString(),
+    //  isSelect: false,
+    //  selectedColor: (i == 0)?ColorCodes.mediumgren:ColorCodes.whiteColor,
+    //  textColor: ColorCodes.greenColor,
+
      ));
     }
    }
-
    notifyListeners();
   } catch (error) {
    throw error;

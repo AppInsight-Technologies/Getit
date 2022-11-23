@@ -29,7 +29,7 @@ class CarouselItemsList with ChangeNotifier {
     try {
       _items.clear();
       final response = await http.post(
-          Api.getAdsOne + PrefUtils.prefs.getString('branch'),
+          Api.getAdsOne + PrefUtils.prefs!.getString('branch')!,
           body: { // await keyword is used to wait to this operation is complete.
           }
       );
@@ -87,10 +87,11 @@ class CarouselItemsList with ChangeNotifier {
       _brandItems.clear();
       final response = await http.post(url, body: {
         // await keyword is used to wait to this operation is complete.
-        "branch": PrefUtils.prefs.getString('branch'),
+        "branch": PrefUtils.prefs!.getString('branch'),
         "language_id": IConstants.languageId,
       });
       final responseJson = json.decode(utf8.decode(response.bodyBytes));
+      debugPrint("bb,,,,,"+responseJson.toString());
 
 //      var idlist = responseJson.map<int>((m) => m['id'] as int).toList();
 //      var imagelist = responseJson.map<String>((m) => m['banner_image'] as String).toList();

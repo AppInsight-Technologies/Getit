@@ -6,6 +6,7 @@ import '../constants/features.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:io';
 
+import '../rought_genrator.dart';
 import '../widgets/header.dart';
 import '../assets/ColorCodes.dart';
 import '../constants/IConstants.dart';
@@ -21,14 +22,14 @@ class HelpScreen extends StatefulWidget {
   _HelpScreenState createState() => _HelpScreenState();
 }
 
-class _HelpScreenState extends State<HelpScreen> {
+class _HelpScreenState extends State<HelpScreen> with Navigations{
   bool _isLoading = true;
   //SharedPreferences prefs;
   bool _isWeb = false;
   var _address = "";
-  MediaQueryData queryData;
-  double wid;
-  double maxwid;
+  MediaQueryData? queryData;
+  double? wid;
+  double? maxwid;
   var name = "", email = "", photourl = "", phone = "";
   GroceStore store = VxState.store;
   @override
@@ -52,33 +53,34 @@ class _HelpScreenState extends State<HelpScreen> {
       //prefs = await SharedPreferences.getInstance();
       setState(() {
         _isLoading = false;
-       /* if (PrefUtils.prefs.getString('FirstName') != null) {
-          if (PrefUtils.prefs.getString('LastName') != null) {
-            name =  PrefUtils.prefs.getString('FirstName') + " " + PrefUtils.prefs.getString('LastName');
+       /* if (PrefUtils.prefs!.getString('FirstName') != null) {
+          if (PrefUtils.prefs!.getString('LastName') != null) {
+            name =  PrefUtils.prefs!.getString('FirstName') + " " + PrefUtils.prefs!.getString('LastName');
           } else {
-            name =  PrefUtils.prefs.getString('FirstName');
+            name =  PrefUtils.prefs!.getString('FirstName');
           }
         } else {
           name = "";
         }*/
-        name = store.userData.username;
-        if (PrefUtils.prefs.getString('Email') != null) {
-          email = PrefUtils.prefs.getString('Email');
+        name = store.userData.username!;
+        if (PrefUtils.prefs!.getString('Email') != null) {
+          email = PrefUtils.prefs!.getString('Email')!;
         } else {
           email = "";
         }
 
-        if (PrefUtils.prefs.getString('mobile') != null) {
-          phone = PrefUtils.prefs.getString('mobile');
+        if (PrefUtils.prefs!.getString('mobile') != null) {
+          phone = PrefUtils.prefs!.getString('mobile')!;
         } else {
           phone = "";
         }
 
-        if (PrefUtils.prefs.getString('photoUrl') != null) {
-          photourl = PrefUtils.prefs.getString('photoUrl');
+      /*  if (PrefUtils.prefs!.getString('photoUrl') != null) {
+          photourl = PrefUtils.prefs!.getString('photoUrl')!;
         } else {
           photourl = "";
-        }
+        }*/
+        photourl = store.userData.path!;
       });
     });
     //initPlatformState();
@@ -87,11 +89,11 @@ class _HelpScreenState extends State<HelpScreen> {
 
   /*Future<void> initPlatformState() async {
     SharedPreferences PrefUtils.prefs = await SharedPreferences.getInstance();
-    String firstname = PrefUtils.prefs.getString("FirstName");
-    String lastname = PrefUtils.prefs.getString("LastName");
-    String email = PrefUtils.prefs.getString("Email");
+    String firstname = PrefUtils.prefs!.getString("FirstName");
+    String lastname = PrefUtils.prefs!.getString("LastName");
+    String email = PrefUtils.prefs!.getString("Email");
     String countrycode = IConstants.countryCode;
-    String phone = PrefUtils.prefs.getString("mobile");
+    String phone = PrefUtils.prefs!.getString("mobile");
 
     var response = await FlutterFreshchat.init(
       appID: "80f986ff-2694-4894-b0c5-5daa836fef5c",
@@ -124,16 +126,16 @@ class _HelpScreenState extends State<HelpScreen> {
   @override
   Widget build(BuildContext context) {
     queryData = MediaQuery.of(context);
-    wid= queryData.size.width;
-    maxwid=wid*0.70;
+    wid= queryData!.size.width;
+    maxwid=wid!*0.70;
     return  Scaffold(
       appBar: ResponsiveLayout.isSmallScreen(context) ?
       gradientappbarmobile() : null,
-      backgroundColor: ColorCodes.backgroundcolor,
+      backgroundColor: ColorCodes.whiteColor,
       body:Column(
         children: <Widget>[
           if(_isWeb && !ResponsiveLayout.isSmallScreen(context))
-            Header(false, false),
+            Header(false),
           _body(),
         ],
       ),
@@ -143,9 +145,28 @@ class _HelpScreenState extends State<HelpScreen> {
     return _isWeb?_bodyweb():
     _bodymobile();
   }
-  void launchWhatsapp({@required number,@required message})async{
+/*  void launchWhatsapp({required number,required message})async{
     String url ="whatsapp://send?phone=$number&text=$message";
     await canLaunch(url)?launch(url):print('can\'t open whatsapp');
+  }*/
+  void launchWhatsApp() async {
+    String phone = /*"+918618320591"*/(Features.ismultivendor) ? IConstants.secondaryMobileroot : IConstants.secondaryMobile;
+    debugPrint("Whatsapp . .. . . .. . .");
+    String url() {
+      if (Platform.isIOS) {
+        debugPrint("Whatsapp1 . .. . . .. . .");
+        return "whatsapp://wa.me/$phone/?text=${Uri.parse('I want to order Grocery')}";
+      } else {
+        return "whatsapp://send?phone=$phone&text=${Uri.parse('I want to order Grocery')}";
+        const url = "https://wa.me/?text=YourTextHere";
+
+      }
+    }
+    if (await canLaunch(url())) {
+      await launch(url());
+    } else {
+      throw 'Could not launch ${url()}';
+    }
   }
   _bodymobile(){
     return    _isLoading ?
@@ -161,7 +182,7 @@ class _HelpScreenState extends State<HelpScreen> {
             GestureDetector(
               onTap: () async {
                 //var response = await FlutterFreshchat.showConversations();
-                Navigator.of(context).pushNamed(
+              /*  Navigator.of(context).pushNamed(
                     CustomerSupportScreen.routeName,
                     arguments: {
                       'name' : name,
@@ -169,13 +190,15 @@ class _HelpScreenState extends State<HelpScreen> {
                       'photourl': photourl,
                       'phone' : phone,
                     }
-                );
+                );*/
+                Navigation(context, name:Routename.CustomerSupport,navigatore: NavigatoreTyp.Push,
+                   /* parms:{'photourl': photourl}*/);
               },
               child: Row(
                 children: <Widget>[
                   SizedBox(width: 10.0,),
                   Text(
-                    S.of(context).chat,
+                    S .of(context).chat,
                     // "Chat",
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.0),),
                   Spacer(),
@@ -203,13 +226,14 @@ class _HelpScreenState extends State<HelpScreen> {
                   //     }
                   // );
 
-                  launchWhatsapp(number: IConstants.countryCode + IConstants.secondaryMobile, message:"I want to order Grocery");
+                //  launchWhatsapp(number: IConstants.countryCode + IConstants.secondaryMobile, message:"I want to order Grocery");
+                  launchWhatsApp();
                 },
                 child: Row(
                   children: <Widget>[
                     SizedBox(width: 10.0,),
                     Text(
-                      S.of(context).whatsapp_chat,
+                      S .of(context).whatsapp_chat,
                       // "Whatsapp Chat",
                       style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.0),),
                     Spacer(),
@@ -231,7 +255,7 @@ class _HelpScreenState extends State<HelpScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     Text(
-                      S.of(context).call,
+                      S .of(context).call,
                       // "Call",
                       style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.0),),
                     SizedBox(height: 5.0,),
@@ -258,7 +282,7 @@ class _HelpScreenState extends State<HelpScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     Text(
-                      S.of(context).email,
+                      S .of(context).email,
                       // "Email",
                       style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.0),),
                     SizedBox(height: 5.0,),
@@ -271,7 +295,7 @@ class _HelpScreenState extends State<HelpScreen> {
 
               ],
             ),
-            if(_isWeb) Footer(address: PrefUtils.prefs.getString("restaurant_address")),
+            if(_isWeb) Footer(address: PrefUtils.prefs!.getString("restaurant_address")!),
           ],
         ),
       ),
@@ -285,14 +309,14 @@ class _HelpScreenState extends State<HelpScreen> {
         child: Column(
           children: [
             Container(
-              constraints: (_isWeb && !ResponsiveLayout.isSmallScreen(context))?BoxConstraints(maxWidth: maxwid):null,
+              constraints: (_isWeb && !ResponsiveLayout.isSmallScreen(context))?BoxConstraints(maxWidth: maxwid!):null,
               child: Column(
                 children: <Widget>[
                   SizedBox(height: 30.0,),
                   GestureDetector(
                     onTap: () async {
                       //var response = await FlutterFreshchat.showConversations();
-                      Navigator.of(context).pushNamed(
+                    /*  Navigator.of(context).pushNamed(
                           CustomerSupportScreen.routeName,
                           arguments: {
                             'name' : name,
@@ -300,13 +324,15 @@ class _HelpScreenState extends State<HelpScreen> {
                             'photourl': photourl,
                             'phone' : phone,
                           }
-                      );
+                      );*/
+                      Navigation(context, name:Routename.CustomerSupport,navigatore: NavigatoreTyp.Push,
+                          /*parms:{'photourl': photourl}*/);
                     },
                     child: Row(
                       children: <Widget>[
                         SizedBox(width: 10.0,),
                         Text(
-                          S.of(context).chat,
+                          S .of(context).chat,
                           // "Chat",
                           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.0),),
                         Spacer(),
@@ -325,7 +351,7 @@ class _HelpScreenState extends State<HelpScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: <Widget>[
                           Text(
-                            S.of(context).call,
+                            S .of(context).call,
                             // "Call",
                             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.0),),
                           SizedBox(height: 5.0,),
@@ -352,7 +378,7 @@ class _HelpScreenState extends State<HelpScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: <Widget>[
                           Text(
-                            S.of(context).email,
+                            S .of(context).email,
                             // "Email",
                             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.0),),
                           SizedBox(height: 5.0,),
@@ -368,7 +394,7 @@ class _HelpScreenState extends State<HelpScreen> {
               ),
             ),
             SizedBox(height: 30,),
-            if(_isWeb) Footer(address: PrefUtils.prefs.getString("restaurant_address"))
+            if(_isWeb) Footer(address: PrefUtils.prefs!.getString("restaurant_address")!)
           ],
         ),
       ),
@@ -382,29 +408,23 @@ class _HelpScreenState extends State<HelpScreen> {
       toolbarHeight: 60.0,
       elevation: (IConstants.isEnterprise)?0:1,
       automaticallyImplyLeading: false,
-      leading: IconButton(icon: Icon(Icons.arrow_back, color: ColorCodes.menuColor),onPressed: ()=>Navigator.of(context).pop()),
+      leading: IconButton(icon: Icon(Icons.arrow_back,size: 20, color: ColorCodes.iconColor),onPressed: ()=>
+          Navigator.of(context).pop()),
+
       title: Text(
-        S.of(context).help,
+        S .of(context).help,
         // 'Help',
-        style: TextStyle(color: ColorCodes.menuColor, fontWeight: FontWeight.w800),
+        style: TextStyle(color: ColorCodes.iconColor, fontWeight: FontWeight.bold, fontSize: 18),
       ),
       titleSpacing: 0,
       flexibleSpace: Container(
         decoration: BoxDecoration(
-            boxShadow: [
-              BoxShadow(
-                color: ColorCodes.grey.withOpacity(0.2),
-                spreadRadius: 5,
-                blurRadius: 5,
-                offset: Offset(0, 5),
-              )
-            ],
             gradient: LinearGradient(
                 begin: Alignment.topRight,
                 end: Alignment.bottomLeft,
                 colors: [
-                  ColorCodes.accentColor,
-                  ColorCodes.primaryColor
+                  ColorCodes.appbarColor,
+                  ColorCodes.appbarColor2
                 ]
             )
         ),

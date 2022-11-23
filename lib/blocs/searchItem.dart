@@ -11,7 +11,7 @@ class SearchItemBlock {
   final _serchItemsofController = PublishSubject<String>();
   final _searchiteidController = PublishSubject<String>();
 
-  List<PriceVariation1> itemlist;
+  late List<PriceVariation1> itemlist;
   StreamSink<String> get searchiemsof =>_serchItemsofController.sink;
   Stream<List<SearchtemModel>> get serchItems => _serchItemsController.stream;
   Stream<List<PriceVariation1>> get serchItemspricevar => _serchItemsPricVarController.stream;

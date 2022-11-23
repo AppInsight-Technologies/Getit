@@ -7,6 +7,7 @@ class Features {
   static bool isCategoryOne = false;
   static bool isAdsCategoryOne = false;
   static bool isBulkUpload = false;
+  static bool isBulkUploadroot = false;
   static bool isSellingItems = false;
   static bool isAdsItemsOne = false;
   static bool isCategoryTwo = false;
@@ -21,18 +22,26 @@ class Features {
 
   //Features
   static bool isLanguageModule = false; //done
+  static bool isLanguageModuleroot = false;
   static bool isPickupfromStore = false; //done
   static bool isShoppingList = false; //done
-  static bool isMembership = false; //done
+  static bool isMembership = false;
+  static bool isMembershiproot = false;//done
   static bool isLoyalty = false; //done
+  static bool isLoyaltyroot = false;
   static bool isReferEarn = false; //done
+  static bool isReferEarnroot = false; //done
   static bool isPromocode = false; //done
   static bool isPushNotification = false;
+  static bool isPushNotificationroot = false;
   static bool isOnBoarding = false; //done
   static bool isExpressDelivery = false; //done
   static bool isWallet = false; //done
-  static bool isLiveChat = true; //done
-  static bool isWhatsapp = false; //done
+  static bool isWalletroot = false;
+  static bool isLiveChat = true;
+  static bool isLiveChatroot = true;//done
+  static bool isWhatsapp = false;
+  static bool isWhatsapproot = false;//done
   static bool isFilter = false; //done
   static bool isShare = false; //done
   static bool isRepeatOrder = false;
@@ -40,7 +49,8 @@ class Features {
   static bool isAnalytics = true;
 
   static bool isOffers = false; //done
-  static bool isSubscription = false; //done
+  static bool isSubscription = true;
+  static bool isSubscriptionroot = true;//done
   static bool isReturnOrExchange = false; //done
   static bool isRefundModule = false; //done
   static bool isOffersForHomepage = false; //done
@@ -48,8 +58,27 @@ class Features {
   static bool isSplit = false; //done
   static bool callMeInsteadOTP = false;
   static bool mainBanneraboveSlider = false;
-  static bool offer = true;
-  static bool isor = false;
+  static bool netWeight = true;
+  static bool iscurrencyformatalign = false;
+  static bool btobModule = false;
+  static bool sellerModule = false;
+  static bool isfacebookappevent = true;
+  static String logo = "";
+
+  static bool isWebTrail = false;
+  static bool isSaas = false;
+  static bool ismultivendor = false;
+  static bool view_all = false;
+
+  static bool isRateOrderProduct = true;
+  static bool istestimonial = true;
+  static bool isreview_filter = false;
+  static bool issignintruecaller = false;
+  static bool suggestproduct = false;
+  static bool issubscriptionbox = false;
+  static bool isFlexibleSubscription = false;
+  static bool isFixedSubscription = false;
+  static bool isdeliverychargesubscription = false;
 
   }
 

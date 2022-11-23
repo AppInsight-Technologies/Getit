@@ -1,19 +1,20 @@
 import 'package:flutter/material.dart';
 import '../../assets/images.dart';
+import '../assets/ColorCodes.dart';
 import '../generated/l10n.dart';
 
 class BadgeOfStock extends StatelessWidget {
   const BadgeOfStock({
-    Key key,
-    @required this.child,
+    Key? key,
+    required this.child,
      this.value,
-    @required this.singleproduct,
+    required this.singleproduct,
     this.color,
   }) : super(key: key);
 
   final Widget child;
-  final String value;
-  final Color color;
+  final String? value;
+  final Color? color;
   final bool singleproduct;
 
   @override
@@ -22,11 +23,8 @@ class BadgeOfStock extends StatelessWidget {
       alignment: Alignment.center,
       children: [
         child,
-        Positioned(
-          left: singleproduct ? 60 :5,
-          top: singleproduct ? 200 : 150,
-          right: singleproduct ? 60 :5,
-         // bottom: singleproduct?0:20,
+        Align(
+          alignment: Alignment.center,
           child: Container(
 
             padding: EdgeInsets.only(left: 2.0, right: 2.0, top:10.0,),
@@ -41,7 +39,19 @@ class BadgeOfStock extends StatelessWidget {
             //   minHeight: 20,
             // ),
             child: Center(
-              child:Image.asset(Images.outofStock,height:45,width: 310,),
+              child: Container(
+                width: MediaQuery.of(context).size.width,
+                height: 40,
+                color: ColorCodes.varcolor,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(S.of(context).out_of_stock, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: ColorCodes.greenColor),),
+                  ],
+                ),
+              )
+              /*Image.asset(Images.outofStock,height:45,width: 310,),*/
             ),
           ),
         ),

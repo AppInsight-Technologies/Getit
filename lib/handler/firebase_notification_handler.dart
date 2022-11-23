@@ -1,87 +1,63 @@
-import 'dart:io';
+import 'dart:convert';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
-import '../../repository/authenticate/AuthRepo.dart';
-
+import 'package:velocity_x/velocity_x.dart';
 import '../utils/prefUtils.dart';
 
 class FirebaseNotifications {
-  FirebaseMessaging _firebaseMessaging;
-  int count = 0;
-  GlobalKey<ScaffoldState> scaffoldKey;
+  FirebaseMessaging? _firebaseMessaging;
+  int? count = 0;
+  GlobalKey<ScaffoldState>? scaffoldKey;
 
 
   void setUpFirebase() {
-    this.scaffoldKey = new GlobalKey<ScaffoldState>();
-    _firebaseMessaging = FirebaseMessaging();
+    _firebaseMessaging = FirebaseMessaging.instance;
     firebaseCloudMessaging_Listeners();
   }
 
-/*  FirebaseNotifications() {
+  notificationConfig({
+    Function(Map<String, dynamic>)? onresume,
+    Function(Map<String, dynamic>)? onLaunch,
+    Function(Map<String, dynamic>)? onMessage,
+  }){
 
-    _firebaseMessaging = FirebaseMessaging();
-    firebaseCloudMessaging_Listeners();
-  }*/
+    FirebaseMessaging.onBackgroundMessage((RemoteMessage message/*_firebaseMessagingBackgroundHandler*/) async{
+      onresume!(json.decode(json.encode(message.data)));
+    });
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      onMessage!(json.decode(json.encode(message.data)));
+      if (message.notification != null) {
+      }
+    });
+    FirebaseMessaging.onMessageOpenedApp.forEach((element) {
 
+      onLaunch!(element.data);
+    });
+  }
   // ignore: non_constant_identifier_names
   void firebaseCloudMessaging_Listeners() {
 
     try{
-      if(Platform.isIOS) {
+      if(!Vx.isAndroid&&!Vx.isWeb) {
         iOS_Permission();
       }
     } catch(e){
     }
 
-    _firebaseMessaging.getToken().then((token) async {
-
-      PrefUtils.prefs.setString("ftokenid", token);
-      debugPrint("tocken id: "+ token.toString());
-      auth.getuserProfile(onsucsess: (value){},onerror: (){});
+    _firebaseMessaging!.getToken().then((token) async {
+      PrefUtils.prefs!.setString("ftokenid", token!);
     });
 
-/*    _firebaseMessaging.configure(
-      onMessage: (Map<String, dynamic> message) async {
-        Navigator.of(context).pushNamed(
-          HomeScreen.routeName,
-        );
-        setState(() {
-          count++;
-        });
-        addNotification(message);
-        return Fluttertoast.showToast(msg: "onMessage!!!");
-        },
-      onResume: (Map<String, dynamic> message) async {
-        Navigator.push(navigatorKey.currentContext, MaterialPageRoute(builder: (_) => HomeScreen()));
-        Navigator.of(context).pushNamed(
-          HomeScreen.routeName,
-        );
-        setState(() {
-          count++;
-        });
-        addNotification(message);
-        return Fluttertoast.showToast(msg: "onResume!!!");
-        },
-      onLaunch: (Map<String, dynamic> message) async {
-        //Navigator.push(navigatorKey.currentContext, MaterialPageRoute(builder: (_) => HomeScreen()));
-        Navigator.of(context).pushNamed(
-          CategoryScreen.routeName,
-        );
-        setState(() {
-          count++;
-        });
-        addNotification(message);
-        return Fluttertoast.showToast(msg: "onLaunch!!!");
-      },
-    );*/
   }
 
-
-  void iOS_Permission() {
-    _firebaseMessaging.requestNotificationPermissions(
-        IosNotificationSettings(sound: true, badge: true, alert: true));
-    _firebaseMessaging.onIosSettingsRegistered
-        .listen((IosNotificationSettings settings) {
-    });
+  void iOS_Permission() async {
+    NotificationSettings settings = await _firebaseMessaging!.requestPermission(
+        provisional: true,
+        sound: true,
+        criticalAlert: false,
+        carPlay: false,
+        badge: true,
+        alert: true
+    );
   }
 }

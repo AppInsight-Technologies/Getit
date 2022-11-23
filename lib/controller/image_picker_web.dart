@@ -1,5 +1,5 @@
 class ImagePickerWeb{
- static ImageType outputType1;
+ static ImageType? outputType1;
 ImagePickerWeb._();
   static getImage({outputType}){
     outputType1 = outputType;

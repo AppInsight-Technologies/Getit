@@ -1,15 +1,15 @@
 class SellingItemModel {
   List<Data> _data = [];
-  String _label;
+  String? _label;
 
-  SellingItemModel({List<Data> data, String label}) {
-    this._data = data;
+  SellingItemModel({List<Data>? data, String? label}) {
+    this._data = data!;
     this._label = label;
   }
 
   List<Data> get data => _data;
   set data(List<Data> data) => _data = data;
-  String get label => _label;
+  String get label => _label!;
   set label(String label) => _label = label;
 
   SellingItemModel.fromJson(Map<String, dynamic> json) {
@@ -33,34 +33,34 @@ class SellingItemModel {
 }
 
 class Data {
-  String _id;
-  String _itemName;
-  String _itemSlug;
-  String _vegType;
-  String _itemFeaturedImage;
-  String _regularPrice;
-  String _salePrice;
-  String _isActive;
-  String _salesTax;
-  String _totalQty;
-  String _brand;
-  String _type;
-  List<PriceVariation> _priceVariation;
+  String? _id;
+  String? _itemName;
+  String? _itemSlug;
+  String? _vegType;
+  String? _itemFeaturedImage;
+  String? _regularPrice;
+  String? _salePrice;
+  String? _isActive;
+  String? _salesTax;
+  String? _totalQty;
+  String? _brand;
+  String? _type;
+  List<PriceVariation>? _priceVariation;
 
   Data(
-      {String id,
-        String itemName,
-        String itemSlug,
-        String vegType,
-        String itemFeaturedImage,
-        String regularPrice,
-        String salePrice,
-        String isActive,
-        String salesTax,
-        String totalQty,
-        String brand,
-        String type,
-        List<PriceVariation> priceVariation}) {
+      {String? id,
+        String? itemName,
+        String? itemSlug,
+        String? vegType,
+        String? itemFeaturedImage,
+        String? regularPrice,
+        String? salePrice,
+        String? isActive,
+        String? salesTax,
+        String? totalQty,
+        String? brand,
+        String? type,
+        List<PriceVariation>? priceVariation}) {
     this._id = id;
     this._itemName = itemName;
     this._itemSlug = itemSlug;
@@ -76,32 +76,32 @@ class Data {
     this._priceVariation = priceVariation;
   }
 
-  String get id => _id;
+  String get id => _id!;
   set id(String id) => _id = id;
-  String get itemName => _itemName;
+  String get itemName => _itemName!;
   set itemName(String itemName) => _itemName = itemName;
-  String get itemSlug => _itemSlug;
+  String get itemSlug => _itemSlug!;
   set itemSlug(String itemSlug) => _itemSlug = itemSlug;
-  String get vegType => _vegType;
+  String get vegType => _vegType!;
   set vegType(String vegType) => _vegType = vegType;
-  String get itemFeaturedImage => _itemFeaturedImage;
+  String get itemFeaturedImage => _itemFeaturedImage!;
   set itemFeaturedImage(String itemFeaturedImage) =>
       _itemFeaturedImage = itemFeaturedImage;
-  String get regularPrice => _regularPrice;
+  String get regularPrice => _regularPrice!;
   set regularPrice(String regularPrice) => _regularPrice = regularPrice;
-  String get salePrice => _salePrice;
+  String get salePrice => _salePrice!;
   set salePrice(String salePrice) => _salePrice = salePrice;
-  String get isActive => _isActive;
+  String get isActive => _isActive!;
   set isActive(String isActive) => _isActive = isActive;
-  String get salesTax => _salesTax;
+  String get salesTax => _salesTax!;
   set salesTax(String salesTax) => _salesTax = salesTax;
-  String get totalQty => _totalQty;
+  String get totalQty => _totalQty!;
   set totalQty(String totalQty) => _totalQty = totalQty;
-  String get brand => _brand;
+  String get brand => _brand!;
   set brand(String brand) => _brand = brand;
-  String get type => _type;
+  String get type => _type!;
   set type(String type) => _type = type;
-  List<PriceVariation> get priceVariation => _priceVariation;
+  List<PriceVariation> get priceVariation => _priceVariation!;
   set priceVariation(List<PriceVariation> priceVariation) =>
       _priceVariation = priceVariation;
 
@@ -119,9 +119,9 @@ class Data {
     _brand = json['brand'];
     _type = json['type'];
     if (json['price_variation'] != null) {
-      _priceVariation = new List<PriceVariation>();
+      _priceVariation = <PriceVariation>[];
       json['price_variation'].forEach((v) {
-        _priceVariation.add(new PriceVariation.fromJson(v));
+        _priceVariation!.add(new PriceVariation.fromJson(v));
       });
     }
   }
@@ -142,56 +142,53 @@ class Data {
     data['type'] = this._type;
     if (this._priceVariation != null) {
       data['price_variation'] =
-          this._priceVariation.map((v) => v.toJson()).toList();
+          this._priceVariation!.map((v) => v.toJson()).toList();
     }
     return data;
   }
 }
 
 class PriceVariation {
-  String _id;
-  String _netWeight;
-  String _menuItemId;
-  String _variationName;
-  String _color;
-  double _price;
-  String _priority;
-  double _mrp;
-  int _stock;
-  String _maxItem;
-  String _status;
-  String _minItem;
-  String _weight;
-  double _membershipPrice;
-  String _unit;
-  double _loyalty;
-  List<String> _images;
-  int _quantity;
+  String? _id;
+  String? _netWeight;
+  String? _menuItemId;
+  String? _variationName;
+  double? _price;
+  String? _priority;
+  double? _mrp;
+  int? _stock;
+  String? _maxItem;
+  String? _status;
+  String? _minItem;
+  String? _weight;
+  double? _membershipPrice;
+  String? _unit;
+  double? _loyalty;
+  List<String>? _images;
+  int? _quantity;
 
   PriceVariation(
-      {String id,
-        String netWeight,
-        String menuItemId,
-        String variationName,
-        String color,
-        double price,
-        String priority,
-        double mrp,
-        int stock,
-        String maxItem,
-        String status,
-        String minItem,
-        String weight,
-        double membershipPrice,
-        String unit,
-        double loyalty,
-        List<String> images,
-        int quantity}) {
+      {String? id,
+        String? netWeight,
+        String? menuItemId,
+        String? variationName,
+        double? price,
+        String? priority,
+        double? mrp,
+        int? stock,
+        String? maxItem,
+        String? status,
+        String? minItem,
+        String? weight,
+        double? membershipPrice,
+        String? unit,
+        double? loyalty,
+        List<String>? images,
+        int? quantity}) {
     this._id = id;
     this._netWeight = netWeight;
     this._menuItemId = menuItemId;
     this._variationName = variationName;
-    this._color = color;
     this._price = price;
     this._priority = priority;
     this._mrp = mrp;
@@ -207,42 +204,40 @@ class PriceVariation {
     this._quantity = quantity;
   }
 
-  String get id => _id;
+  String get id => _id!;
   set id(String id) => _id = id;
-  String get netWeight => _netWeight;
+  String get netWeight => _netWeight!;
   set netWeight(String netWeight) => _netWeight = netWeight;
-  String get menuItemId => _menuItemId;
+  String get menuItemId => _menuItemId!;
   set menuItemId(String menuItemId) => _menuItemId = menuItemId;
-  String get variationName => _variationName;
+  String get variationName => _variationName!;
   set variationName(String variationName) => _variationName = variationName;
-  String get Color => _color;
-  set Color(String Color) => _color = Color;
-  double get price => _price;
+  double get price => _price!;
   set price(double price) => _price = price;
-  String get priority => _priority;
+  String get priority => _priority!;
   set priority(String priority) => _priority = priority;
-  double get mrp => _mrp;
+  double get mrp => _mrp!;
   set mrp(double mrp) => _mrp = mrp;
-  int get stock => _stock;
+  int get stock => _stock!;
   set stock(int stock) => _stock = stock;
-  String get maxItem => _maxItem;
+  String get maxItem => _maxItem!;
   set maxItem(String maxItem) => _maxItem = maxItem;
-  String get status => _status;
+  String get status => _status!;
   set status(String status) => _status = status;
-  String get minItem => _minItem;
+  String get minItem => _minItem!;
   set minItem(String minItem) => _minItem = minItem;
-  String get weight => _weight;
+  String get weight => _weight!;
   set weight(String weight) => _weight = weight;
-  double get membershipPrice => _membershipPrice;
+  double get membershipPrice => _membershipPrice!;
   set membershipPrice(double membershipPrice) =>
       _membershipPrice = membershipPrice;
-  String get unit => _unit;
+  String get unit => _unit!;
   set unit(String unit) => _unit = unit;
-  double get loyalty => _loyalty;
+  double get loyalty => _loyalty!;
   set loyalty(double loyalty) => _loyalty = loyalty;
-  List<String> get images => _images;
+  List<String> get images => _images!;
   set images(List<String> images) => _images = images;
-  int get quantity => _quantity;
+  int get quantity => _quantity!;
   set quantity(int quantity) => _quantity = quantity;
 
   PriceVariation.fromJson(Map<String, dynamic> json) {
@@ -251,10 +246,9 @@ class PriceVariation {
     _netWeight = json['net_weight'];
     _menuItemId = json['menu_item_id'];
     _variationName = json['variation_name'];
-    _color = json['color'];
-    _price = json['price'];
+    _price = double.parse(json['price'].toString());
     _priority = json['priority'];
-    _mrp = json['mrp'];
+    _mrp = double.parse(json['mrp'].toString());
     _stock = json['stock'];
     _maxItem = json['max_item'];
     _status = json['status'];
@@ -262,7 +256,7 @@ class PriceVariation {
     _weight = json['weight'];
     _membershipPrice = json['membership_price']+.0;
     _unit = json['unit'];
-    _loyalty = json['loyalty'];
+    _loyalty = double.parse(json['loyalty'].toString());
     _images = json['images'].cast<String>();
     _quantity = int.parse(json['quantity'].toString());
   }

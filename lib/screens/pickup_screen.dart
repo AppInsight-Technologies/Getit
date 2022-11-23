@@ -1,19 +1,16 @@
 import 'dart:io';
 import 'dart:ui';
 
-import '../../controller/mutations/cart_mutation.dart';
-import '../../models/VxModels/VxStore.dart';
-import '../../models/newmodle/cartModle.dart';
+import '../../rought_genrator.dart';
+
+import '../../constants/features.dart';
+
+import '../controller/mutations/cart_mutation.dart';
+import '../models/VxModels/VxStore.dart';
+import '../models/newmodle/cartModle.dart';
 import 'package:velocity_x/velocity_x.dart';
 
-import '../blocs/cart_item_bloc.dart';
-import '../data/hiveDB.dart';
 import '../generated/l10n.dart';
-import '../main.dart';
-import '../providers/cartItems.dart';
-import '../providers/sellingitems.dart';
-import '../screens/bloc.dart';
-import 'package:hive/hive.dart';
 import '../assets/images.dart';
 import '../widgets/bottom_navigation.dart';
 
@@ -41,12 +38,12 @@ class PickupScreen extends StatefulWidget {
   _PickupScreenState createState() => _PickupScreenState();
 }
 
-class _PickupScreenState extends State<PickupScreen> {
+class _PickupScreenState extends State<PickupScreen> with Navigations{
   bool _isLoading = true;
   var pickuplocItem;
   var pickupTime;
   int _groupValue = 0;
-  DateTime pickedDate;
+  late DateTime pickedDate;
   String selectTime = "";
   String selectDate = "";
   var times;
@@ -55,7 +52,6 @@ class _PickupScreenState extends State<PickupScreen> {
   int _index = 0;
   bool _checkStoreLoc = false;
   bool _isPickupSlots = false;
-  //int deliverycharge = 0;
   double _cartTotal = 0.0;
   int z=0;
   bool _isWeb = false;
@@ -66,13 +62,11 @@ class _PickupScreenState extends State<PickupScreen> {
   var pickupdelivery;
   var time = "10 AM - 1 PM";
   bool _checkmembership = false;
-  // Box<Product> productBox;
   List<CartItem> productBox=[];
-  HomeDisplayBloc _bloc;
+  List<String>? dateSplit;
 
   @override
   void initState() {
-    _bloc = HomeDisplayBloc();
     productBox = (VxState.store as GroceStore).CartItemList;
     pickedDate = DateTime.now();
     Future.delayed(Duration.zero, () async {
@@ -95,7 +89,7 @@ class _PickupScreenState extends State<PickupScreen> {
       }
 
       setState(() {
-        if (PrefUtils.prefs.getString("membership") == "1") {
+        if (PrefUtils.prefs!.getString("membership") == "1") {
           _cartTotal = CartCalculations.totalMember;
           _checkmembership = true;
         } else {
@@ -112,7 +106,6 @@ class _PickupScreenState extends State<PickupScreen> {
             _checkStoreLoc = true;
             _deliveryChargeNormal = pickuplocItem.itemspickuploc[0].deliveryChargeForRegularUser;
             _deliveryChargePrime = pickuplocItem.itemspickuploc[0].deliveryChargeForMembershipUser;
-            debugPrint("_deliveryChargeNormal..." + _deliveryChargeNormal.toString() + "  " + _deliveryChargePrime.toString());
             Provider.of<DeliveryslotitemsList>(context, listen: false).fetchPickupslots(pickuplocItem.itemspickuploc[0].id).then((_) {
               pickupTime = Provider.of<DeliveryslotitemsList>(context, listen: false);
               for(int i = 0; i <pickupTime.itemsPickup.length; i++) {
@@ -127,6 +120,18 @@ class _PickupScreenState extends State<PickupScreen> {
                 });
               }
               if (pickupTime.itemsPickup.length > 0) {
+                final tagName = pickupTime.itemsPickup[0].date.toString();
+                dateSplit = tagName.split(',');
+                print("date arrya..."+dateSplit!.length.toString());
+                for(var i=0;i<dateSplit!.length;i++) {
+                  //for (var j = 0; j < dateSplit![i].length; j++) {
+                  print("date split......"+dateSplit![i]);
+
+                  print("date split......1...."+dateSplit![1]);
+                  print("date split......2...."+dateSplit![0]);
+                  // }
+                }
+               // debugPrint("position slot...."+deliveryslotData.items[position].id.toString()+"  "+position.toString());
                 _isPickupSlots = true;
                 selectTime = pickupTime.itemsPickup[0].time;
                 selectDate = pickupTime.itemsPickup[0].date;
@@ -170,20 +175,6 @@ class _PickupScreenState extends State<PickupScreen> {
             );
           });
         });
-  }
-
-  Widget _myRadioButton({int value, Function onChanged}) {
-    return Theme(
-      data: ThemeData(
-        unselectedWidgetColor: ColorCodes.greenColor,
-      ),
-      child: Radio(
-        activeColor: ColorCodes.greenColor,
-        value: value,
-        groupValue: _groupValue,
-        onChanged: onChanged,
-      ),
-    );
   }
 
   Iterable<TimeOfDay> getTimes(
@@ -247,8 +238,8 @@ class _PickupScreenState extends State<PickupScreen> {
   Widget build(BuildContext context) {
     _buildBottomNavigationBar() {
       return BottomNaviagation(
-        itemCount: CartCalculations.itemCount.toString() + " " + S.of(context).items,
-        title: S.current.confirm_order,
+        itemCount: CartCalculations.itemCount.toString() + " " + S .of(context).items,
+        title: S .current.confirm_order,
         adonamount: !_checkStoreLoc ? _checkmembership ? (double.parse(_deliveryChargePrime)).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit)
             : (double.parse(_deliveryChargeNormal)).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit) : _isPickupSlots ?
         _checkmembership ? ( double.parse(_deliveryChargePrime)).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit) : ( double.parse(_deliveryChargeNormal)).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit)
@@ -271,13 +262,11 @@ class _PickupScreenState extends State<PickupScreen> {
                     .textScaleFactor * 13,);
             }else{
               if(_isPickupSlots){
-                PrefUtils.prefs.setString("isPickup", "yes");
-                PrefUtils.prefs.setString('fixtime', selectTime);
-                PrefUtils.prefs.setString("fixdate", selectDate);
-                PrefUtils.prefs.setString("addressId", pickuplocItem.itemspickuploc[_groupValue].id.toString());
-                print("_groupValue..."+_groupValue.toString());
-                debugPrint("Select time . .. . . " + selectTime + "..Date......." + selectDate + "  "+pickuplocItem.itemspickuploc[_groupValue].id.toString());
-                Navigator.of(context).pushNamed(PaymentScreen.routeName, arguments: {
+                PrefUtils.prefs!.setString("isPickup", "yes");
+                PrefUtils.prefs!.setString('fixtime', selectTime);
+                PrefUtils.prefs!.setString("fixdate", selectDate);
+                PrefUtils.prefs!.setString("addressId", pickuplocItem.itemspickuploc[_groupValue].id.toString());
+             /*   Navigator.of(context).pushNamed(PaymentScreen.routeName, arguments: {
                   'minimumOrderAmountNoraml': "0",
                   'deliveryChargeNormal': _deliveryChargeNormal,
                   'minimumOrderAmountPrime': "0",
@@ -285,18 +274,32 @@ class _PickupScreenState extends State<PickupScreen> {
                   'minimumOrderAmountExpress': "0",
                   'deliveryChargeExpress': "0",
                   'deliveryType': "pickup",
-                  'addressId': PrefUtils.prefs.getString("addressId"),
+                  'addressId': PrefUtils.prefs!.getString("addressId"),
                   'note': _message.text,
                   'deliveryCharge': _checkmembership ? _deliveryChargePrime : _deliveryChargeNormal,
                   'deliveryDurationExpress' : "0",
-                  'fromScreen':'',
-                  'responsejson':"",
-                });
+                });*/
+                Navigation(context, name: Routename.PaymentScreen, navigatore: NavigatoreTyp.Push,
+                    qparms: {
+                      'minimumOrderAmountNoraml': "0",
+                      'deliveryChargeNormal': _deliveryChargeNormal,
+                      'minimumOrderAmountPrime': "0",
+                      'deliveryChargePrime': _deliveryChargePrime,
+                      'minimumOrderAmountExpress': "0",
+                      'deliveryChargeExpress': "0",
+                      'deliveryType': "pickup",
+                      'addressId': PrefUtils.prefs!.getString("addressId"),
+                      'note': _message.text,
+                      'deliveryCharge': _checkmembership ? _deliveryChargePrime : _deliveryChargeNormal,
+                      'deliveryDurationExpress' : "0",
+                      'fromScreen':'pickupscreen',
+                      'responsejson':"",
+                    });
               }
               else{
                 Fluttertoast.showToast(
                   msg:
-                  S.of(context).currently_no_time_address ,//"currently there is no slots available for this address",
+                  S .of(context).currently_no_time_address ,//"currently there is no slots available for this address",
                   fontSize: MediaQuery.of(context).textScaleFactor *13,);
               }
 
@@ -315,7 +318,7 @@ class _PickupScreenState extends State<PickupScreen> {
       //           ? GestureDetector(
       //               onTap: () => {
       //                 Fluttertoast.showToast(
-      //                     msg: S.of(context).currently_no_store ,//"currently there is no store address available",
+      //                     msg: S .of(context).currently_no_store ,//"currently there is no store address available",
       //                   fontSize: MediaQuery.of(context).textScaleFactor *13,),
       //               },
       //               child: Row(
@@ -327,13 +330,13 @@ class _PickupScreenState extends State<PickupScreen> {
       //                     child: Center(
       //                       child: _checkmembership?
       //                       Text(
-      //                         S.of(context).total//'Total: '
+      //                         S .of(context).total//'Total: '
       //                             +   IConstants.currencyFormat + " " + (_cartTotal + double.parse(_deliveryChargePrime)).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),
       //                         style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
       //                         textAlign: TextAlign.center,
       //                       )
       //                       :Text(
-      //                         S.of(context).total//'Total: '
+      //                         S .of(context).total//'Total: '
       //                             +   IConstants.currencyFormat + " " + (_cartTotal + double.parse(_deliveryChargeNormal)).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),
       //                               style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
       //                               textAlign: TextAlign.center,
@@ -350,7 +353,7 @@ class _PickupScreenState extends State<PickupScreen> {
       //                       crossAxisAlignment: CrossAxisAlignment.center ,
       //                     children: [
       //                         Text(
-      //                         S.of(context).confirm_order,//'CONFIRM ORDER',
+      //                         S .of(context).confirm_order,//'CONFIRM ORDER',
       //                           style: TextStyle(
       //                               color: Colors.white,
       //                               fontWeight: FontWeight.bold),
@@ -371,10 +374,10 @@ class _PickupScreenState extends State<PickupScreen> {
       //           : _isPickupSlots
       //               ? GestureDetector(
       //                   onTap: () {
-      //                     PrefUtils.prefs.setString("isPickup", "yes");
-      //                     PrefUtils.prefs.setString('fixtime', selectTime);
-      //                     PrefUtils.prefs.setString("fixdate", selectDate);
-      //                     PrefUtils.prefs.setString(
+      //                     PrefUtils.prefs!.setString("isPickup", "yes");
+      //                     PrefUtils.prefs!.setString('fixtime', selectTime);
+      //                     PrefUtils.prefs!.setString("fixdate", selectDate);
+      //                     PrefUtils.prefs!.setString(
       //                         "addressId",
       //                         pickuplocItem.itemspickuploc[_groupValue].id
       //                             .toString());
@@ -401,13 +404,13 @@ class _PickupScreenState extends State<PickupScreen> {
       //                         child: Center(
       //                           child: _checkmembership?
       //                           Text(
-      //                             S.of(context).total//'Total: '
+      //                             S .of(context).total//'Total: '
       //                                 +   IConstants.currencyFormat + " " + (_cartTotal + double.parse(_deliveryChargePrime)).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),
       //                             style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
       //                             textAlign: TextAlign.center,
       //                           )
       //                               :Text(
-      //                             S.of(context).total//'Total: '
+      //                             S .of(context).total//'Total: '
       //                                 +   IConstants.currencyFormat + " " + (_cartTotal + double.parse(_deliveryChargeNormal)).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),
       //                             style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
       //                             textAlign: TextAlign.center,
@@ -424,7 +427,7 @@ class _PickupScreenState extends State<PickupScreen> {
       //                           crossAxisAlignment: CrossAxisAlignment.center ,
       //                           children: [
       //                             Text(
-      //                             S.of(context).confirm_order ,//'CONFIRM ORDER',
+      //                             S .of(context).confirm_order ,//'CONFIRM ORDER',
       //                               style: TextStyle(
       //                                   color: Colors.white,
       //                                   fontWeight: FontWeight.bold),
@@ -447,7 +450,7 @@ class _PickupScreenState extends State<PickupScreen> {
       //                   onTap: () => {
       //                     Fluttertoast.showToast(
       //                         msg:
-      //                         S.of(context).currently_no_time_address ,//"currently there is no slots available for this address",
+      //                         S .of(context).currently_no_time_address ,//"currently there is no slots available for this address",
       //                       fontSize: MediaQuery.of(context).textScaleFactor *13,),
       //                   },
       //                   child: Row(
@@ -459,13 +462,13 @@ class _PickupScreenState extends State<PickupScreen> {
       //                         child: Center(
       //                           child: _checkmembership?
       //                           Text(
-      //                             S.of(context).total//'Total: '
+      //                             S .of(context).total//'Total: '
       //                                 +   IConstants.currencyFormat + " " + (_cartTotal + double.parse(_deliveryChargePrime)).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),
       //                             style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
       //                             textAlign: TextAlign.center,
       //                           )
       //                               :Text(
-      //                             S.of(context).total//'Total: '
+      //                             S .of(context).total//'Total: '
       //                                 +   IConstants.currencyFormat + " " + (_cartTotal + double.parse(_deliveryChargeNormal)).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),
       //                             style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
       //                             textAlign: TextAlign.center,
@@ -482,7 +485,7 @@ class _PickupScreenState extends State<PickupScreen> {
       //                           crossAxisAlignment: CrossAxisAlignment.center ,
       //                           children: [
       //                             Text(
-      //                               S.of(context).confirm_order ,//'CONFIRM ORDER',
+      //                               S .of(context).confirm_order ,//'CONFIRM ORDER',
       //                               style: TextStyle(
       //                                   color: Colors.white,
       //                                   fontWeight: FontWeight.bold),
@@ -510,7 +513,7 @@ class _PickupScreenState extends State<PickupScreen> {
       if (await canLaunch(googleUrl)) {
         await launch(googleUrl);
       } else {
-        throw  S.of(context).could_not_open_app ;//'Could not open the map.';
+        throw  S .of(context).could_not_open_app ;//'Could not open the map.';
       }
     }
 
@@ -520,9 +523,11 @@ class _PickupScreenState extends State<PickupScreen> {
       /* Navigator.pushNamedAndRemoveUntil(
             context, CartScreen.routeName, (route) => false);*/
       removeToCart();
-      Navigator.of(context).pushReplacementNamed(CartScreen.routeName, arguments: {
-        "after_login": ""
-      });
+     /* Navigator.of(context).pushReplacementNamed(CartScreen.routeName, arguments: {
+        "afterlogin": ""
+      });*/
+     // Navigation(context, name: Routename.Cart, navigatore: NavigatoreTyp.Push,qparms: {"afterlogin":null});
+      Navigation(context, name: Routename.Cart, navigatore: NavigatoreTyp.Push,qparms: {"afterlogin":""});
      // Navigator.of(context).pop();
 
       return Future.value(false);
@@ -530,14 +535,15 @@ class _PickupScreenState extends State<PickupScreen> {
     child:Scaffold(
       appBar: ResponsiveLayout.isSmallScreen(context)
           ?gradientappbarmobile():null,
-      backgroundColor: ColorCodes.appdrawerColor,
-      body: (_isWeb && !ResponsiveLayout.isSmallScreen(context))?CartScreen():_isLoading
+      backgroundColor: ColorCodes.whiteColor,
+      body: (_isWeb && !ResponsiveLayout.isSmallScreen(context))?CartScreen({}):_isLoading
           ? Center(
               child: CheckOutShimmer(),
             )
           : SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.start,
                 children: <Widget>[
                   !_checkStoreLoc
                       ? Center(
@@ -547,17 +553,17 @@ class _PickupScreenState extends State<PickupScreen> {
                             padding: EdgeInsets.only(left: 15, right: 15, top: 15, bottom: 15),
                             decoration: BoxDecoration(
                                 color: ColorCodes.whiteColor,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: ColorCodes.grey.withOpacity(0.3),
-                                    spreadRadius: 1,
-                                    blurRadius: 5,
-                                    offset: Offset(0, 3),
-                                  )
-                                ]
+                                // boxShadow: [
+                                //   BoxShadow(
+                                //     color: ColorCodes.grey.withOpacity(0.3),
+                                //     spreadRadius: 1,
+                                //     blurRadius: 5,
+                                //     offset: Offset(0, 3),
+                                //   )
+                                // ]
                             ),
                             child: Text(
-                              S.of(context).currently_no_store ,//"Currently there is no store address available",
+                              S .of(context).currently_no_store ,//"Currently there is no store address available",
                               style: TextStyle(
                                   fontWeight: FontWeight.bold, fontSize: 16),
                             ),
@@ -566,18 +572,18 @@ class _PickupScreenState extends State<PickupScreen> {
                       :
                    Container(
                      width:MediaQuery.of(context).size.width,
-                     margin: EdgeInsets.only(top: 10, bottom: 15),
-                     padding: EdgeInsets.only(left: 15, right: 15, top: 15, bottom: 15),
+                     margin: EdgeInsets.only(top: 10, bottom: 5,left:15,right: 15),
+                     padding: EdgeInsets.only(left: 15, right: 15, top: 15, bottom: 5),
                      decoration: BoxDecoration(
                          color: ColorCodes.whiteColor,
-                         boxShadow: [
-                           BoxShadow(
-                             color: ColorCodes.grey.withOpacity(0.3),
-                             spreadRadius: 1,
-                             blurRadius: 5,
-                             offset: Offset(0, 3),
-                           )
-                         ]
+                         // boxShadow: [
+                         //   BoxShadow(
+                         //     color: ColorCodes.grey.withOpacity(0.3),
+                         //     spreadRadius: 1,
+                         //     blurRadius: 5,
+                         //     offset: Offset(0, 3),
+                         //   )
+                         // ]
                      ),
                       child: Column(
                           children: [
@@ -598,15 +604,14 @@ class _PickupScreenState extends State<PickupScreen> {
                                         changeStore(pickuplocItem.itemspickuploc[i].id);
                                         _deliveryChargeNormal = pickuplocItem.itemspickuploc[i].deliveryChargeForRegularUser;
                                         _deliveryChargePrime = pickuplocItem.itemspickuploc[i].deliveryChargeForMembershipUser;
-                                        debugPrint("_deliveryChargeNormal..." + _deliveryChargeNormal.toString() + "  " + _deliveryChargePrime.toString());
                                       });
                                   },
                                   child: Container(
                                     decoration: BoxDecoration(
-                                      color: _groupValue == i ? ColorCodes.mediumgren : ColorCodes.whiteColor,
+                                      color: _groupValue == i ? ColorCodes.varcolor : ColorCodes.whiteColor,
                                       borderRadius: BorderRadius.circular(8.0),
                                       border: Border.all(
-                                        color: ColorCodes.greenColor,
+                                        color: ColorCodes.primaryColor,
                                       ),
                                     ),
                                       child: ListTile(
@@ -629,7 +634,7 @@ class _PickupScreenState extends State<PickupScreen> {
                                                               .itemspickuploc[i]
                                                               .longitude);
                                                     },
-                                                    child: Image.asset(Images.pickup_point, height:25, width: 25, color: ColorCodes.mediumBlackColor)),
+                                                    child: Image.asset(Images.pickup_point, height:25, width: 25, color: ColorCodes.primaryColor)),
                                               ),
                                               SizedBox(
                                                 width: 10.0,
@@ -651,7 +656,7 @@ class _PickupScreenState extends State<PickupScreen> {
                                                         style: TextStyle(
                                                           fontSize: 18,
                                                             fontWeight:
-                                                                FontWeight.w900),
+                                                                FontWeight.w900,color: ColorCodes.primaryColor),
                                                       ),
                                                       SizedBox(
                                                         height: 4.0,
@@ -665,7 +670,7 @@ class _PickupScreenState extends State<PickupScreen> {
                                                               .itemspickuploc[i]
                                                               .address,
                                                           style: TextStyle(
-                                                              color: ColorCodes.greyColor,
+                                                              color: ColorCodes.primaryColor,//ColorCodes.greyColor,
                                                               fontWeight:
                                                                   FontWeight.w300,
                                                               fontSize: 12.0),
@@ -681,7 +686,7 @@ class _PickupScreenState extends State<PickupScreen> {
                                                                   .itemspickuploc[i]
                                                                   .contact,
                                                           style: TextStyle(
-                                                            color: ColorCodes.greyColor,
+                                                            color: ColorCodes.primaryColor,//ColorCodes.greyColor,
                                                               fontWeight:
                                                                   FontWeight.w300,
                                                               fontSize: 12.0),
@@ -704,7 +709,6 @@ class _PickupScreenState extends State<PickupScreen> {
                                                     changeStore(pickuplocItem.itemspickuploc[i].id);
                                                     _deliveryChargeNormal = pickuplocItem.itemspickuploc[i].deliveryChargeForRegularUser;
                                                     _deliveryChargePrime = pickuplocItem.itemspickuploc[i].deliveryChargeForMembershipUser;
-                                                    debugPrint("_deliveryChargeNormal..." + _deliveryChargeNormal.toString() + "  " + _deliveryChargePrime.toString());
 
                                                   },
                                                 ),
@@ -716,7 +720,7 @@ class _PickupScreenState extends State<PickupScreen> {
                                                 decoration: BoxDecoration(
                                                   color: ColorCodes.whiteColor,
                                                   border: Border.all(
-                                                    color: ColorCodes.greenColor,
+                                                    color: ColorCodes.primaryColor,
                                                   ),
                                                   shape: BoxShape.circle,
                                                 ),
@@ -727,14 +731,14 @@ class _PickupScreenState extends State<PickupScreen> {
                                                     shape: BoxShape.circle,
                                                   ),
                                                   child: Icon(Icons.check,
-                                                      color: ColorCodes.greenColor,
+                                                      color: ColorCodes.primaryColor,
                                                       size: 15.0),
                                                 ),
                                               )
                                                   :
                                               Icon(
                                                   Icons.radio_button_off_outlined,
-                                                  color: ColorCodes.greenColor),
+                                                  color: ColorCodes.primaryColor),
 
                                               SizedBox(
                                                 width: 15.0,
@@ -775,7 +779,7 @@ class _PickupScreenState extends State<PickupScreen> {
                                   child: TextField(
                                     controller: _message,
                                     decoration: InputDecoration.collapsed(
-                                        hintText: S.of(context).any_request ,//"Any request? We promise to pass it on",
+                                        hintText: S .of(context).any_request ,//"Any request? We promise to pass it on",
                                         hintStyle: TextStyle(fontSize: 12.0),
                                         //contentPadding: EdgeInsets.all(16),
                                         //border: OutlineInputBorder(),
@@ -794,22 +798,22 @@ class _PickupScreenState extends State<PickupScreen> {
                       ? Container(
                     width: MediaQuery.of(context).size.width,
                     margin: EdgeInsets.only(top: 0, bottom: 0),
-                    padding: EdgeInsets.only(left: 15, right: 15, top: 15, bottom: 15),
+                    padding: EdgeInsets.only(left: 15, right: 15, top: 5, bottom: 5),
                     decoration: BoxDecoration(
                         color: ColorCodes.whiteColor,
-                        boxShadow: [
-                          BoxShadow(
-                            color: ColorCodes.grey.withOpacity(0.3),
-                            spreadRadius: 1,
-                            blurRadius: 5,
-                            offset: Offset(0, 3),
-                          )
-                        ]
+                        // boxShadow: [
+                        //   BoxShadow(
+                        //     color: ColorCodes.grey.withOpacity(0.3),
+                        //     spreadRadius: 1,
+                        //     blurRadius: 5,
+                        //     offset: Offset(0, 3),
+                        //   )
+                        // ]
                     ),
                           child: Text(
-                            S.of(context).select_your_timeslot ,//"Select Your Time Slot",
+                            S .of(context).select_your_timeslot ,//"Select Your Time Slot",
                             style: TextStyle(
-                                fontSize: 18,
+                                fontSize: 16,
                                 fontWeight:
                                 FontWeight.w900),
                           ),
@@ -823,26 +827,61 @@ class _PickupScreenState extends State<PickupScreen> {
                       ? Container(
                     width: MediaQuery.of(context).size.width,
                     margin: EdgeInsets.only(top: 0, bottom: 10),
-                    padding: EdgeInsets.only(left: 15, right: 15, top: 15, bottom: 15),
+                    padding: EdgeInsets.only(left: 15, right: 15, top: 5, bottom: 10),
                     decoration: BoxDecoration(
                         color: ColorCodes.whiteColor,
-                        boxShadow: [
-                          BoxShadow(
-                            color: ColorCodes.grey.withOpacity(0.3),
-                            spreadRadius: 1,
-                            blurRadius: 5,
-                            offset: Offset(0, 3),
-                          )
-                        ]
+                        // boxShadow: [
+                        //   BoxShadow(
+                        //     color: ColorCodes.grey.withOpacity(0.3),
+                        //     spreadRadius: 1,
+                        //     blurRadius: 5,
+                        //     offset: Offset(0, 3),
+                        //   )
+                        // ]
                     ),
                           child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.start,
                             children: [
-                              Row(
+                              Container(
+                                height: 50,
+                                width: 40,
+
+                                decoration: BoxDecoration(
+                                  color: pickupTime.itemsPickup[0].isSelect ?ColorCodes.varcolor:ColorCodes.whiteColor,
+                                  border: Border.all(
+                                    color: ColorCodes.varcolor,
+                                  ),
+                                  borderRadius: BorderRadius.circular(3),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                      dateSplit![0].toUpperCase(),
+                                      /* value1,*//*deliveryslotData.items[i].date,*/
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16,
+                                          color: ColorCodes.darkgreen)),
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.only(top:2.0,left: 2,right:2),
+                                child: Text(
+                                    dateSplit![1].toUpperCase(),
+                                    /* value2.toUpperCase(),*//*deliveryslotData.items[i].date,*/
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 15,
+                                        color: ColorCodes.darkgreen)),
+                              ),
+                             /* Row(
                                 children: <Widget>[
                                   // Container(
                                   //   margin: EdgeInsets.only(left: 10.0),
                                   //   child: Text(
-                                  //     S.of(context).date ,//'Date: ',
+                                  //     S .of(context).date ,//'Date: ',
                                   //     style: TextStyle(
                                   //       fontWeight: FontWeight.w300,
                                   //       fontSize: 15.0,
@@ -854,19 +893,19 @@ class _PickupScreenState extends State<PickupScreen> {
                                     height: 50,
                                     width: 100,
                                     decoration: BoxDecoration(
-                                      color: ColorCodes.mediumgren,
+                                      color: ColorCodes.varcolor,
                                       border: Border.all(
-                                        color: ColorCodes.lightgreen,
+                                        color: ColorCodes.primaryColor,
                                       ),
                                       borderRadius: BorderRadius.circular(3),
                                     ),
                                     child: Center(
                                       child: Text(
-                                        pickupTime.itemsPickup[0].date,
+                                       dateSplit[0],// pickupTime.itemsPickup[0].date,
                                         style: TextStyle(
                                             fontWeight: FontWeight.bold,
                                             fontSize: 16,
-                                            color: ColorCodes.darkgreen),
+                                            color: ColorCodes.primaryColor),
                                       ),
                                     ),
                                   ),
@@ -878,7 +917,7 @@ class _PickupScreenState extends State<PickupScreen> {
                                   //   padding: EdgeInsets.only(top: 40),
                                   // ),
                                 ],
-                              ),
+                              ),*/
                               // Row(
                               //   children: [
                               //     Text('Select your pickup slot', style: TextStyle(
@@ -897,9 +936,9 @@ class _PickupScreenState extends State<PickupScreen> {
                           ? Center(
                               child: Container(
                                 margin: EdgeInsets.only(
-                                    left: 15.0, top: 30.0, bottom: 10.0, right: 10),
+                                    left: 15.0, top: 10.0, bottom: 10.0, right: 10),
                                 child: Text(
-                                  S.of(context).currently_no_time_address ,//"Currently there is no slots available for this address",
+                                  S .of(context).currently_no_time_address ,//"Currently there is no slots available for this address",
                                   style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 16),
@@ -907,7 +946,7 @@ class _PickupScreenState extends State<PickupScreen> {
                               ),
                             )
                           : Container(),
-                          if(_isWeb&&!ResponsiveLayout.isLargeScreen(context))
+                          if(_isWeb&&!ResponsiveLayout.isSmallScreen(context))
                           Container(
                width: MediaQuery.of(context).size.width,
               height: 50.0,
@@ -918,7 +957,7 @@ class _PickupScreenState extends State<PickupScreen> {
                 ? GestureDetector(
                     onTap: () => {
                       Fluttertoast.showToast(
-                          msg: S.of(context).currently_no_store ,//"currently there is no store address available",
+                          msg: S .of(context).currently_no_store ,//"currently there is no store address available",
                         fontSize: MediaQuery.of(context).textScaleFactor *13,),
                     },
                     child: Row(
@@ -928,8 +967,16 @@ class _PickupScreenState extends State<PickupScreen> {
                           height: 50,
                           width: MediaQuery.of(context).size.width * 40 / 100,
                           child: Center(
-                            child: Text(
-                              S.of(context).total //'Total: '
+                            child:
+                                Features.iscurrencyformatalign?
+                                Text(
+                                  S .of(context).total //'Total: '
+                                      +   _cartTotal.toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit)  + " " +  IConstants.currencyFormat,
+                                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                  textAlign: TextAlign.center,
+                                ):
+                            Text(
+                              S .of(context).total //'Total: '
                                   +   IConstants.currencyFormat + " " + _cartTotal.toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),
                                     style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                                     textAlign: TextAlign.center,
@@ -946,7 +993,7 @@ class _PickupScreenState extends State<PickupScreen> {
                             crossAxisAlignment: CrossAxisAlignment.center ,
                           children: [
                               Text(
-                                S.of(context).confirm_order ,//'CONFIRM ORDER',
+                                S .of(context).confirm_order ,//'CONFIRM ORDER',
                                 style: TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.bold),
@@ -967,17 +1014,15 @@ class _PickupScreenState extends State<PickupScreen> {
                 : _isPickupSlots
                     ? GestureDetector(
                         onTap: () {
-                          PrefUtils.prefs.setString("isPickup", "yes");
-                          PrefUtils.prefs.setString('fixtime', selectTime);
-                          PrefUtils.prefs.setString("fixdate", selectDate);
-                          PrefUtils.prefs.setString(
+                          PrefUtils.prefs!.setString("isPickup", "yes");
+                          PrefUtils.prefs!.setString('fixtime', selectTime);
+                          PrefUtils.prefs!.setString("fixdate", selectDate);
+                          PrefUtils.prefs!.setString(
                               "addressId",
                               pickuplocItem.itemspickuploc[_groupValue].id
                                   .toString());
-                          print("_groupValue..."+_groupValue.toString());
-                          debugPrint("Select time . .. . . " + selectTime + "..Date......." + selectDate + "  "+pickuplocItem.itemspickuploc[_groupValue].id.toString());
 
-                          Navigator.of(context)
+                 /*         Navigator.of(context)
                               .pushNamed(PaymentScreen.routeName, arguments: {
                             'minimumOrderAmountNoraml': "0",
                             'deliveryChargeNormal': _deliveryChargeNormal,
@@ -986,13 +1031,27 @@ class _PickupScreenState extends State<PickupScreen> {
                             'minimumOrderAmountExpress': "0",
                             'deliveryChargeExpress': "0",
                             'deliveryType': "pickup",
-                            'addressId': PrefUtils.prefs.getString("addressId"),
+                            'addressId': PrefUtils.prefs!.getString("addressId"),
                             'note': _message.text,
                             'deliveryCharge': _checkmembership?_deliveryChargePrime:_deliveryChargeNormal,
                             'deliveryDurationExpress' : "0",
-                            'fromScreen':'',
-                            'responsejson':"",
-                          });
+                          });*/
+                          Navigation(context, name: Routename.PaymentScreen, navigatore: NavigatoreTyp.Push,
+                              qparms: {
+                                'minimumOrderAmountNoraml': "0",
+                                'deliveryChargeNormal': _deliveryChargeNormal,
+                                'minimumOrderAmountPrime': "0",
+                                'deliveryChargePrime': _deliveryChargePrime,
+                                'minimumOrderAmountExpress': "0",
+                                'deliveryChargeExpress': "0",
+                                'deliveryType': "pickup",
+                                'addressId': PrefUtils.prefs!.getString("addressId"),
+                                'note': _message.text,
+                                'deliveryCharge': _checkmembership?_deliveryChargePrime:_deliveryChargeNormal,
+                                'deliveryDurationExpress' : "0",
+                                'fromScreen':'pickupscreen',
+                                'responsejson':"",
+                              });
                         },
                         child: Row(
                           children: [
@@ -1001,8 +1060,16 @@ class _PickupScreenState extends State<PickupScreen> {
                               height: 50,
                               width: MediaQuery.of(context).size.width * 40 / 100,
                               child: Center(
-                                child: Text(
-                                  S.of(context).total //'Total: '
+                                child:
+                                    Features.iscurrencyformatalign?
+                                    Text(
+                                      S .of(context).total //'Total: '
+                                          +   _cartTotal.toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit)  + " " + IConstants.currencyFormat,
+                                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                      textAlign: TextAlign.center,
+                                    ):
+                                Text(
+                                  S .of(context).total //'Total: '
                                       +   IConstants.currencyFormat + " " + _cartTotal.toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),
                                   style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                                   textAlign: TextAlign.center,
@@ -1019,7 +1086,7 @@ class _PickupScreenState extends State<PickupScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.center ,
                                 children: [
                                   Text(
-                                    S.of(context).confirm_order ,//'CONFIRM ORDER',
+                                    S .of(context).confirm_order ,//'CONFIRM ORDER',
                                     style: TextStyle(
                                         color: Colors.white,
                                         fontWeight: FontWeight.bold),
@@ -1042,7 +1109,7 @@ class _PickupScreenState extends State<PickupScreen> {
                         onTap: () => {
                           Fluttertoast.showToast(
                               msg:
-                              S.of(context).currently_no_time_address ,//"currently there is no slots available for this address",
+                              S .of(context).currently_no_time_address ,//"currently there is no slots available for this address",
                             fontSize: MediaQuery.of(context).textScaleFactor *13,),
                         },
                         child: Row(
@@ -1052,8 +1119,16 @@ class _PickupScreenState extends State<PickupScreen> {
                               height: 50,
                               width: MediaQuery.of(context).size.width * 40 / 100,
                               child: Center(
-                                child: Text(
-                                  S.of(context).total //'Total: '
+                                child:
+                                    Features.iscurrencyformatalign?
+                                    Text(
+                                      S .of(context).total //'Total: '
+                                          +   _cartTotal.toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit) + " " + IConstants.currencyFormat,
+                                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold,),
+                                      textAlign: TextAlign.center,
+                                    ):
+                                Text(
+                                  S .of(context).total //'Total: '
                                       +   IConstants.currencyFormat + " " + _cartTotal.toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),
                                   style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold,),
                                   textAlign: TextAlign.center,
@@ -1070,7 +1145,7 @@ class _PickupScreenState extends State<PickupScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.center ,
                                 children: [
                                   Text(
-                                    S.of(context).confirm_order ,//'CONFIRM ORDER',
+                                    S .of(context).confirm_order ,//'CONFIRM ORDER',
                                     style: TextStyle(
                                         color: Colors.white,
                                         fontWeight: FontWeight.bold),
@@ -1092,11 +1167,11 @@ class _PickupScreenState extends State<PickupScreen> {
         ),
       ),
                           if (_isWeb)
-                    Footer(address: PrefUtils.prefs.getString("restaurant_address")),
+                    Footer(address: PrefUtils.prefs!.getString("restaurant_address")!),
                 ],
               ),
             ),
-      bottomNavigationBar: _isWeb
+      bottomNavigationBar:  (Vx.isWeb && !ResponsiveLayout.isSmallScreen(context))
           ? SizedBox.shrink() :Padding(
         padding: EdgeInsets.only(left: 0.0, top: 0.0, right: 0.0, bottom: iphonex ? 16.0 : 0.0),
         child:_buildBottomNavigationBar(),
@@ -1104,7 +1179,6 @@ class _PickupScreenState extends State<PickupScreen> {
     ));
   }
   SelecttimeSlot(int index) {
-    debugPrint("id...position..." +"  "+ index.toString()+" "+pickupTime.itemsPickup.length.toString());
     pickupTime = Provider.of<DeliveryslotitemsList>(context, listen: false);
 
     return  ListView.separated(
@@ -1122,26 +1196,23 @@ class _PickupScreenState extends State<PickupScreen> {
             time = pickupTime.itemsPickup[j].time;
             final timeData = Provider.of<DeliveryslotitemsList>(context, listen: false);
 
-            //PrefUtils.prefs.setString("fixdate", pickupTime.itemsPickup[0].date);
+            //PrefUtils.prefs!.setString("fixdate", pickupTime.itemsPickup[0].date);
 
             //_index = (i == 0 && j == 0) ? 0 : _index + 1;
             for(int i = 0; i < timeData.itemsPickup.length; i++) {
               timeData.itemsPickup[i].isSelect = false;
               pickupTime.itemsPickup[j].isSelect = false;
               // timeData.times[i].isSelect = false;
-              print("timeindex: ${timeData.itemsPickup[i].index}");
               if(j == i) {
                 setState(() {
                   timeData.itemsPickup[i].selectedColor = ColorCodes.primaryColor;
                   timeData.itemsPickup[i].isSelect = true;
                   pickupTime.itemsPickup[j].isSelect = true;
-                  PrefUtils.prefs.setString('fixtime', timeData.itemsPickup[i].time);
-                  selectTime = timeData.itemsPickup[i].time;
+                  PrefUtils.prefs!.setString('fixtime', timeData.itemsPickup[i].time!);
+                  selectTime = timeData.itemsPickup[i].time!;
                 });
-                debugPrint("fix timessss . . .. . . " + PrefUtils.prefs.getString('fixtime',) +"     " + timeData.itemsPickup[i].time);
                 break;
               } else{
-                debugPrint("fix timessss 1111. . .. . . " + PrefUtils.prefs.getString('fixtime',) +"     " + timeData.itemsPickup[i].time);
                 setState(() {
                   timeData.itemsPickup[i].selectedColor = ColorCodes.lightgrey;
                   timeData.itemsPickup[i].isSelect = false;
@@ -1150,17 +1221,15 @@ class _PickupScreenState extends State<PickupScreen> {
                 });
               }
             }
-            debugPrint("fix time . . .. . . " + PrefUtils.prefs.getString('fixtime',));
-
           });
 
         },
         child: Container(
           height: 60,
           decoration: BoxDecoration(
-            color:  pickupTime.itemsPickup[j].isSelect ? ColorCodes.mediumgren:ColorCodes.whiteColor,
+            color:  pickupTime.itemsPickup[j].isSelect ? ColorCodes.varcolor:ColorCodes.whiteColor,
             border: Border.all(
-              color: ColorCodes.lightgreen,
+              color: pickupTime.itemsPickup[j].isSelect ?ColorCodes.primaryColor:ColorCodes.varcolor,
             ),
             borderRadius: BorderRadius.circular(3),
           ),
@@ -1175,7 +1244,7 @@ class _PickupScreenState extends State<PickupScreen> {
               Container(
                 child: Text(
                   pickupTime.itemsPickup[j].time,
-                  style: TextStyle(color: ColorCodes.greenColor , fontSize:14, fontWeight: FontWeight.bold),
+                  style: TextStyle(color: ColorCodes.primaryColor , fontSize:14, fontWeight: FontWeight.bold),
                 ),
               ),
               Spacer(),
@@ -1217,7 +1286,6 @@ class _PickupScreenState extends State<PickupScreen> {
   //                     position = i;
   //                     visible = true;
   //                     /*for(int j=0;j<deliveryslotData.items.length;j++){
-  //                          print("white: $j $i");
   //                          deliveryslotData.items[j].selectedColor=ColorCodes.whiteColor;
   //                        }
   //                        deliveryslotData.items[i].selectedColor=ColorCodes.mediumgren;*/
@@ -1234,7 +1302,6 @@ class _PickupScreenState extends State<PickupScreen> {
   //                     }
   //
   //                   });
-  //                   debugPrint("visible..."+ visible.toString() +"  "+position.toString());
   //                 },
   //                 child: Container(
   //                   height: 70,
@@ -1267,7 +1334,6 @@ class _PickupScreenState extends State<PickupScreen> {
   // }
 
   Widget handler(bool isSelected) {
-    debugPrint("isSelected..."+isSelected.toString());
     return (isSelected == true)  ?
     Container(
       width: 20.0,
@@ -1304,17 +1370,18 @@ class _PickupScreenState extends State<PickupScreen> {
         elevation: (IConstants.isEnterprise)?0:1,
         automaticallyImplyLeading: false,
         leading: IconButton(
-            icon: Icon(Icons.arrow_back, color: ColorCodes.menuColor),
+            icon: Icon(Icons.arrow_back, color: ColorCodes.iconColor),
             onPressed: () {
               removeToCart();
              // Navigator.of(context).pop();
-              Navigator.of(context).pushReplacementNamed(CartScreen.routeName, arguments: {
-                "after_login": ""
-              });
+            /*  Navigator.of(context).pushReplacementNamed(CartScreen.routeName, arguments: {
+                "afterlogin": ""
+              });*/
+              Navigation(context, name: Routename.Cart, navigatore: NavigatoreTyp.Push,qparms: {"afterlogin":""});
             }),
         title: Text(
-          S.of(context).select_pickup_point ,//'Checkout',
-          style: TextStyle(color: ColorCodes.menuColor),
+          S .of(context).select_pickup_point ,//'Checkout',
+          style: TextStyle(color: ColorCodes.iconColor, fontWeight: FontWeight.bold, fontSize: 18),
         ),
         titleSpacing: 0,
         flexibleSpace: Container(
@@ -1323,14 +1390,14 @@ class _PickupScreenState extends State<PickupScreen> {
                   begin: Alignment.topRight,
                   end: Alignment.bottomLeft,
                   colors: [
-                    ColorCodes.accentColor,
-                    ColorCodes.primaryColor
-              ])),
+                    ColorCodes.appbarColor,
+                    ColorCodes.appbarColor2
+                  ])),
         ),
       );
     }
   removeToCart() async {
-    String itemId, varId, varName,
+    late String itemId, varId, varName,
         varMinItem, varMaxItem, varLoyalty, varStock, varMrp, itemName, qty, price, membershipPrice, itemImage, veg_type, type,eligibleforexpress,delivery,duration,durationType,note;
     // widget.isdbonprocess();
     //  if (itemCount + 1 <= int.parse(widget.varminitem)) {
@@ -1339,78 +1406,45 @@ class _PickupScreenState extends State<PickupScreen> {
 
       // }
       for (int i = 0; i < productBox.length; i++) {
-        debugPrint("mode....." + productBox[i].mode.toString());
-        debugPrint("mode1....." +productBox[i].varId.toString());
         if (productBox[i].mode =="4") {
-          debugPrint("yes,,,,");
-          itemId = productBox[i]
-              .itemId
-              .toString();
-          varId = productBox[i]
-              .varId
-              .toString();
-          varName = productBox[i]
-              .varName;
-          varMinItem = productBox[i]
-              .varMinItem
-              .toString();
-          varMaxItem = productBox[i]
-              .varMaxItem
-              .toString();
-          varLoyalty = productBox[i]
-              .itemLoyalty
-              .toString();
-          varStock = productBox[i]
-              .varStock
-              .toString();
-          varMrp = productBox[i]
-              .varMrp
-              .toString();
-          itemName = productBox[i]
-              .itemName;
-          price = productBox[i]
-              .price
-              .toString();
-          membershipPrice = productBox[i]
-              .membershipPrice
-              .toString();
-          itemImage = productBox[i]
-              .itemImage;
-          veg_type = productBox[i]
-              .vegType;
-          type = productBox[i]
-              .type;
-          eligibleforexpress = productBox[i]
-              .eligibleForExpress;
-          delivery = productBox[i]
-              .delivery;
-          duration = productBox[i]
-              .duration;
-          durationType = productBox[i]
-              .durationType;
-          note = productBox[i]
-              .note;
+          itemId = productBox[i].itemId.toString();
+          varId = productBox[i].varId.toString();
+          varName = productBox[i].varName!;
+          varMinItem = productBox[i].varMinItem.toString();
+          varMaxItem = productBox[i].varMaxItem.toString();
+          varLoyalty = productBox[i].itemLoyalty.toString();
+          varStock = productBox[i].varStock.toString();
+          varMrp = productBox[i].varMrp.toString();
+          itemName = productBox[i].itemName!;
+          price = productBox[i].price.toString();
+          membershipPrice = productBox[i].membershipPrice.toString();
+          itemImage = productBox[i].itemImage!;
+          veg_type = productBox[i].vegType!;
+          type = productBox[i].type!;
+          eligibleforexpress = productBox[i].eligibleForExpress!;
+          delivery = productBox[i].delivery!;
+          duration = productBox[i].duration!;
+          durationType = productBox[i].durationType!;
+          note = productBox[i].note!;
           break;
         }
       }
-      debugPrint("test.."+varId.toString());
       cartcontroller.update((done){
         // setState(() {
         //   _isAddToCart = !done;
         // });
-      },price: double.parse(price).toString(),var_id:varId,quantity: "0");
+      },price: double.parse(price).toString(),var_id:varId,quantity: "0",weight: "0", cart_id: "",toppings: "",
+        topping_id: "",);
       /* final s = await Provider.of<CartItems>(context, listen: false).
       updateCart(varId, itemCount.toString(), price).then((_) async {
         if (itemCount + 1 == int.parse(varMinItem)) {
-          print("if.......");
           for (int i = 0; i < productBox.length; i++) {
             if (productBox[i]
                 .mode == 1) {
-              PrefUtils.prefs.setString("membership", "0");
+              PrefUtils.prefs!.setString("membership", "0");
             }
             if (productBox[i]
                 .varId == int.parse(varId)) {
-              print("if.......delete");
               productBox.clear();
               break;
             }
@@ -1430,7 +1464,6 @@ class _PickupScreenState extends State<PickupScreen> {
             });
           });
         } else {
-          print("else.......");
           cartBloc.cartItems();
           final sellingitemData = Provider.of<SellingItemsList>(
               context, listen: false);

@@ -12,18 +12,18 @@ class CategoryProvider with ChangeNotifier {
   List<CategoriesModel> _itemsTwo = [];
   List<CategoriesModel> _itemsThree = [];
 
-  CategoriesModel resultfinal;
+  CategoriesModel? resultfinal;
 
   Future<List<CategoriesModel>> fetchCategoryOne() async {
     // imp feature in adding async is the it automatically wrap into Future.
-    var url = Api.getFeaturedCategories /*+ IConstants.categoryOne + "/" + PrefUtils.prefs.getString('branch')*/;
+    var url = Api.getFeaturedCategories /*+ IConstants.categoryOne + "/" + PrefUtils.prefs!.getString('branch')*/;
 
     try {
       _items.clear();
       final response = await http.post(url,
           body: {
             "id": IConstants.categoryOne,
-            "branch": PrefUtils.prefs.getString('branch'),
+            "branch": PrefUtils.prefs!.getString('branch'),
             "language_id": IConstants.languageId,
           });
       final responseJson = json.decode(utf8.decode(response.bodyBytes));
@@ -38,7 +38,7 @@ class CategoryProvider with ChangeNotifier {
           print("$url catdata:$resdata");
           resdata["featuredCategoryBColor"] = /*list[_random.nextInt(list.length)]*/Colors.white;
           resultfinal = CategoriesModel.fromJson(resdata);
-          _items.add(resultfinal);
+          _items.add(resultfinal!);
         });
       }
       return _items;
@@ -49,14 +49,14 @@ class CategoryProvider with ChangeNotifier {
 
   Future<List<CategoriesModel>> fetchCategoryTwo() async {
     // imp feature in adding async is the it automatically wrap into Future.
-    var url = Api.getFeaturedCategories/* + IConstants.categoryTwo + "/" + PrefUtils.prefs.getString('branch')*/;
+    var url = Api.getFeaturedCategories/* + IConstants.categoryTwo + "/" + PrefUtils.prefs!.getString('branch')*/;
 
     try {
       _itemsTwo.clear();
       final response = await http.post(url,
           body: {
             "id": IConstants.categoryTwo,
-            "branch": PrefUtils.prefs.getString('branch'),
+            "branch": PrefUtils.prefs!.getString('branch'),
             "language_id": IConstants.languageId,
           });
       final responseJson = json.decode(utf8.decode(response.bodyBytes));
@@ -82,7 +82,7 @@ class CategoryProvider with ChangeNotifier {
   Future<List<CategoriesModel>> fetchCategoryThree() async {
     // imp feature in adding async is the it automatically wrap into Future.
     var categoryId = IConstants.categoryThree;
-    var url = Api.getFeaturedCategories/* + categoryId + "/" + PrefUtils.prefs.getString('branch')*/;
+    var url = Api.getFeaturedCategories/* + categoryId + "/" + PrefUtils.prefs!.getString('branch')*/;
     var list = [Color(0xffC6EEF1), Color(0xffC6F1C6), Color(0xffC6D6F1), Color(0xffE9F1C6), Color(0xffE9F1C6), Color(0xffE1C6F1), Color(0xffC6C7F1)];
     final _random = new Random();
     _itemsThree.clear();
@@ -90,13 +90,13 @@ class CategoryProvider with ChangeNotifier {
       final response = await http.post(url,
           body: {
             "id": IConstants.categoryThree,
-            "branch": PrefUtils.prefs.getString('branch'),
+            "branch": PrefUtils.prefs!.getString('branch'),
             "language_id": IConstants.languageId,
           });
       final responseJson = json.decode(utf8.decode(response.bodyBytes));
       debugPrint("Category three . . . .. . . . " + {
         "id": IConstants.categoryThree,
-        "branch": PrefUtils.prefs.getString('branch'),
+        "branch": PrefUtils.prefs!.getString('branch'),
         "language_id": IConstants.languageId,
       }.toString() + " . .. .. ." + responseJson.toString());
       if(responseJson.toString() != "[]") {

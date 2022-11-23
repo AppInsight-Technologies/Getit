@@ -3,7 +3,14 @@ import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import '../../constants/features.dart';
+import '../../models/VxModels/VxStore.dart';
+import 'package:velocity_x/velocity_x.dart';
+import '../../controller/mutations/cat_and_product_mutation.dart';
+import '../../models/newmodle/category_modle.dart';
+import '../../repository/productandCategory/category_or_product.dart';
 import '../generated/l10n.dart';
+import '../rought_genrator.dart';
 import '../widgets/bottom_navigation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
@@ -25,21 +32,26 @@ import '../utils/prefUtils.dart';
 
 class SubcategoryScreen extends StatefulWidget {
   static const routeName = '/subcategory-screen';
+
+  Map<String,String> params;
+  SubcategoryScreen(this.params);
   @override
   _SubcategoryScreenState createState() => _SubcategoryScreenState();
 }
 
-class _SubcategoryScreenState extends State<SubcategoryScreen> {
+class _SubcategoryScreenState extends State<SubcategoryScreen> with Navigations{
   bool _isLoading = true;
   //var subcategoryData;
   String catTitle = "";
   bool _checkmembership = false;
   bool _isWeb = false;
   //SharedPreferences prefs;
-  MediaQueryData queryData;
-  double wid;
-  double maxwid;
+  late MediaQueryData queryData;
+  late double wid;
+  late double maxwid;
   bool iphonex = false;
+  List<CategoryData> subcatData=[];
+  late Future<List<CategoryData>> future;
 
   @override
   void initState() {
@@ -78,14 +90,25 @@ class _SubcategoryScreenState extends State<SubcategoryScreen> {
           _isWeb = true;
         });
       }
-      final routeArgs = ModalRoute.of(context).settings.arguments as Map<String, String>;
-      final catId = routeArgs['catId'];
-      Provider.of<CategoriesItemsList>(context,listen: false).fetchNestedCategory(catId.toString(), "Subcategory").then((
+      final routeArgs = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+      final catId = /*routeArgs['catId']*/widget.params['catId'];
+      debugPrint("sub...."+catId.toString());
+      ProductController productController = ProductController();
+      productController.geSubtCategory(widget.params['catId'].toString(),onload: (status){
+
+      });
+
+       ProductRepo().getSubcategory(widget.params['catId'].toString(), (List<CategoryData> data) {
+         setState(() {
+          future=Future.value(data);
+        });
+      });
+ /*     Provider.of<CategoriesItemsList>(context,listen: false).fetchNestedCategory(catId.toString(), "Subcategory").then((
           _) {
         setState(() {
           _isLoading = false;
         });
-      });
+      });*/
     });
     super.initState();
   }
@@ -93,22 +116,23 @@ class _SubcategoryScreenState extends State<SubcategoryScreen> {
   @override
   Widget build(BuildContext context) {
     _buildBottomNavigationBar() {
-      return ValueListenableBuilder(
-        valueListenable: Hive.box<Product>(productBoxName).listenable(),
-        builder: (context, Box<Product> box, index) {
-          if (box.values.isEmpty) return SizedBox.shrink();
+      return VxBuilder(
+        mutations: {ProductMutation},
+        builder: (context, box, _) {
+          if (box.userData!=null) return SizedBox.shrink();
           return BottomNaviagation(
-            itemCount: CartCalculations.itemCount.toString() + " " + S.of(context).items,
-            title: S.current.view_cart,
+            itemCount: CartCalculations.itemCount.toString() + " " + S .of(context).items,
+            title: S .current.view_cart,
             total: _checkmembership ? (CartCalculations.totalMember).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit)
                 :
                 (CartCalculations.total).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),
             onPressed: (){
               setState(() {
-                Navigator.of(context)
+             /*   Navigator.of(context)
                     .pushNamed(CartScreen.routeName, arguments: {
-                  "after_login": ""
-                });
+                  "afterlogin": ""
+                });*/
+                Navigation(context, name: Routename.Cart, navigatore: NavigatoreTyp.Push,qparms: {"afterlogin":null});
               });
             },
           );
@@ -129,7 +153,7 @@ class _SubcategoryScreenState extends State<SubcategoryScreen> {
           //               height: 8.0,
           //             ),
           //             _checkmembership
-          //                 ? Text(  S.of(context).total
+          //                 ? Text(  S .of(context).total
           //               //"Total: "
           //                   +
           //                 IConstants.currencyFormat +
@@ -139,7 +163,7 @@ class _SubcategoryScreenState extends State<SubcategoryScreen> {
           //                   fontSize: 16
           //               ),
           //             )
-          //                 : Text(  S.of(context).total
+          //                 : Text(  S .of(context).total
           //               //"Total: "
           //                 + IConstants.currencyFormat + (Calculations.total).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),
           //               style: TextStyle(
@@ -150,7 +174,7 @@ class _SubcategoryScreenState extends State<SubcategoryScreen> {
           //             ),
           //             Text(
           //               Calculations.itemCount.toString() +
-          //                   S.of(context).item,
+          //                   S .of(context).item,
           //                   //" item",
           //               style: TextStyle(
           //                   color: ColorCodes.discount,
@@ -178,7 +202,7 @@ class _SubcategoryScreenState extends State<SubcategoryScreen> {
           //                       width: 80,
           //                     ),
           //                     Text(
-          //                  S.of(context).view_cart,
+          //                  S .of(context).view_cart,
           //                      // 'VIEW CART',
           //                       style: TextStyle(
           //                           fontSize: 16.0,
@@ -258,7 +282,7 @@ class _SubcategoryScreenState extends State<SubcategoryScreen> {
       backgroundColor: ColorCodes.whiteColor,
       body: Column(
         children: [
-          if (_isWeb && !ResponsiveLayout.isSmallScreen(context)) Header(false, false),
+          if (_isWeb && !ResponsiveLayout.isSmallScreen(context)) Header(false),
           _body(),
         ],
       ),
@@ -286,113 +310,135 @@ class _SubcategoryScreenState extends State<SubcategoryScreen> {
     queryData = MediaQuery.of(context);
     wid= queryData.size.width;
     maxwid=wid*0.90;
-    final routeArgs = ModalRoute.of(context).settings.arguments as Map<String, String>;
-    final catId = routeArgs['catId'];
-    final catTitle = routeArgs['catTitle'];
+    final routeArgs = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+    final catId = /*routeArgs['catId']*/widget.params['catId'];
+    final catTitle = /*routeArgs['catTitle']*/widget.params['catTitle'];
     final subcategoryData = Provider.of<CategoriesItemsList>(context, listen: false,);
 
-    return _isLoading ?
+    return /*_isLoading ?
     Center(
       child: CircularProgressIndicator(),
     )
-        :
-    (subcategoryData.bannerSubcat.length <= 0) ?
-    SingleChildScrollView(
-      child: Column(
-          children: [
-            Align(
-              alignment: Alignment.center,
-              child: new Image.asset(
-                Images.noCategoryImg, fit: BoxFit.fill,
-                height: 200.0,
-                width: 200.0,
-//                    fit: BoxFit.cover
-              ),
-            ),
-            if (_isWeb)
-              Footer(address: PrefUtils.prefs.getString("restaurant_address")),
-          ],
-        ))
-        :
-    Expanded(
-      child: SingleChildScrollView(
-        child: Column(
-          children: <Widget>[
-            Align(
-              alignment: Alignment.center,
-              child: Container(
-                constraints: (_isWeb && !ResponsiveLayout.isSmallScreen(context))?BoxConstraints(maxWidth: maxwid):null,
-                child: GridView.builder(
-                  shrinkWrap: true,
-                  controller: new ScrollController(keepScrollOffset: false),
-                  padding: const EdgeInsets.fromLTRB(5.0, 5.0, 5.0, 0.0),
-                  itemCount: subcategoryData.bannerSubcat.length,
-                  itemBuilder: (ctx, i) => ChangeNotifierProvider.value(
-                    value: subcategoryData.bannerSubcat[i],
-                    child:MouseRegion(
-                      cursor: SystemMouseCursors.click,
-                      child: GestureDetector(
-                        onTap: () {
-                          Navigator.of(context).pushNamed(ItemsScreen.routeName, arguments: {
-                            'maincategory': catTitle,
-                            'catId': catId,
-                            'catTitle': subcategoryData.bannerSubcat[i].title,
-                            'subcatId': subcategoryData.bannerSubcat[i].catid,
-                            'indexvalue': i.toString(),
-                            'prev': "category_item"
-                          });
-                        },
-                        child: Card(
-                          color: subcategoryData.bannerSubcat[i].featuredCategoryBColor,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          elevation: 0,
-                          margin: EdgeInsets.all(5),
-                          child:
-                          Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              SizedBox(
-                                height: 10,
+        :*/
+      FutureBuilder<List<CategoryData>> (
+          future: future,
+          builder: (context,  snapshot){
+            List<CategoryData> subcat =[];
+            if(snapshot.hasData && snapshot.data!.length> 0)
+              subcat = snapshot.data!.where((element) => element.categoryName!.toLowerCase().trim() != "all").toList();
+            return (snapshot.hasData && subcat.length> 0) ?Expanded(child: SingleChildScrollView(
+                child: Column(
+                  children: <Widget>[
+                    Align(
+                      alignment: Alignment.center,
+                      child: Container(
+                        constraints: (_isWeb &&
+                            !ResponsiveLayout.isSmallScreen(context))
+                            ? BoxConstraints(maxWidth: maxwid)
+                            : null,
+                        child: GridView.builder(
+                          shrinkWrap: true,
+                          controller: new ScrollController(keepScrollOffset: false),
+                          padding: const EdgeInsets.fromLTRB(5.0, 5.0, 5.0, 0.0),
+                          itemCount: subcat.length,
+                          itemBuilder: (ctx, i) =>
+                              MouseRegion(
+                                cursor: SystemMouseCursors.click,
+                                child: GestureDetector(
+                                  onTap: () {
+                                   /* Navigator.of(context).pushNamed(
+                                        ItemsScreen.routeName, arguments: {
+                                      'maincategory': catTitle,
+                                      'catId': catId,
+                                      'catTitle': subcat[i]
+                                          .categoryName,
+                                      'subcatId': subcat[i]
+                                          .id,
+                                      'indexvalue': i.toString(),
+                                      'prev': "category_item"
+                                    });*/
+                                    Navigation(context, name: Routename.ItemScreen, navigatore: NavigatoreTyp.Push,
+                                        parms: {
+                                          'maincategory': catTitle.toString(),
+                                          'catId': catId.toString(),
+                                          'catTitle': subcat[i].categoryName!,
+                                          'subcatId': subcat[i].id!,
+                                          'indexvalue': i.toString(),
+                                          'prev': "category_item"
+                                        });
+                                  },
+                                  child: Card(
+                                    color: Colors.white,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    elevation: 0,
+                                    margin: EdgeInsets.all(5),
+                                    child:
+                                    Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        SizedBox(
+                                          height: 10,
+                                        ),
+                                        CachedNetworkImage(
+                                          imageUrl: subcat[i]
+                                              .iconImage,
+                                          placeholder: (context, url) =>
+                                              Image.asset(
+                                                  Images.defaultCategoryImg),
+                                          errorWidget: (context, url, error) =>
+                                              Image.asset(
+                                                  Images.defaultCategoryImg),
+                                          height: 55,
+                                          width: 85,
+                                          fit: BoxFit.fill,
+                                        ),
+                                        Spacer(),
+                                        Text(subcat[i].categoryName!,
+                                            textAlign: TextAlign.center,
+                                            style: TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 13.0)),
+                                        SizedBox(
+                                          height: 10,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
                               ),
-                              CachedNetworkImage(
-                                imageUrl: subcategoryData.bannerSubcat[i].imageUrl,
-                                placeholder: (context, url) => Image.asset(
-                                    Images.defaultCategoryImg),
-                                errorWidget: (context, url, error) => Image.asset(Images.defaultCategoryImg),
-                                height: 55,
-                                width: 85,
-                                fit: BoxFit.fill,
-                              ),
-                              Spacer(),
-                              Text(subcategoryData.bannerSubcat[i].title,
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.0)),
-                              SizedBox(
-                                height: 10,
-                              ),
-                            ],
+                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: widgetsInRow,
+                            childAspectRatio: aspectRatio,
+                            crossAxisSpacing: 2,
+                            mainAxisSpacing: 5,
                           ),
                         ),
                       ),
                     ),
-                  ),
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: widgetsInRow,
-                    childAspectRatio: aspectRatio,
-                    crossAxisSpacing: 2,
-                    mainAxisSpacing: 5,
-                  ),
+                    if (_isWeb)
+                      Footer(
+                          address: PrefUtils.prefs!.getString("restaurant_address")!),
+                  ],
+                ),
+              ),  ):SingleChildScrollView(
+          child: Column(
+            children: [
+              Align(
+                alignment: Alignment.center,
+                child: new Image.asset(
+                  Images.noCategoryImg, fit: BoxFit.fill,
+                  height: 200.0,
+                  width: 200.0,
+//                    fit: BoxFit.cover
                 ),
               ),
-            ),
-            if (_isWeb)
-              Footer(address: PrefUtils.prefs.getString("restaurant_address")),
-          ],
-        ),
-      ),
-    );
+              if (_isWeb)
+                Footer(address: PrefUtils.prefs!.getString("restaurant_address")!),
+            ],
+          ));
+    });
   }
   gradientappbarmobile() {
     return AppBar(
@@ -401,15 +447,15 @@ class _SubcategoryScreenState extends State<SubcategoryScreen> {
       elevation: (IConstants.isEnterprise)?0:1,
       automaticallyImplyLeading: false,
       leading: IconButton(
-          icon: Icon(Icons.arrow_back, color:ColorCodes.menuColor),
+          icon: Icon(Icons.arrow_back, color: ColorCodes.iconColor),
           onPressed: () => Navigator.of(context).pop()),
       title: Text(
         catTitle ==
             "" ?
-        S.of(context).categories
+        S .of(context).categories
        // "Categories"
             : catTitle,
-        style: TextStyle(color: ColorCodes.menuColor),
+        style: TextStyle(color: ColorCodes.iconColor, fontWeight: FontWeight.bold, fontSize: 18),
       ),
       titleSpacing: 0,
       flexibleSpace: Container(
@@ -418,16 +464,15 @@ class _SubcategoryScreenState extends State<SubcategoryScreen> {
                 begin: Alignment.topRight,
                 end: Alignment.bottomLeft,
                 colors: [
-                  ColorCodes.accentColor,
-                  ColorCodes.primaryColor
+                  ColorCodes.appbarColor,
+                  ColorCodes.appbarColor2
                 ])),
       ),
       actions: <Widget>[
         GestureDetector(
           onTap: () {
-            Navigator.of(context).pushNamed(
-              SearchitemScreen.routeName,
-            );
+            Navigation(context, navigatore: NavigatoreTyp.Push,name: Routename.search);
+
           },
           child: Icon(Icons.search, size: 30.0,),
         ),

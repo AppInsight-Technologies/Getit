@@ -3,27 +3,27 @@ import '../constants/IConstants.dart';
 import '../constants/features.dart';
 
 class SwapProduct {
-  String eligibleForExpress;
-  List<DeliveryDuration> deliveryDuration;
-  String eligibleForSubscription;
-  List<SubscriptionSlot> subscriptionSlot;
-  String paymentMode;
-  String id;
-  String categoryId;
-  String delivery;
-  String itemName;
-  String itemSlug;
-  String vegType;
-  String itemFeaturedImage;
-  String regularPrice;
-  String salePrice;
-  String isActive;
-  String salesTax;
-  String totalQty;
-  String brand;
-  String type;
-  int replacement;
-  List<PriceVariation> priceVariation;
+  String? eligibleForExpress;
+  List<DeliveryDuration>? deliveryDuration;
+  String? eligibleForSubscription;
+  List<SubscriptionSlot>? subscriptionSlot;
+  String? paymentMode;
+  String? id;
+  String? categoryId;
+  String? delivery;
+  String? itemName;
+  String? itemSlug;
+  String? vegType;
+  String? itemFeaturedImage;
+  String? regularPrice;
+  String? salePrice;
+  String? isActive;
+  String? salesTax;
+  String? totalQty;
+  String? brand;
+  String? type;
+  int? replacement;
+  List<PriceVariation>? priceVariation;
 
   SwapProduct(
       {
@@ -52,28 +52,28 @@ class SwapProduct {
   SwapProduct.fromJson(Map<String, dynamic> json) {
     eligibleForExpress = Features.isExpressDelivery ? Features.isSplit ? json['eligible_for_express'] : "0" : "1";
     if (json['delivery_duration'] != null) {
-      deliveryDuration = new List<DeliveryDuration>();
+      deliveryDuration = <DeliveryDuration>[];
       if(json['delivery_duration'] == "slot" || json['delivery_duration'] == ""){
         debugPrint("delivery duration... slot");
-        deliveryDuration.add(new DeliveryDuration.fromJson(DeliveryDuration(note: "",duration: "",durationType: "").toJson()));
+        deliveryDuration!.add(new DeliveryDuration.fromJson(DeliveryDuration(note: "",duration: "",durationType: "").toJson()));
       }else {
         debugPrint("delivery duration... not slot");
         json['delivery_duration'].forEach((v) {
-          deliveryDuration.add(new DeliveryDuration.fromJson(v));
+          deliveryDuration!.add(new DeliveryDuration.fromJson(v));
         });
       }
     }
 
     eligibleForSubscription = json['eligible_for_subscription'];
     if (json['subscription_slot'] != null) {
-      subscriptionSlot = new List<SubscriptionSlot>();
+      subscriptionSlot = <SubscriptionSlot>[];
       if(json['subscription_slot'].isEmpty ){
         debugPrint("empty....");
-        subscriptionSlot.add(new SubscriptionSlot.fromJson(SubscriptionSlot(cronTime: "",deliveryTime: "").toJson()));
+        subscriptionSlot!.add(new SubscriptionSlot.fromJson(SubscriptionSlot(cronTime: "",deliveryTime: "").toJson()));
       }else {
         debugPrint("not empty....");
         json['subscription_slot'].forEach((v) {
-          subscriptionSlot.add(new SubscriptionSlot.fromJson(v));
+          subscriptionSlot!.add(new SubscriptionSlot.fromJson(v));
         });
       }
     }
@@ -94,9 +94,9 @@ class SwapProduct {
     type = json['type'];
     replacement = json['replacement'];
     if (json['price_variation'] != null) {
-      priceVariation = new List<PriceVariation>();
+      priceVariation = <PriceVariation>[];
       json['price_variation'].forEach((v) {
-        priceVariation.add(new PriceVariation.fromJson(v));
+        priceVariation!.add(new PriceVariation.fromJson(v));
       });
     }
   }
@@ -106,12 +106,12 @@ class SwapProduct {
     data['eligible_for_express'] = this.eligibleForExpress;
     if (this.deliveryDuration != null) {
       data['delivery_duration'] =
-          this.deliveryDuration.map((v) => v.toJson()).toList();
+          this.deliveryDuration!.map((v) => v.toJson()).toList();
     }
     data['eligible_for_subscription'] = this.eligibleForSubscription;
     if (this.subscriptionSlot != null) {
       data['subscription_slot'] =
-          this.subscriptionSlot.map((v) => v.toJson()).toList();
+          this.subscriptionSlot!.map((v) => v.toJson()).toList();
     }
     data['payment_mode'] = this.paymentMode;
     data['id'] = this.id;
@@ -130,18 +130,18 @@ class SwapProduct {
     data['replacement'] = this.replacement;
     if (this.priceVariation != null) {
       data['price_variation'] =
-          this.priceVariation.map((v) => v.toJson()).toList();
+          this.priceVariation!.map((v) => v.toJson()).toList();
     }
     return data;
   }
 }
 class DeliveryDuration {
-  String id;
-  String durationType;
-  String duration;
-  String status;
-  String branch;
-  String note;
+  String? id;
+  String? durationType;
+  String? duration;
+  String? status;
+  String? branch;
+  String? note;
 
   DeliveryDuration(
       {this.id,
@@ -173,12 +173,12 @@ class DeliveryDuration {
 }
 
 class SubscriptionSlot {
-  String id;
-  String name;
-  String cronTime;
-  String deliveryTime;
-  String branch;
-  String status;
+  String? id;
+  String? name;
+  String? cronTime;
+  String? deliveryTime;
+  String? branch;
+  String? status;
 
   SubscriptionSlot(
       {this.id,
@@ -209,22 +209,22 @@ class SubscriptionSlot {
   }
 }
 class PriceVariation {
-  String id;
-  String netWeight;
-  String menuItemId;
-  String variationName;
-  int price;
-  String priority;
-  int mrp;
-  int stock;
-  String maxItem;
-  String status;
-  String minItem;
-  String weight;
-  int membershipPrice;
-  String unit;
-  int loyalty;
-  List<String> images;
+  String? id;
+  String? netWeight;
+  String? menuItemId;
+  String? variationName;
+  int? price;
+  String? priority;
+  int? mrp;
+  int? stock;
+  String? maxItem;
+  String? status;
+  String? minItem;
+  String? weight;
+  int? membershipPrice;
+  String? unit;
+  int? loyalty;
+  List<String>? images;
 
   PriceVariation(
       {this.id,
@@ -261,9 +261,9 @@ class PriceVariation {
     unit = json['unit'];
     loyalty = json['loyalty'];
     if (json['images'] != null) {
-      images = new List<String>();
+      images = <String>[];
       json['images'].forEach((v) {
-        images.add(v);
+        images!.add(v);
       });
     }
   }
@@ -286,7 +286,7 @@ class PriceVariation {
     data['unit'] = this.unit;
     data['loyalty'] = this.loyalty;
     if (this.images != null) {
-      data['images'] = this.images.map((v) => v).toList();
+      data['images'] = this.images!.map((v) => v).toList();
     }
     return data;
   }

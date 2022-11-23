@@ -18,7 +18,7 @@ class SearchItemProvider{
   Future<List<SearchtemModel>> fetchsearchItemProviderOld(String item_name) async{
     List<SearchtemModel> sellingitemlist = [];
     var url = Api.getSerachitemByCart;
-    String user = (PrefUtils.prefs.containsKey("apikey")) ? PrefUtils.prefs.getString("tokenid") : PrefUtils.prefs.getString('apikey');
+    String user = (PrefUtils.prefs!.containsKey("apikey")!) ? PrefUtils.prefs!.getString("tokenid")! : PrefUtils.prefs!.getString('apikey')!;
    /* try {*/
       sellingitemlist.clear();
       // _sellingitems.clear();
@@ -26,9 +26,9 @@ class SearchItemProvider{
           .post(
           url,
           body: {
-            "apiKey": PrefUtils.prefs.containsKey('apiKey') ? PrefUtils.prefs.getString('apiKey') : "",
+            "apiKey": PrefUtils.prefs!.containsKey('apiKey') ? PrefUtils.prefs!.getString('apiKey') : "",
             "item_name": item_name,
-            "branch": PrefUtils.prefs.getString('branch'),
+            "branch": PrefUtils.prefs!.getString('branch'),
             "user": user,
             "language_id": IConstants.languageId,
             // await keyword is used to wait to this operation is complete.
@@ -130,7 +130,7 @@ class SearchItemProvider{
   Future<List<SearchtemModel>> fetchsearchItemProvider(String item_name) async{
     List<SearchtemModel> sellingitemlist = [];
     var url = Api.getSerachitemByCart;
-    String user = (PrefUtils.prefs.containsKey("apikey")) ? PrefUtils.prefs.getString("tokenid") : PrefUtils.prefs.getString('apikey');
+    String user = (PrefUtils.prefs!.containsKey("apikey")!) ? PrefUtils.prefs!.getString("tokenid") !: PrefUtils.prefs!.getString('apikey')!;
     /* try {*/
     sellingitemlist.clear();
     // _sellingitems.clear();
@@ -138,9 +138,9 @@ class SearchItemProvider{
         .post(
         url,
         body: {
-          "apiKey": PrefUtils.prefs.containsKey('apiKey') ? PrefUtils.prefs.getString('apiKey') : "",
+          "apiKey": PrefUtils.prefs!.containsKey('apiKey') ? PrefUtils.prefs!.getString('apiKey') : "",
           "item_name": item_name,
-          "branch": PrefUtils.prefs.getString('branch'),
+          "branch": PrefUtils.prefs!.getString('branch'),
           "user": user,
           "language_id": IConstants.languageId,
           // await keyword is used to wait to this operation is complete.
@@ -242,16 +242,16 @@ class SearchItemProvider{
 
   Future<void> fetchsearchItems(String item_name) async { // imp feature in adding async is the it automatically wrap into Future.
     var url = Api.getSerachitemByCart;
-    String user = (PrefUtils.prefs.containsKey("apikey")) ? PrefUtils.prefs.getString("tokenid") : PrefUtils.prefs.getString('apikey');
+    String user = (PrefUtils.prefs!.containsKey("apikey")!) ? PrefUtils.prefs!.getString("tokenid")! : PrefUtils.prefs!.getString('apikey')!;
     try {
 
       final response = await http
           .post(
           url,
           body: {
-            "apiKey": PrefUtils.prefs.containsKey('apiKey') ? PrefUtils.prefs.getString('apiKey') : "",
+            "apiKey": PrefUtils.prefs!.containsKey('apiKey') ? PrefUtils.prefs!.getString('apiKey') : "",
             "item_name": item_name,
-            "branch": PrefUtils.prefs.getString('branch'),
+            "branch": PrefUtils.prefs!.getString('branch'),
             "user": user,
             "language_id": IConstants.languageId,
             // await keyword is used to wait to this operation is complete.
@@ -376,7 +376,6 @@ class SearchItemProvider{
               discountDisplay: _discointDisplay,
               membershipDisplay: _membershipDisplay,
               unit: (pricevardata[j]['unit'].toString() == "null")? "" : (pricevardata[j]['unit'] ?? "").toString(),
-                color: pricevardata[0]['color'].toString(),
                 weight: double.parse(pricevardata[j]['weight'].toString())
             ));
           }

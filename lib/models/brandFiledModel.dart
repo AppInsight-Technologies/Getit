@@ -1,9 +1,9 @@
 import '../constants/IConstants.dart';
 
 class BrandsFieldModel {
-  String id;
-  String categoryName;
-  String iconImage;
+  String? id;
+  String? categoryName;
+  String? iconImage;
 
   BrandsFieldModel({this.id, this.categoryName, this.iconImage});
 

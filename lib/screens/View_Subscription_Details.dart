@@ -4,6 +4,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dotted_line/dotted_line.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import '../../rought_genrator.dart';
+import '../../constants/features.dart';
 import '../../models/VxModels/VxStore.dart';
 import 'package:velocity_x/velocity_x.dart';
 import '../screens/home_screen.dart';
@@ -22,24 +24,35 @@ import '../constants/IConstants.dart';
 
 class ViewSubscriptionDetails extends StatefulWidget {
   static const routeName = '/viewsubscriptiondetails-screen';
+
+  String orderid  = "";
+  String fromScreen = "";
+
+  ViewSubscriptionDetails(Map<String, String> params){
+    this.orderid = params["orderid"]??"" ;
+    this.fromScreen = params["fromScreen"]??"";
+  }
   @override
   _ViewSubscriptionDetailsState createState() => _ViewSubscriptionDetailsState();
 }
 
-class _ViewSubscriptionDetailsState extends State<ViewSubscriptionDetails> {
+class _ViewSubscriptionDetailsState extends State<ViewSubscriptionDetails> with Navigations {
 
   var orderitemData;
   bool _isLoading = true;
   var phone = "";
   var name = "";
   var _isWeb = false;
-  MediaQueryData queryData;
-  double wid;
-  double maxwid;
-  String orderid;
+  late MediaQueryData queryData;
+  late double wid;
+  late double maxwid;
+  late String orderid;
   var fromScreen ="";
   bool _isIOS = false;
   GroceStore store = VxState.store;
+  String? deliverychargetext;
+  double deliveryamount = 0.0;
+  double total = 0.0;
 
   @override
   void initState() {
@@ -62,27 +75,62 @@ class _ViewSubscriptionDetailsState extends State<ViewSubscriptionDetails> {
       });
     }
     Future.delayed(Duration.zero, () async {
-      if (PrefUtils.prefs.getString('mobile') != null) {
-        phone = PrefUtils.prefs.getString('mobile');
+      if (PrefUtils.prefs!.getString('mobile') != null) {
+        phone = PrefUtils.prefs!.getString('mobile')!;
       } else {
         phone = "";
       }
-     /* if (PrefUtils.prefs.getString('FirstName') != null) {
-        if (PrefUtils.prefs.getString('LastName') != null) {
-          name =  PrefUtils.prefs.getString('FirstName') + " " + PrefUtils.prefs.getString('LastName');
+     /* if (PrefUtils.prefs!.getString('FirstName') != null) {
+        if (PrefUtils.prefs!.getString('LastName') != null) {
+          name =  PrefUtils.prefs!.getString('FirstName') + " " + PrefUtils.prefs!.getString('LastName');
         } else {
-          name =  PrefUtils.prefs.getString('FirstName');
+          name =  PrefUtils.prefs!.getString('FirstName');
         }
       } else {
         name = "";
       }*/
-      name = store.userData.username;
-      final routeArgs = ModalRoute.of(context).settings.arguments as Map<String, String>;
-      fromScreen = routeArgs['fromScreen'];
-      orderid = routeArgs['orderid'];
+      name = store.userData.username!;
+      final routeArgs = ModalRoute.of(context)!.settings.arguments as Map<String, String>;
+      fromScreen = /*routeArgs['fromScreen']!*/widget.fromScreen;
+      orderid = /*routeArgs['orderid']!*/widget.orderid;
       Provider.of<MyorderList>(context, listen: false).Viewsubscriptionorders(orderid).then((_) {
         setState(() {
           orderitemData = Provider.of<MyorderList>(context, listen: false,);
+          if(Features.isdeliverychargesubscription)
+            deliveryamount = double.parse(orderitemData.viewordersubscription[0].subscription_delivery_charge);
+
+          if(Features.isdeliverychargesubscription) {
+            if (deliveryamount <= 0) {
+              deliverychargetext = S.current.free; /*"FREE"*/;
+            }
+            else {
+              deliverychargetext =
+              Features.iscurrencyformatalign ?
+              IConstants.numberFormat == "1" ? "+ " +
+                  deliveryamount.toStringAsFixed(0) + " " +
+                  IConstants.currencyFormat :
+              "+ " + deliveryamount.toStringAsFixed(IConstants.decimaldigit) +
+                  " " + IConstants.currencyFormat :
+              IConstants.numberFormat == "1" ? "+ " +
+                  IConstants.currencyFormat + " " +
+                  deliveryamount.toStringAsFixed(0) :
+              "+ " + IConstants.currencyFormat + " " +
+                  deliveryamount.toStringAsFixed(IConstants.decimaldigit);
+            }
+            if(orderitemData.viewordersubscription[0].paymenttype.toString() == "Paytm"){
+              total =
+                  double.parse(orderitemData.viewordersubscription[0].amount);
+            }
+            else {
+              total =
+                  double.parse(orderitemData.viewordersubscription[0].amount) +
+                      deliveryamount;
+            }
+          }
+          else{
+            total =
+                double.parse(orderitemData.viewordersubscription[0].amount);
+          }
           _isLoading = false;
         });
       });
@@ -91,12 +139,13 @@ class _ViewSubscriptionDetailsState extends State<ViewSubscriptionDetails> {
   }
   @override
   Widget build(BuildContext context) {
-    final routeArgs = ModalRoute.of(context).settings.arguments as Map<String, String>;
+    final routeArgs = ModalRoute.of(context)!.settings.arguments as Map<String, String>;
 
     return WillPopScope(
       onWillPop: () {
         if(fromScreen == "subscConfirmation"){
-          Navigator.pushNamedAndRemoveUntil(context, HomeScreen.routeName, (route) => false);
+         // Navigator.pushNamedAndRemoveUntil(context, HomeScreen.routeName, (route) => false);
+          _moveToScreen2(context);
         }else{
           Navigator.of(context).pop();
         }
@@ -112,7 +161,7 @@ class _ViewSubscriptionDetailsState extends State<ViewSubscriptionDetails> {
         body: Column(
           children: <Widget>[
             if(_isWeb && !ResponsiveLayout.isSmallScreen(context))
-              Header(false, false),
+              Header(false),
             _body(),
           ],
         ),
@@ -122,14 +171,14 @@ class _ViewSubscriptionDetailsState extends State<ViewSubscriptionDetails> {
 
   _body() {
     final routeArgs =
-    ModalRoute.of(context).settings.arguments as Map<String, String>;
+    ModalRoute.of(context)!.settings.arguments as Map<String, String>;
     final itemLeftCount = routeArgs['itemLeftCount'];
     return Expanded(
       child: Container(
         height: MediaQuery.of(context).size.height,
         width: MediaQuery.of(context).size.width,
         decoration: BoxDecoration(
-          color: ColorCodes.lightGreyWebColor,
+          color: ColorCodes.whiteColor,
         ),
         child: SingleChildScrollView(
           child: Column(
@@ -141,7 +190,7 @@ class _ViewSubscriptionDetailsState extends State<ViewSubscriptionDetails> {
                   : viewOrder(),
               SizedBox(height: 40,),
               if (_isWeb)
-                Footer(address: PrefUtils.prefs.getString("restaurant_address")/*PrefUtils.prefs.getString("restaurant_address")*/),
+                Footer(address: PrefUtils.prefs!.getString("restaurant_address")!/*PrefUtils.prefs!.getString("restaurant_address")*/),
             ],
           ),
         ),
@@ -184,43 +233,68 @@ class _ViewSubscriptionDetailsState extends State<ViewSubscriptionDetails> {
             Container(
               width: MediaQuery.of(context).size.width - 20,
               decoration: BoxDecoration(color: Theme.of(context).buttonColor),
-              padding: EdgeInsets.all(15),
+              padding: EdgeInsets.only(left:15,right: 15,bottom:5),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
 
                   Text(
-                      S.of(context).delivery,
+                      S .of(context).delivery,
                       // "Delivery Slot",
                       style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold,color: ColorCodes.greenColor)),
                   SizedBox(
                     height: 15,
                   ),
-                  Text(S.of(context).start_dat + " : " + orderitemData.viewordersubscription[0].startdate),
+                  Text(S .of(context).start_dat + " : " + orderitemData.viewordersubscription[0].startdate),
+                  orderitemData.viewordersubscription[0].plan == "Default Plan"?SizedBox.shrink(): SizedBox(
+                    height: 10,
+                  ),
+                  orderitemData.viewordersubscription[0].plan == "Default Plan"?SizedBox.shrink(): Text(S .of(context).end_date + " : " + orderitemData.viewordersubscription[0].enddate),
+                 SizedBox(
+                    height: 10,
+                  ),
+                  Text(S .of(context).cron_time + orderitemData.viewordersubscription[0].crontime),
                   SizedBox(
                     height: 10,
                   ),
-                  Text(S.of(context).end_date + " : " + orderitemData.viewordersubscription[0].enddate),
+                  orderitemData.viewordersubscription[0].plan == "Default Plan"?SizedBox.shrink(): Text(S .of(context).no_deliveries + orderitemData.viewordersubscription[0].delivery),
+                  orderitemData.viewordersubscription[0].plan == "Default Plan"?SizedBox.shrink(): SizedBox(
+                    height: 10,
+                  ),
+                  Text(/*"Pending Deliveries Amount: "*/S.of(context).pending_delamount+orderitemData.viewordersubscription[0].pending_amount),
                   SizedBox(
                     height: 10,
                   ),
-                  Text(S.of(context).cron_time + orderitemData.viewordersubscription[0].crontime),
-                  SizedBox(
-                    height: 10,
+                  Row(
+                    children: [
+                      Text(S.of(context).order_status+": "
+                        // "Order Status : "
+                      ),
+
+                      Text(
+                        orderitemData.viewordersubscription[0].status! == "4"? /*"Failure"*/S.of(context).failure_subscription:/*"Success"*/S.of(context).success_subscription,
+                        style: TextStyle(color: ColorCodes.greenColor),
+                      )
+                    ],
                   ),
-                  Text(S.of(context).no_deliveries + orderitemData.viewordersubscription[0].delivery),
+
                 ],
               ),
             ),
-           SizedBox(height: 30,),
+
+           SizedBox(height: 10,),
+            Padding(
+              padding: EdgeInsets.only(left:15,right: 15),
+              child: Divider(color: ColorCodes.greylight,),
+            ),
             Container(
               width: MediaQuery.of(context).size.width - 20,
               decoration: BoxDecoration(color: Theme.of(context).buttonColor),
-              padding: EdgeInsets.all(15),
+              padding: EdgeInsets.only(left:15,right: 15,bottom:5,top:10),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(S.of(context).address,
+                  Text(S .of(context).address,
                       // "Address",
                       style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold,color: ColorCodes.greenColor)),
                   SizedBox(
@@ -247,23 +321,27 @@ class _ViewSubscriptionDetailsState extends State<ViewSubscriptionDetails> {
                 ],
               ),
             ),
-            SizedBox(height: 30,),
+            SizedBox(height: 10,),
+            Padding(
+              padding: EdgeInsets.only(left:15,right: 15),
+              child: Divider(color: ColorCodes.greylight,),
+            ),
             Container(
               width: MediaQuery.of(context).size.width - 20,
               decoration: BoxDecoration(color: Theme.of(context).buttonColor),
-              padding: EdgeInsets.all(15),
+              padding: EdgeInsets.only(left:15,right: 15,bottom:5,top:10),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                      S.of(context).payment_details,
+                      S .of(context).payment_details,
                       // "Payment Details",
                       style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold,color: ColorCodes.greenColor)),
                   SizedBox(height: 15,),
                   Row(
                     children: [
                       Text(
-                        S.of(context).ordered_ID + " : ",//"Ordered Id : ",
+                        S .of(context).ordered_ID + " : ",//"Ordered Id : ",
                         style: TextStyle(color: ColorCodes.greyColor),
                       ),
                       Spacer(),
@@ -276,10 +354,30 @@ class _ViewSubscriptionDetailsState extends State<ViewSubscriptionDetails> {
                   SizedBox(
                     height: 10,
                   ),
+
+                  if(Features.isdeliverychargesubscription)
                   Row(
                     children: [
                       Text(
-                        S.of(context).payment_option + " : ",//"Payment Options : ",
+                        S .of(context).service_charge + " : ",//"Payment Options : ",
+                        style: TextStyle(color: ColorCodes.greyColor),
+                      ),
+                      Spacer(),
+                      Text(
+                        deliverychargetext!,
+                        style: TextStyle(color: ColorCodes.greyColor),
+                      ),
+                    ],
+                  ),
+                  if(Features.isdeliverychargesubscription)
+                  SizedBox(
+                    height: 10,
+                  ),
+
+                  Row(
+                    children: [
+                      Text(
+                        S .of(context).payment_option + " : ",//"Payment Options : ",
                         style: TextStyle(color: ColorCodes.greyColor),
                       ),
                       Spacer(),
@@ -295,12 +393,12 @@ class _ViewSubscriptionDetailsState extends State<ViewSubscriptionDetails> {
                   Row(
                     children: [
                       Text(
-                      S.of(context).ordered_items + " : ",//"Ordered Items : ",
+                      S .of(context).ordered_items + " : ",//"Ordered Items : ",
                         style: TextStyle(color: ColorCodes.greyColor),
                       ),
                       Spacer(),
                       Text(
-                          S.of(context).one_item,//"1 items",
+                          S .of(context).one_item,//"1 items",
                         style: TextStyle(color: ColorCodes.greyColor),
                       ),
                     ],
@@ -331,13 +429,15 @@ class _ViewSubscriptionDetailsState extends State<ViewSubscriptionDetails> {
                   SizedBox(height: 10,),
                   Row(
                     children: [
-                      Text(S.of(context).total_amount,
+                      Text(S .of(context).total_amount,
                         //  "Total",
                         style: TextStyle(fontWeight: FontWeight.bold),
                       ),
                       Spacer(),
                       Text(
-                        IConstants.currencyFormat + " " + double.parse(orderitemData.viewordersubscription[0].amount).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),/*orderitemData.vieworder[0].itemototalamount,*/
+                        Features.iscurrencyformatalign?
+                        /*double.parse(orderitemData.viewordersubscription[0].amount)*/total.toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit) + " " + IConstants.currencyFormat:
+                        IConstants.currencyFormat + " " + /*double.parse(orderitemData.viewordersubscription[0].amount)*/total.toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),/*orderitemData.vieworder[0].itemototalamount,*/
                         style: TextStyle(
                             fontWeight: FontWeight.bold
                           //color: ColorCodes.mediumBlueColor,
@@ -351,21 +451,22 @@ class _ViewSubscriptionDetailsState extends State<ViewSubscriptionDetails> {
 
             Container(
               width: MediaQuery.of(context).size.width - 20,
+              padding: EdgeInsets.only(left:15,right: 15,bottom:5,top:10),
               height: 50,
               alignment: Alignment.centerLeft,
-              child: Text(S.of(context).item_details,//"Item Details",
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              child: Text(S .of(context).item_details,//"Item Details",
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold,color: ColorCodes.primaryColor)),
             ),
              Container(
                width: MediaQuery.of(context).size.width - 20,
-            padding: EdgeInsets.all(15),
+               padding: EdgeInsets.only(left:15,right: 15,bottom:5),
             decoration: BoxDecoration(color: Theme.of(context).buttonColor),
             child:
             Row(
               children: [
                 Container(
                 child: CachedNetworkImage(
-                  imageUrl: IConstants.API_IMAGE + '/items/images/' + orderitemData.viewordersubscription[0].image,
+                  imageUrl: IConstants.BaseDomain  + orderitemData.viewordersubscription[0].image,
                   placeholder: (context, url) => Image.asset(Images.defaultProductImg,
                     width: 50,
                     height: 50,),
@@ -390,14 +491,20 @@ class _ViewSubscriptionDetailsState extends State<ViewSubscriptionDetails> {
                     style: TextStyle(fontSize: 10,fontWeight: FontWeight.bold),),
                 ),
                SizedBox(height: 5,),
-                Text(S.of(context).qty//"Qty:"
+                Text(S .of(context).qty//"Qty:"
                     +" " +orderitemData.viewordersubscription[0].quantity, style: TextStyle(color: ColorCodes.lightGreyColor,fontSize: 9),),
+                SizedBox(height: 10,),
+                Text(/*"Selected Subscription Plan: "*/S.of(context).selected_sub_plan, style: TextStyle(color: ColorCodes.grey,fontSize: 10),),
+                SizedBox(height: 5,),
+                Text(orderitemData.viewordersubscription[0].plan, style: TextStyle(color: ColorCodes.lightGreyColor,fontSize: 9),),
                 ],
             ),
             Spacer(),
             Column(
               children: [
-                Text(IConstants.currencyFormat + " " + double.parse(orderitemData.viewordersubscription[0].amount).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),style: TextStyle(fontWeight: FontWeight.bold),),
+                Text(
+                  Features.iscurrencyformatalign?double.parse(orderitemData.viewordersubscription[0].amount).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit) + " " + IConstants.currencyFormat:
+                  IConstants.currencyFormat + " " + double.parse(orderitemData.viewordersubscription[0].amount).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),style: TextStyle(fontWeight: FontWeight.bold),),
               ],
             ),
           ],
@@ -418,19 +525,22 @@ class _ViewSubscriptionDetailsState extends State<ViewSubscriptionDetails> {
 
       automaticallyImplyLeading: false,
       leading: IconButton(
-          icon: Icon(Icons.arrow_back, color:ColorCodes.menuColor),
+          icon: Icon(Icons.arrow_back, color:ColorCodes.iconColor),
           onPressed: () {
 
             if(fromScreen == "subscConfirmation"){
               debugPrint("fromScreen...1"+fromScreen);
-              Navigator.pushNamedAndRemoveUntil(context, HomeScreen.routeName, (route) => false);
-            }else
+              _moveToScreen2(context);
 
+              //Navigator.pushNamedAndRemoveUntil(context,  HomeScreen.routeName, (route) => false);  //present code
+
+            }else
               Navigator.of(context).pop();
+
             }
       ),
-      title: Text(S.of(context).subscription_detail,//'Subscription Details',
-        style: TextStyle(color: ColorCodes.menuColor),),
+      title: Text(S .of(context).subscription_detail,//'Subscription Details',
+        style: TextStyle(color: ColorCodes.iconColor, fontWeight: FontWeight.bold, fontSize: 18),),
       titleSpacing: 0,
       flexibleSpace: Container(
         decoration: BoxDecoration(
@@ -438,11 +548,18 @@ class _ViewSubscriptionDetailsState extends State<ViewSubscriptionDetails> {
                 begin: Alignment.topRight,
                 end: Alignment.bottomLeft,
                 colors: [
-                  ColorCodes.accentColor,
-                  ColorCodes.primaryColor
+                  ColorCodes.appbarColor,
+                  ColorCodes.appbarColor2
                 ])),
       ),
     );
+
+
+  }
+   _moveToScreen2(BuildContext context) async{
+    //debugPrint("inside moveto funtion");
+
+    Navigation(context, navigatore: NavigatoreTyp.homenav);
   }
 
 }

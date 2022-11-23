@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../constants/features.dart';
 import '../utils/prefUtils.dart';
 import '../constants/IConstants.dart';
 import 'package:provider/provider.dart';
@@ -13,6 +14,9 @@ import '../widgets/footer.dart';
 
 class PagesScreen extends StatefulWidget {
   static const routeName = '/pages-screen';
+
+  Map<String,String> id;
+  PagesScreen(this.id);
   @override
   _PagesScreentState createState() => _PagesScreentState();
 }
@@ -23,9 +27,9 @@ class _PagesScreentState extends State<PagesScreen> {
   //SharedPreferences prefs;
   bool _isinternet = true;
   // bool _isloading = true;
-  MediaQueryData queryData;
-  double wid;
-  double maxwid;
+  MediaQueryData? queryData;
+  double? wid;
+  double? maxwid;
   bool _isLoading = true;
 
   void initState() {
@@ -45,10 +49,10 @@ class _PagesScreentState extends State<PagesScreen> {
       });
     }
      Future.delayed(Duration.zero, () async{
-       final routeArgs = ModalRoute.of(context).settings.arguments as Map<String, String>;
+       final routeArgs = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
 
-       final id = routeArgs['id'];
-       await Provider.of<Advertise1ItemsList>(context, listen: false).pageDetails(id).then((_) => {
+       final id = /*routeArgs['id']*/widget.id['id'];
+       await Provider.of<Advertise1ItemsList>(context, listen: false).pageDetails(id.toString()).then((_) => {
        setState(() {
        _isLoading = false;
        }),
@@ -68,24 +72,24 @@ class _PagesScreentState extends State<PagesScreen> {
         elevation: (IConstants.isEnterprise)?0:1,
         automaticallyImplyLeading: false,
         leading: IconButton(
-            icon: Icon(Icons.arrow_back, color: ColorCodes.menuColor),
-            onPressed: () {
+            icon: Icon(Icons.arrow_back, color: ColorCodes.iconColor),
+            onPressed: () async{
               Navigator.of(context).pop();
               // Navigator.of(context).popUntil(ModalRoute.withName(HomeScreen.routeName,));
               return Future.value(false);
             }
         ),
         titleSpacing: 0,
-        title: _isLoading ? SizedBox.shrink() : Text(pagesData.pages[0].title,
-          style: TextStyle(color: ColorCodes.menuColor),),
+        title: _isLoading ? SizedBox.shrink() : Text((pagesData.pages.length>0)?pagesData.pages[0].title!:"",
+          style: TextStyle(color: ColorCodes.iconColor, fontWeight: FontWeight.bold, fontSize: 18),),
         flexibleSpace: Container(
           decoration: BoxDecoration(
               gradient: LinearGradient(
                   begin: Alignment.topRight,
                   end: Alignment.bottomLeft,
                   colors: [
-                    ColorCodes.accentColor,
-                    ColorCodes.primaryColor
+                    ColorCodes.appbarColor,
+                    ColorCodes.appbarColor2
                   ]
               )
           ),
@@ -98,8 +102,8 @@ class _PagesScreentState extends State<PagesScreen> {
         child: CircularProgressIndicator(),
       ) :*/
       queryData = MediaQuery.of(context);
-      wid= queryData.size.width;
-      maxwid=wid*0.90;
+      wid= queryData!.size.width;
+      maxwid=wid!*0.90;
       return _isLoading ?
       Center(
       child: CircularProgressIndicator(),
@@ -107,7 +111,7 @@ class _PagesScreentState extends State<PagesScreen> {
       Expanded(
         child: SingleChildScrollView(
           child: Container(
-            constraints: (_isWeb && !ResponsiveLayout.isSmallScreen(context))?BoxConstraints(maxWidth: maxwid):null,
+            constraints: (_isWeb && !ResponsiveLayout.isSmallScreen(context))?BoxConstraints(maxWidth: maxwid!):null,
 
             child: Column(
               children: <Widget>[
@@ -133,7 +137,7 @@ class _PagesScreentState extends State<PagesScreen> {
                     // SizedBox(width: 5.0,),
                   ],
                 ),
-                if(_isWeb) Footer(address: PrefUtils.prefs.getString("restaurant_address")),
+                if(_isWeb) Footer(address: PrefUtils.prefs!.getString("restaurant_address")!),
               ],
             ),
           ),
@@ -151,7 +155,8 @@ class _PagesScreentState extends State<PagesScreen> {
       body: Column(
         children: <Widget>[
           if(_isWeb && !ResponsiveLayout.isSmallScreen(context))
-            Header(false, false),
+            Header(false),
+          if(pagesData.pages.length>0)
           _body(),
         ],
       ),

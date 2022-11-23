@@ -3,16 +3,20 @@ import 'package:cashfree_pg/cashfree_pg.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import '../../assets/ColorCodes.dart';
+import '../../constants/features.dart';
+import '../../controller/payment/cashfree_web.dart';
+import '../../generated/l10n.dart';
 import '../../models/VxModels/VxStore.dart';
+import '../../repository/authenticate/AuthRepo.dart';
+import '../../utils/coros_bypass.dart';
 import 'package:velocity_x/velocity_x.dart';
-import '../../models/cashfree_model.dart';
+import '../../models/payment/cashfree_model.dart';
+import '../../rought_genrator.dart';
 import '../../screens/paytm_screen.dart';
-//import 'package:razorpay_flutter/razorpay_flutter.dart';
-import '../../screens/subscription_confirm_screen.dart';
+import 'package:razorpay_flutter/razorpay_flutter.dart';
 import '../../constants/IConstants.dart';
-import '../../models/paytm_tocken_modle.dart';
-import '../../screens/orderconfirmation_screen.dart';
-import '../../screens/payment_screen.dart';
+import '../../models/payment/paytm_tocken_modle.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/services.dart';
 import '../../constants/api.dart';
@@ -21,20 +25,20 @@ import '../../utils/prefUtils.dart';
 
 import 'paytm_web.dart';
 
-class Payment {
-  String mid,_orderId,_amount,_usenam;
+class Payment with Navigations {
+  String? mid,_orderId,_amount,_usenam;
   bool _restrictAppInvoke = true;
   var _context;
   var _routeArgs;
-  String _prev;
-  bool _isweb;
-  //Razorpay _razorpay;
-  String _name;
+  String? _prev;
+  bool? _isweb;
+  Razorpay? _razorpay;
+  String? _name;
   GroceStore store = VxState.store;
-  String get name => _name;
+  String? get name => _name;
 
   /// Paytm Token Generate
-  Future<PaytmTocken> _getPaytmOrderTocken() async {
+  Future<PaytmTocken?> _getPaytmOrderTocken() async {
     // var staging;
     String url;
     if(IConstants.isPaymentTesting ==true){
@@ -49,14 +53,13 @@ class Payment {
         kIsWeb?  "https://groce-bay.herokuapp.com/"+url:""+url,
         /* body: {
           "rows": "2",
-          "branch": PrefUtils.prefs.getString('branch'),
+          "branch": PrefUtils.prefs!.getString('branch'),
           "user": user,
           // await keyword is used to wait to this operation is complete.
         }*/
       );
       // SellingItemModel result;
       final responseJson = json.decode(utf8.decode(response.bodyBytes));
-      print("resp ${responseJson}");
       if(responseJson.toString() != "[]") {
         Map<String, dynamic> resdata;
         resdata = responseJson as Map<String, dynamic>;
@@ -70,47 +73,75 @@ class Payment {
     }
   }
   /// Paytm Token Generate
-  Future<CashFreeTocken> _getCashFreeOrderTocken() async {
-    print("jcjbc");
+  Future<Object> _getCashFreeOrderTocken() async {
     // var staging;
     String url;
-    if(IConstants.isPaymentTesting==true){
-      url = 'https://test.cashfree.com/api/v2/cftoken/order/';
-    }else{
-      url = 'https://api.cashfree.com/api/v2/cftoken/order/';
+    if(Vx.isWeb){
+      if (IConstants.isPaymentTesting == true) {
+        url = 'https://sandbox.cashfree.com/pg/orders';
+      }else{
+        url = 'https://api.cashfree.com/pg/orders';
+      }
     }
-    print("heojd" + {
-      'x-client-id': IConstants.gatewayId,
-      'x-client-secret': IConstants.gateway_secret,
-      'Content-Type': 'application/json'
-    }.toString());
-    try {
-      var headers = {
+    else{
+      if (IConstants.isPaymentTesting == true) {
+        url = 'https://test.cashfree.com/api/v2/cftoken/order/';
+      } else {
+        url = 'https://api.cashfree.com/api/v2/cftoken/order/';
+      }
+    }
+    // try {
+      var headers = Vx.isWeb?{
         'x-client-id': IConstants.gatewayId,
         'x-client-secret': IConstants.gateway_secret,
-        'Content-Type': 'application/json'
-      };
-      var request = http.Request('POST', Uri.parse(url));
-      request.body = '''{"orderId": "$_orderId","orderAmount":$_amount, "orderCurrency": "INR" }''';
-      request.headers.addAll(headers);
+        'Content-Type': 'application/json',
+        'x-api-version': '2022-01-01'
+      }:{
+        'x-client-id': '${IConstants.gatewayId}',
+        'x-client-secret': '${IConstants.gateway_secret}',
+        'Content-Type': 'application/json',
 
+      };
+      var request = Vx.isWeb ? http.Request('POST', Uri.parse(COROsBypass().getbypassUrl(url)))
+      : http.Request('POST', Uri.parse(url/*COROsBypass().getbypassUrl('https://api.cashfree.com/api/v2/cftoken/order/')*/));
+      request.body = Vx.isWeb?json.encode({
+        "order_id": "$_orderId",
+        //"orderId":"$_orderId",
+        "order_amount": "$_amount",
+      //  "orderAmount": "$_amount",
+        "order_currency": "INR",
+     // "orderCurrency": "INR",
+        "customer_details": {
+          "customer_id": PrefUtils.prefs!.getString("apikey"),
+          "customer_name": store.userData.username,
+          "customer_email": "techsupport@cashfree.com",
+          "customer_phone": store.userData.mobileNumber
+        },}):json.encode({
+        "orderId": "$_orderId",
+        "orderAmount": "$_amount",
+        "orderCurrency": "INR"
+      });
+      request.headers.addAll(headers);
       http.StreamedResponse response = await request.send();
-      print("grvfvfv..response.."+response.statusCode.toString());
       if (response.statusCode == 200) {
-        print("grvfvfv");
-        return  CashFreeTocken.fromJson(json.decode(await response.stream.bytesToString()));
+        final stream =await response.stream.bytesToString();
+        return  Vx.isWeb?CashFreeWebTocken.fromJson(json.decode(stream)):
+        CashFreeTocken.fromJson(json.decode(stream));
+
       }
       else {
-        return  CashFreeTocken.fromJson(json.decode(await response.stream.bytesToString()));
+        final stream =await response.stream.bytesToString();
+        return  Vx.isWeb?CashFreeWebTocken.fromJson(json.decode(stream)):
+        CashFreeTocken.fromJson(json.decode(stream));
       }
 
 
-    } catch (error) {
-      throw error;
-    }
+    // } catch (error) {
+    //   throw error;
+    // }
   }
 
-  Future<void> startPaytmTransaction(context, isweb,{@required orderId, @required username, amount = "1.00",@required routeArgs, String prev}) async {
+  Future<void> startPaytmTransaction(context, isweb,{required orderId, required username, amount = "1.00",required routeArgs, String? prev}) async {
     this._orderId =orderId;
     this._amount =amount;
     this._amount =amount;
@@ -119,11 +150,11 @@ class Payment {
     this._routeArgs = routeArgs;
     this._prev = prev;
     this._isweb = isweb;
-    // if (PrefUtils.prefs.getString('FirstName') != null) {
-    //   if (PrefUtils.prefs.getString('LastName') != null) {
-    //     this._name =  PrefUtils.prefs.getString('FirstName') + " " + PrefUtils.prefs.getString('LastName');
+    // if (PrefUtils.prefs!.getString('FirstName') != null) {
+    //   if (PrefUtils.prefs!.getString('LastName') != null) {
+    //     this._name =  PrefUtils.prefs!.getString('FirstName') + " " + PrefUtils.prefs!.getString('LastName');
     //   } else {
-    //     this._name =  PrefUtils.prefs.getString('FirstName');
+    //     this._name =  PrefUtils.prefs!.getString('FirstName');
     //   }
     // } else {
     //   this._name = "";
@@ -131,10 +162,9 @@ class Payment {
     this._name = store.userData.username;
     switch(IConstants.paymentGateway){
     //  case "paytm": _paytmTransaction(); break;
-
-      //case "razorpay": _razorpayTransaction();break;
+      case "razorpay": _razorpayTransaction();break;
       case "cashfree": _cashFreeTransaction();break;
-      case "webview": _webViewTransaction();break;
+      //case "webview": _webViewTransaction();break;
     }
   }
 
@@ -163,86 +193,128 @@ class Payment {
   }*/
 
   /// Transaction Through RazorPay
-  // _razorpayTransaction() {
-  //   _razorpay = Razorpay();
-  //   _razorpay.on(Razorpay.EVENT_PAYMENT_SUCCESS, (PaymentSuccessResponse response){
-  //     if (_prev == "SubscribeScreen")
-  //       _subscriptionstatus("paid", response.paymentId.toString(), "Payment done through Razorpay");
-  //     else
-  //       _paymentstatus("paid", response.paymentId.toString(), "Payment done through Razorpay");
-  //   });
-  //   _razorpay.on(Razorpay.EVENT_PAYMENT_ERROR, (PaymentFailureResponse response){
-  //     if (_prev == "SubscribeScreen")
-  //       _subscriptionstatus("cancelled", "", response.message);
-  //     else _paymentstatus("cancelled", "", response.message);
-  //   });
-  //   _razorpay.on(Razorpay.EVENT_EXTERNAL_WALLET,(ExternalWalletResponse response){
-  //     Fluttertoast.showToast(
-  //         msg: "EXTERNAL_WALLET: " + response.walletName, timeInSecForIosWeb: 4);
-  //     if (_prev == "SubscribeScreen")
-  //       _subscriptionstatus("paid", response.walletName, "Payment done through Razorpay");
-  //     else _paymentstatus("paid", response.walletName, "Payment done through Razorpay");
-  //   });
-  //   var options = {
-  //     'key': IConstants.gatewayId,
-  //     'amount': double.parse(_amount) * 100 ,
-  //     'name': name,
-  //     //'description': 'Fine T-Shirt',
-  //     'prefill': {
-  //       'contact': PrefUtils.prefs.getString('mobile'),
-  //       'email': PrefUtils.prefs.containsKey("Email") ? PrefUtils.prefs.getString('Email') : "",
-  //     }
-  //   };
-  //   try {
-  //     _razorpay.open(options);
-  //     // Navigator.of(context).pop();
-  //   } catch (e) {
-  //   }
-  // }
+  _razorpayTransaction() {
+
+    _razorpay = Razorpay();
+    Navigator.of(_context).pop();
+    _razorpay!.on(Razorpay.EVENT_PAYMENT_SUCCESS, (PaymentSuccessResponse response){
+      if (_prev == "SubscribeScreen")
+        _subscriptionstatus("paid", response.paymentId.toString(), "Payment done through Razorpay");
+      else
+        _paymentstatus("paid", response.paymentId.toString(), "Payment done through Razorpay");
+    });
+    _razorpay!.on(Razorpay.EVENT_PAYMENT_ERROR, (PaymentFailureResponse response) async {
+      if (_prev == "SubscribeScreen")
+        _subscriptionstatus("cancelled", "", response.message!);
+      else {
+        if(PrefUtils.prefs!.containsKey("orderId")) {
+          final orderId = PrefUtils.prefs!.getString("orderId");
+          //await  paymentStatus(orderId);
+          await _cancelOrderback();
+        }
+        //_paymentstatus("cancelled", "", response.message);
+      }
+    });
+    _razorpay!.on(Razorpay.EVENT_EXTERNAL_WALLET,(ExternalWalletResponse response){
+      Fluttertoast.showToast(
+          msg: "EXTERNAL_WALLET: " + response.walletName!, timeInSecForIosWeb: 4);
+      if (_prev == "SubscribeScreen")
+        _subscriptionstatus("paid", response.walletName!, "Payment done through Razorpay");
+      else _paymentstatus("paid", response.walletName!, "Payment done through Razorpay");
+    });
+    var options = {
+      'key': IConstants.gatewayId,
+      'amount': double.parse(_amount!) * 100 ,
+      'name': name,
+      //'description': 'Fine T-Shirt',
+      'prefill': {
+        'contact': store.userData.mobileNumber,
+        'email': store.userData.email,
+      }
+    };
+    try {
+      _razorpay!.open(options);
+      // Navigator.of(context).pop();
+    } catch (e) {
+    }
+  }
   /// Transaction Through CashFree
   _cashFreeTransaction() async{
-    print("helloo" );
+
     String stage;
     await _getCashFreeOrderTocken().then((value) {
-      if(IConstants.isPaymentTesting) stage = "TEST";else stage = "PROD";
-      if(value.status =="OK"){
-        Map<String, dynamic> inputParams = {
-          "orderId": _orderId,
-          "orderAmount": _amount,
-          "customerName": name,
-          "orderNote": "Payment through Cash Free",
-          "orderCurrency": "INR",
-          "appId": IConstants.gatewayId,
-          "customerPhone": store.userData.mobileNumber,
-          "customerEmail": store.userData.email != ""
-              ? store.userData.email
-              : "${IConstants.primaryEmail}",
-          "stage": stage,
-          "tokenData": value.cftoken,
-          "notifyUrl": "https://test.gocashfree.com/notify"
-        };
+      Navigator.of(_context).pop();
+      if(IConstants.isPaymentTesting) stage = "TEST"; else stage = "PROD";
+      if(Vx.isWeb){
+        value = value as CashFreeWebTocken;
+        CashFreeWeb.doPayment(value.orderToken,OnSucsess: (value){
+          // _paymentstatus("paid", value.transaction!.transactionId!.toString(), value.order!.status!);
+          if (_prev == "SubscribeScreen")
+            _subscriptionstatus(
+                "paid",value.transaction!.transactionId!.toString(), value.order!.status!);
+          else
+            _paymentstatus(
+                "paid",value.transaction!.transactionId!.toString(), value.order!.status!);
+        },OnFailure: (value){
+           if (PrefUtils.prefs!.containsKey("orderId")) {
+            _cancelOrderback();
+            }
+        },);
 
-        CashfreePGSDK.doPayment(inputParams)
-            .then((value) {
-          if(value["txStatus"]=="SUCCESS"){
-            _paymentstatus("paid", value['referenceId'], value['txMsg']);
-            if (_prev == "SubscribeScreen")
-              _subscriptionstatus("paid", value['referenceId'], value['txMsg']);
-            else
-              _paymentstatus("paid", value['referenceId'], value['txMsg']);
+      }else {
+        value = value as CashFreeTocken;
+        if (value.status == "OK") {
+          Map<String, dynamic> inputParams = {
+            "orderId": _orderId,
+            "orderAmount": _amount,
+            "customerName": name,
+            "orderNote": "Payment through Cash Free",
+            "orderCurrency": "INR",
+            "appId": IConstants.gatewayId,
+            "customerPhone": store.userData.mobileNumber,
+            "customerEmail": store.userData.email != ""
+                ? store.userData.email
+                : "${IConstants.primaryEmail}",
+            "stage": stage,
+            "tokenData": value.cftoken,
+            "notifyUrl": "https://test.gocashfree.com/notify"
+          };
+         CashfreePGSDK.doPayment(inputParams).then((value) async {
 
-          }else if(value["txStatus"]=="FAILED"){
-            _paymentstatus("cancelled", value['referenceId'], value['txMsg']);
-            if (_prev == "SubscribeScreen")
-              _subscriptionstatus("failed", value['referenceId'], value['txMsg']);
-            else _paymentstatus("failed", value['referenceId'], value['txMsg']);
-          }else{
-            if (_prev == "SubscribeScreen")
-              _subscriptionstatus("cancelled", value['orderId'], value['txStatus']);
-            else _paymentstatus("cancelled", value['orderId'], value['txStatus']);}
-        });
-      }else{
+                  if (value!["txStatus"] == "SUCCESS") {
+                      // _paymentstatus(
+                      //     "paid", value['referenceId'], value['txMsg']);
+                      if (_prev == "SubscribeScreen")
+                        _subscriptionstatus(
+                            "paid", value['referenceId'], value['txMsg']);
+                      else
+                        _paymentstatus(
+                            "paid", value['referenceId'], value['txMsg']);
 
+
+                  } else if (value["txStatus"] == "FAILED") {
+                    // _paymentstatus("cancelled", value['referenceId'], value['txMsg']);
+                    if (_prev == "SubscribeScreen")
+                      _subscriptionstatus(
+                          "failed", value['referenceId'], value['txMsg']);
+                    else
+                      _paymentstatus(
+                          "failed", value['referenceId'], value['txMsg']);
+                  } else {
+                    if (_prev == "SubscribeScreen")
+                      _subscriptionstatus(
+                          "cancelled", value['orderId'], value['txStatus']);
+                    else {
+                      if (PrefUtils.prefs!.containsKey("orderId")) {
+                        final orderId = PrefUtils.prefs!.getString("orderId");
+                        //await  paymentStatus(orderId);
+                        await _cancelOrderback();
+                      }
+                      //_paymentstatus("cancelled", value['orderId'], value['txStatus']);
+                    }
+                  }
+                });
+        } else {}
       }
     });
   }
@@ -250,99 +322,202 @@ class Payment {
   _webViewTransaction(){
     _routeArgs["orderId"]=_orderId;
     _routeArgs["amount"]=_amount;
-    Navigator.of(_context).pushReplacementNamed(PaytmScreen.routeName, arguments: _routeArgs);
+    //Navigator.of(_context).pushReplacementNamed(PaytmScreen.routeName, arguments: _routeArgs);
   }
 
   Future<void> _paymentstatus(String status, String tansactionid, String note) async { // imp feature in adding async is the it automatically wrap into Future.
-/*    *//* = ModalRoute.of(context).settings.arguments as Map<String, String>;*//*;
-    String minimumOrderAmountNoraml = _routeArgs["minimumOrderAmountNoraml"];
-    String deliveryChargeNormal = _routeArgs["deliveryChargeNormal"];
-    String minimumOrderAmountPrime = _routeArgs["deliveryChargePrime"];
-    String deliveryChargePrime = _routeArgs["deliveryChargePrime"];
-    String minimumOrderAmountExpress = _routeArgs["minimumOrderAmountExpress"];
-    String deliveryChargeExpress = _routeArgs["deliveryChargeExpress"];
-    String deliveryType = _routeArgs["deliveryType"];
-    String note = _routeArgs["note"];
-    String prev =_routeArgs['prev'];*/
+    final auth = Auth();
     try{
-      final response = await http.post(Api.updatePaymentStatusSplit, body: { // await keyword is used to wait to this operation is complete.
-        "status": status,
-        "transction": tansactionid,
-        "refid": _orderId,
-        "mobile": PrefUtils.prefs.getString('mobile'),
-        "name": name,
-        "note": note,
-      });
+      if(_prev == "WalletScreen"){
+        final response = await http.post(Api.addMoneyToWallet, body: { // await keyword is used to wait to this operation is complete.
+          "userID": store.userData.id,
+          "credits": _amount,
+          "branch": store.userData.branch,
+          "name": store.userData.username,
+          "subscription_id":_orderId,
+          "type": Features.isSubscription  && Features.isWallet? "0" : "5",
+          "mode": Features.isSubscription && Features.isWallet ? "wallet" : "subscription"
 
-      final responseJson = json.decode(response.body);
-      if(responseJson['status'].toString() == "200") {
-        if(status == "paid") {
+        //"transaction_id":(tansactionid)
+        });
 
-          PrefUtils.prefs.remove("orderId");
-          Navigator.of(_context).pushReplacementNamed(
+        final responseJson = json.decode(response.body);
+        if(responseJson['status'].toString() == "200") {
+          Fluttertoast.showToast(
+              msg: "Amount Added Successfully",//"Sign in failed!",
+              fontSize: 10,
+              backgroundColor: ColorCodes.blackColor,
+              textColor: ColorCodes.whiteColor);
+          auth.getuserProfile(onsucsess: (value){
+           }, onerror: (){
+          });
+        }
+        else{
+          Fluttertoast.showToast(
+              msg: "Amount Not Added",//"Sign in failed!",
+              fontSize: 10,
+              backgroundColor: ColorCodes.blackColor,
+              textColor: ColorCodes.whiteColor);
+        }
+      }
+      else{
+        final response = await http.post(Api.updatePaymentStatusSplit, body: { // await keyword is used to wait to this operation is complete.
+          "status": status,
+          "transction": (tansactionid),
+          "refid": _orderId,
+          "mobile": store.userData.mobileNumber,
+          "name": name,
+          "note": note,
+        });
+
+        final responseJson = json.decode(response.body);
+        if(responseJson['status'].toString() == "200") {
+          if(status == "paid") {
+
+            PrefUtils.prefs!.remove("orderId");
+            /*     Navigator.of(_context).pushReplacementNamed(
               OrderconfirmationScreen.routeName,
               arguments: {
                 'orderstatus' : "success",
                 'orderid': _orderId
 
               }
-          );
-        }
-        else if(status == "cancelled"){
-          final routeArgs = ModalRoute.of(_context).settings.arguments as Map<String, String>;
-          String minimumOrderAmountNoraml=routeArgs["minimumOrderAmountNoraml"];
-          String deliveryChargeNormal = routeArgs["deliveryChargeNormal"];
-          String minimumOrderAmountPrime = routeArgs["deliveryChargePrime"];
-          String deliveryChargePrime = routeArgs["deliveryChargePrime"];
-          String minimumOrderAmountExpress = routeArgs["minimumOrderAmountExpress"];
-          String deliveryChargeExpress = routeArgs["deliveryChargeExpress"];
-          String deliveryType =routeArgs["deliveryType"];
-          String note =routeArgs["note"];
-          String prev =routeArgs['prev'];
+          );*/
+            Navigation(_context, name: Routename.OrderConfirmation, navigatore: NavigatoreTyp.Push,
+                parms: {'orderstatus' : "success",
+                  'orderid': _orderId.toString()});
+          }
+          else if(status == "cancelled"){
 
-          Navigator.of(_context).pop();
-          Navigator.of(_context).pushReplacementNamed(
-              PaymentScreen.routeName,
-              arguments: {
-                'minimumOrderAmountNoraml': minimumOrderAmountNoraml,
-                'deliveryChargeNormal': deliveryChargeNormal,
-                'minimumOrderAmountPrime': minimumOrderAmountPrime,
-                'deliveryChargePrime': deliveryChargePrime,
-                'minimumOrderAmountExpress': minimumOrderAmountExpress,
-                'deliveryChargeExpress':deliveryChargeExpress ,
-                'deliveryType': deliveryType,
-                'note': note,
-                'responsejson':"",
-                'fromScreen':'',
-              }
-          );
+            final routeArgs = ModalRoute.of(_context)!.settings.arguments as Map<String, String>;
+            String minimumOrderAmountNoraml=routeArgs["minimumOrderAmountNoraml"]!;
+            String deliveryChargeNormal = routeArgs["deliveryChargeNormal"]!;
+            String minimumOrderAmountPrime = routeArgs["deliveryChargePrime"]!;
+            String deliveryChargePrime = routeArgs["deliveryChargePrime"]!;
+            String minimumOrderAmountExpress = routeArgs["minimumOrderAmountExpress"]!;
+            String deliveryChargeExpress = routeArgs["deliveryChargeExpress"]!;
+            String deliveryType =routeArgs["deliveryType"]!;
+            String note =routeArgs["note"]!;
+            String prev =routeArgs['prev']!;
+            String addressId = routeArgs["addressId"]!;
+            String deliveryCharge = routeArgs["deliveryCharge"]!;
+            String deliveryDurationExpress = routeArgs["deliveryDurationExpress"]!;
+            if(PrefUtils.prefs!.containsKey("orderId")) {
+              final orderId = PrefUtils.prefs!.getString("orderId");
+              //await  paymentStatus(orderId);
+              await _cancelOrderback();
+            }
 
-        }
-        else {
 
-          Navigator.of(_context).pushReplacementNamed(
+            // Navigator.of(_context).pop();
+            // Navigator.of(_context).pushReplacementNamed(
+            //     PaymentScreen.routeName,
+            //     arguments: {
+            //       'minimumOrderAmountNoraml': minimumOrderAmountNoraml,
+            //       'deliveryChargeNormal': deliveryChargeNormal,
+            //       'minimumOrderAmountPrime': minimumOrderAmountPrime,
+            //       'deliveryChargePrime': deliveryChargePrime,
+            //       'minimumOrderAmountExpress': minimumOrderAmountExpress,
+            //       'deliveryChargeExpress':deliveryChargeExpress ,
+            //       'deliveryType': deliveryType,
+            //       'note': note,
+            //       'addressId': addressId,
+            //       'deliveryCharge': deliveryCharge,
+            //       'deliveryDurationExpress' : deliveryDurationExpress,
+            //     }
+            // );
+
+          }
+          else {
+            String orderid;
+            if( PrefUtils.prefs!.containsKey("subscriptionorderId")){
+              orderid = PrefUtils.prefs!.getString("subscriptionorderId").toString();
+            }else{
+              orderid = _orderId.toString();
+            }
+            /*       Navigator.of(_context).pushReplacementNamed(
               OrderconfirmationScreen.routeName,
               arguments: {
                 'orderstatus': "failure",
-                'orderId':  PrefUtils.prefs.containsKey("subscriptionorderId")?PrefUtils.prefs.getString("subscriptionorderId"):_orderId
+                'orderId':  PrefUtils.prefs!.containsKey("subscriptionorderId")?PrefUtils.prefs!.getString("subscriptionorderId"):_orderId
               }
-          );
+          );*/
+            Navigation(_context, name: Routename.OrderConfirmation, navigatore: NavigatoreTyp.Push,
+                parms: {'orderstatus' : "failure",
+                  'orderid': orderid});
+          }
+        }
+        else {
         }
       }
-      else {
-      }
+
 
     } catch (error) {
       throw error;
     }
   }
+
+  Future<void> paymentStatus(String orderId) async { // imp feature in adding async is the it automatically wrap into Future.
+    var url = Api.getOrderStatus + orderId;
+    try {
+      final response = await http
+          .post(
+          url,
+          body: { // await keyword is used to wait to this operation is complete.
+            "branch": PrefUtils.prefs!.getString('branch'),
+          }
+      );
+      final responseJson = json.decode(response.body);
+      if(responseJson['status'].toString() == "yes") {
+        PrefUtils.prefs!.remove("orderId");
+      } else {
+        //await _cancelOrder();
+        await _cancelOrderback();
+      }
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  Future<void> _cancelOrderback() async { // imp feature in adding async is the it automatically wrap into Future.
+    try {
+      final response = await http.post(
+          Api.cancelOrderBack,
+          body: { // await keyword is used to wait to this operation is complete.
+            "id": PrefUtils.prefs!.getString('orderId'),
+            "note": "Payment cancelled by user",
+            "branch": PrefUtils.prefs!.getString('branch'),
+          }
+      );
+      final responseJson = json.decode(response.body);
+      if(responseJson['status'].toString() == "200"){
+        if(Vx.isWeb){
+          Navigation(_context, name: Routename.OrderConfirmation, navigatore: NavigatoreTyp.Push,
+              parms: {'orderstatus' : "failure",
+                'orderid':PrefUtils.prefs!.getString("orderId").toString()});
+        }else{
+          PrefUtils.prefs!.remove("orderId");
+        }
+        /* await Provider.of<BrandItemsList>(context,listen: false).userDetails().then((_) {
+          setState(() {
+
+          });
+        });*/
+      }
+
+    } catch (error) {
+      Fluttertoast.showToast(msg: S.of(_context).something_went_wrong,//"Something went wrong!!!",
+        fontSize: MediaQuery.of(_context).textScaleFactor *13,);
+      throw error;
+    }
+  }
+
   Future<void> _subscriptionstatus(String status, String tansactionid, String note) async { // imp feature in adding async is the it automatically wrap into Future.
-    debugPrint("subscription status.....");
     try {
       final response = await http.post(
           Api.updateSubscriptionPayment,
           body: { // await keyword is used to wait to this operation is complete.
-            "user_id": PrefUtils.prefs.getString('apikey').toString(),
+            "user_id": PrefUtils.prefs!.getString('apikey').toString(),
             "payment_status": status,
             "transaction_id": tansactionid,
             "order": _orderId,
@@ -350,39 +525,37 @@ class Payment {
             "payment_note": note,
           }
       );
-      print("update subscription....."+{
-        "user_id": PrefUtils.prefs.getString('apikey').toString(),
-        "payment_status": status,
-        "transaction_id": tansactionid,
-        "order": _orderId,
-        "amount": _amount,
-        "payment_note": note,
-      }.toString());
       final responseJson = json.decode(response.body);
-      print("update sub response......"+responseJson.toString());
       if(responseJson['status'].toString() == "200") {
-        print("response status 200....");
         if(status == "paid") {
 
-         // PrefUtils.prefs.remove("subscriptionorderId");
-          debugPrint("subscription success.....");
-          Navigator.of(_context).pushReplacementNamed(
+         // PrefUtils.prefs!.remove("subscriptionorderId");
+         /* Navigator.of(_context).pushReplacementNamed(
               SubscriptionConfirmScreen.routeName,
               arguments: {
                 'orderstatus' : "success",
-                'sorderId': PrefUtils.prefs.getString("subscriptionorderId")
+                'sorderId': PrefUtils.prefs!.getString("subscriptionorderId")
               }
-          );
+          );*/
+          Navigation(_context, name: Routename.SubscriptionConfirm, navigatore: NavigatoreTyp.Push,
+              parms: {
+                'orderstatus' : "success",
+                'sorderId': PrefUtils.prefs!.getString("subscriptionorderId").toString()
+              });
         }
         else {
-          debugPrint("subscription failure id.....");
-          Navigator.of(_context).pushReplacementNamed(
+         /* Navigator.of(_context).pushReplacementNamed(
               SubscriptionConfirmScreen.routeName,
               arguments: {
                 'orderstatus': "failure",
-                'sorderId': PrefUtils.prefs.getString("subscriptionorderId")
+                'sorderId': PrefUtils.prefs!.getString("subscriptionorderId")
               }
-          );
+          );*/
+          Navigation(_context, name: Routename.SubscriptionConfirm, navigatore: NavigatoreTyp.Push,
+              parms: {
+                'orderstatus' : "failure",
+                'sorderId': PrefUtils.prefs!.getString("subscriptionorderId").toString()
+              });
         }/*else{
           final routeArgs = ModalRoute.of(context).settings.arguments as Map<String, String>;
 
@@ -425,10 +598,9 @@ class Payment {
   }
 
   /// On Response For Paytm Transaction
-  _onresponse(value){
+  _onresponse(value) async {
     if(value["RESPCODE"]=="01") {
       if (_prev == "SubscribeScreen") {
-        debugPrint("subscription paid.....");
         _subscriptionstatus("paid", value['TXNID'], value['RESPMSG']);
       } else {
         _paymentstatus("paid", value['TXNID'], value['RESPMSG']);
@@ -436,10 +608,14 @@ class Payment {
     }
     else {
       if (_prev == "SubscribeScreen") {
-        debugPrint("subscription failed.....");
         _subscriptionstatus("failed", value['TXNID'], value['RESPMSG']);
       } else {
-        _paymentstatus("cancelled", value['TXNID'], value['RESPMSG']);
+        if(PrefUtils.prefs!.containsKey("orderId")) {
+          final orderId = PrefUtils.prefs!.getString("orderId");
+          //await  paymentStatus(orderId);
+          await _cancelOrderback();
+        }
+        //_paymentstatus("cancelled", value['TXNID'], value['RESPMSG']);
       }
     }
     return  value.toString();
@@ -461,13 +637,16 @@ class Payment {
                   'deliveryCharge': routeArgs['deliveryCharge'].toString(),
                   'deliveryDurationExpress' : routeArgs['deliveryDurationExpress'].toString(),
                 });*/
-        Navigator.of(_context).pushReplacementNamed(
+      /*  Navigator.of(_context).pushReplacementNamed(
             OrderconfirmationScreen.routeName,
             arguments: {
               'orderstatus': "failure",
-              'orderId': PrefUtils.prefs.getString("orderId")
+              'orderId': PrefUtils.prefs!.getString("orderId")
             }
-        );
+        );*/
+        Navigation(_context, name: Routename.OrderConfirmation, navigatore: NavigatoreTyp.Push,
+            parms: {'orderstatus' : "failure",
+              'orderid':PrefUtils.prefs!.getString("orderId").toString()});
       else if(_prev == "SubscribeScreen"){
         /*Navigator.of(context)
                       .pushReplacementNamed(PaymenSubscriptionScreen.routeName, arguments: {
@@ -492,14 +671,18 @@ class Payment {
                     "varmrp":routeArgs['varmrp'].toString(),
 
                   });*/
-        debugPrint("subscription failure.....");
-        Navigator.of(_context).pushReplacementNamed(
+       /* Navigator.of(_context).pushReplacementNamed(
             SubscriptionConfirmScreen.routeName,
             arguments: {
               'orderstatus': "failure",
-              'sorderId': PrefUtils.prefs.getString("subscriptionorderId")
+              'sorderId': PrefUtils.prefs!.getString("subscriptionorderId")
             }
-        );
+        );*/
+        Navigation(_context, name: Routename.SubscriptionConfirm, navigatore: NavigatoreTyp.Push,
+            parms: {
+              'orderstatus' : "failure",
+              'sorderId': PrefUtils.prefs!.getString("subscriptionorderId").toString()
+            });
       }
       return  onError.message.toString() + " \n  " + onError.details.toString();
     } else {
@@ -507,8 +690,8 @@ class Payment {
     }
   }
   dispose(){
-    // if(_razorpay!=null)
-    //   _razorpay.clear();
+    if(_razorpay!=null)
+      _razorpay!.clear();
   }
 }
 

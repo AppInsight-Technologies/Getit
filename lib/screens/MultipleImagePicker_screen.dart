@@ -202,10 +202,10 @@
 //           ),*/
 //           Expanded(
 //             child: Text(
-//               S.of(context).do_you_want
+//               S .of(context).do_you_want
 //               //"Do You Want "
 //                   + IConstants.APP_NAME+
-//                   S.of(context).call_further_details,
+//                   S .of(context).call_further_details,
 //                  // " To Call You For Further Details?",
 //               style: TextStyle(/*fontWeight: FontWeight.bold, fontSize: 16,*/color: Theme.of(context).primaryColor),
 //             ),
@@ -251,7 +251,7 @@
 //                       lineHeight: 20.0,
 //                       animationDuration: uploadtime,
 //                       percent: 0.95,
-//                       center: Text( S.of(context).uploading
+//                       center: Text( S .of(context).uploading
 //                          // "Uploading......."
 //                       ),
 //                       linearStrokeCap: LinearStrokeCap.roundAll,
@@ -281,7 +281,7 @@
 //         _isinternet = true;
 //       });
 //     } else {
-//       Fluttertoast.showToast(msg:  S.of(context).no_internet
+//       Fluttertoast.showToast(msg:  S .of(context).no_internet
 //      // "No internet connection!!!"
 //         , fontSize: MediaQuery.of(context).textScaleFactor *13,);
 //       setState(() {
@@ -304,7 +304,7 @@
 //       } catch (e) {
 //       }
 //       setState(() {
-//         deliverlocation = PrefUtils.prefs.getString("deliverylocation");
+//         deliverlocation = PrefUtils.prefs!.getString("deliverylocation");
 //       });
 //       var connectivityResult = await (Connectivity().checkConnectivity());
 //       if (connectivityResult == ConnectivityResult.mobile) {
@@ -318,7 +318,7 @@
 //           _isinternet = true;
 //         });
 //       } else {
-//         Fluttertoast.showToast(msg: S.of(context).no_internet
+//         Fluttertoast.showToast(msg: S .of(context).no_internet
 //       //  "No internet connection!!!"
 //           , fontSize: MediaQuery.of(context).textScaleFactor *13,);
 //         setState(() {
@@ -377,8 +377,8 @@
 //       final subject = routeArgs['subject'];
 //       final type = routeArgs['type'];
 //       var map = FormData.fromMap({
-//         "id": PrefUtils.prefs.getString('apikey'),
-//         "parent": PrefUtils.prefs.getString('apikey'),
+//         "id": PrefUtils.prefs!.getString('apikey'),
+//         "parent": PrefUtils.prefs!.getString('apikey'),
 //         "subject": subject,
 //         "message": name + ", " + deliverlocation + ", Contact Number: " +
 //             phone + " Date: " + pickedDate.toString(),
@@ -386,7 +386,7 @@
 //         'image': path,
 //         'place': deliverlocation,
 //         "callback": (status == true) ? "1" : "0",
-//         "branch": PrefUtils.prefs.getString('branch'),
+//         "branch": PrefUtils.prefs!.getString('branch'),
 //       });
 //
 //       Dio dio;
@@ -404,20 +404,20 @@
 //       if(responseJson['status'].toString() == "200") {
 //         //init();
 //         Navigator.of(context).pushReplacementNamed(HomeScreen.routeName);
-//         Fluttertoast.showToast(msg: S.of(context).success_submit
+//         Fluttertoast.showToast(msg: S .of(context).success_submit
 //             //"Successfully submitted"
 //             , fontSize: MediaQuery.of(context).textScaleFactor *13, backgroundColor: Colors.black87, textColor: Colors.white);
 //         Navigator.of(context).pushReplacementNamed(HomeScreen.routeName);
 //       } else {
 //         Navigator.of(context).pushReplacementNamed(HomeScreen.routeName);
-//         Fluttertoast.showToast(msg: S.of(context).something_went_wrong,
+//         Fluttertoast.showToast(msg: S .of(context).something_went_wrong,
 //             //"Something went wrong",
 //             fontSize: MediaQuery.of(context).textScaleFactor *13, backgroundColor: Colors.black87, textColor: Colors.white);
 //       }
 //
 //     } catch (error) {
 //       Navigator.of(context).pushReplacementNamed(HomeScreen.routeName);
-//       Fluttertoast.showToast(msg:  S.of(context).something_went_wrong,
+//       Fluttertoast.showToast(msg:  S .of(context).something_went_wrong,
 //           // "Something went wrong",
 //           fontSize: MediaQuery.of(context).textScaleFactor *13, backgroundColor: Colors.black87, textColor: Colors.white);
 //       throw error;
@@ -445,8 +445,8 @@
 //
 //       var map = FormData.fromMap({
 //
-//         "id": PrefUtils.prefs.getString('apikey'),
-//         "parent": PrefUtils.prefs.getString('apikey'),
+//         "id": PrefUtils.prefs!.getString('apikey'),
+//         "parent": PrefUtils.prefs!.getString('apikey'),
 //         "subject": subject,
 //         "message": name + ", " + deliverlocation + ", Contact Number: " +
 //             phone + " Date: " + pickedDate.toString(),
@@ -454,7 +454,7 @@
 //         'image': path,
 //         'place': deliverlocation,
 //         "callback": (status == true) ? "1" : "0",
-//         "branch": PrefUtils.prefs.getString('branch'),
+//         "branch": PrefUtils.prefs!.getString('branch'),
 //
 //       });
 //
@@ -473,20 +473,20 @@
 //       if(responseJson['status'].toString() == "200") {
 //         //init();
 //         Navigator.of(context).pushReplacementNamed(HomeScreen.routeName);
-//         Fluttertoast.showToast(msg: S.of(context).success_submit
+//         Fluttertoast.showToast(msg: S .of(context).success_submit
 //         //"Successfully submitted"
 //             , fontSize: MediaQuery.of(context).textScaleFactor *13, backgroundColor: Colors.black87, textColor: Colors.white);
 //
 //       } else {
 //         Navigator.of(context).pushReplacementNamed(HomeScreen.routeName);
-//         Fluttertoast.showToast(msg: S.of(context).something_went_wrong,
+//         Fluttertoast.showToast(msg: S .of(context).something_went_wrong,
 //         //"Something went wrong",
 //             fontSize: MediaQuery.of(context).textScaleFactor *13, backgroundColor: Colors.black87, textColor: Colors.white);
 //       }
 //
 //     } catch (error) {
 //       Navigator.of(context).pushReplacementNamed(HomeScreen.routeName);
-//       Fluttertoast.showToast(msg:  S.of(context).something_went_wrong,
+//       Fluttertoast.showToast(msg:  S .of(context).something_went_wrong,
 //      // "Something went wrong",
 //           fontSize: MediaQuery.of(context).textScaleFactor *13, backgroundColor: Colors.black87, textColor: Colors.white);
 //       throw error;
@@ -511,7 +511,7 @@
 //           _isinternet = true;
 //         });
 //       } else {
-//         Fluttertoast.showToast(msg:S.of(context).no_internet
+//         Fluttertoast.showToast(msg:S .of(context).no_internet
 //         //"No internet connection!!!"
 //           , fontSize: MediaQuery.of(context).textScaleFactor *13,);
 //         setState(() {
@@ -524,7 +524,7 @@
 //     final routeArgs = ModalRoute.of(context).settings.arguments as Map<String, String>;
 //
 //       if(images.length > 0){
-//         Fluttertoast.showToast(msg: S.of(context).provide_image
+//         Fluttertoast.showToast(msg: S .of(context).provide_image
 //        // "provide image"
 //             , fontSize: MediaQuery.of(context).textScaleFactor *13, backgroundColor: Colors.black87, textColor: Colors.white);
 //       }
@@ -567,7 +567,7 @@
 //           width: MediaQuery.of(context).size.width,
 //           height: 50.0,
 //           color: Theme.of(context).primaryColor,
-//           child: Center(child: Text(S.of(context).place_order
+//           child: Center(child: Text(S .of(context).place_order
 //            // "PLACE ORDER"
 //             ,style: TextStyle(color: Theme.of(context).buttonColor,fontSize: 16),)),
 //         ),
@@ -596,11 +596,11 @@
 //                 ),
 //               ),
 //               SizedBox(height: 10.0,),
-//               Text(S.of(context).no_internet
+//               Text(S .of(context).no_internet
 //                   //"No internet connection"
 //               ),
 //               SizedBox(height: 5.0,),
-//               Text(S.of(context).not_right_internet,
+//               Text(S .of(context).not_right_internet,
 //                // "Ugh! Something's not right with your internet",
 //                 style: TextStyle(fontSize: 12.0, color: Colors.grey),),
 //               SizedBox(height: 10.0,),
@@ -613,7 +613,7 @@
 //                   height: 40.0,
 //                   decoration: BoxDecoration(color: Theme.of(context).accentColor, borderRadius: BorderRadius.circular(3.0),),
 //                   child: Center(
-//                       child: Text( S.of(context).try_again
+//                       child: Text( S .of(context).try_again
 //                       //  'Try Again'
 //                         , textAlign: TextAlign.center, style: TextStyle(color: Colors.white),)),
 //                 ),
@@ -709,7 +709,7 @@
 //           }
 //       ),
 //       titleSpacing: 0,
-//       title: Text(S.of(context).upload,
+//       title: Text(S .of(context).upload,
 //       //  'Upload',
 //         style: TextStyle(color: ColorCodes.menuColor,fontWeight: FontWeight.normal),
 //       ),
@@ -738,6 +738,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:connectivity/connectivity.dart';
 import 'package:flutter_switch/flutter_switch.dart';
+import '../../constants/features.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:velocity_x/velocity_x.dart';
 import '../constants/api.dart';
@@ -755,6 +756,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:file/local.dart';
 import '../assets/images.dart';
 import '../assets/ColorCodes.dart';
+import '../rought_genrator.dart';
 import '../utils/prefUtils.dart';
 
 class MultipleImagePicker extends StatefulWidget {
@@ -769,7 +771,7 @@ class MultipleImagePicker extends StatefulWidget {
   _MultipleImagePickerState createState() => _MultipleImagePickerState();
 }
 
-class _MultipleImagePickerState extends State<MultipleImagePicker> {
+class _MultipleImagePickerState extends State<MultipleImagePicker> with Navigations {
   final _contactFocusNode = FocusNode();
   final _addressFocusNode = FocusNode();
   String name = "";
@@ -781,31 +783,31 @@ class _MultipleImagePickerState extends State<MultipleImagePicker> {
   String sn = "";
   String dropdownValue = 'GSTIN';
   //SharedPreferences prefs;
-  File _image;
+  File? _image;
   final picker = ImagePicker();
-  DateTime pickedDate;
+  DateTime? pickedDate;
   var image;
-  File file;
+  File? file;
   TextEditingController _controller = new TextEditingController();
   bool _isDuration = false;
-  File galleryFile;
+  File? galleryFile;
   List uploadlist = [];
 //save the result of camera file
-  File cameraFile;
-  var images_captured=List<Widget>();
+  File? cameraFile;
+  var images_captured=<Widget>[];
   int _groupValue = 1;
   bool _value = false;
-  List<File> _files;
+  List<File>? _files;
   String filePath="";
-  List pics;
-  List<File> images = List<File>();
+  List? pics;
+  List<File> images = <File>[];
   var uploadtime;
-  String imageSize;
+  String? imageSize;
   int check = 0;
   bool status = false;
   bool iphonex = false;
 
-  AnimationController _animationController;
+  AnimationController? _animationController;
 
   imageSelectorGallery() async {
 
@@ -816,9 +818,9 @@ class _MultipleImagePickerState extends State<MultipleImagePicker> {
       imageQuality: 40,
     );
 
-    images.add(galleryFile);
+    images.add(galleryFile!);
 
-    uploadlist.add(MultipartFile.fromFileSync(galleryFile.path));
+    uploadlist.add(MultipartFile.fromFileSync(galleryFile!.path));
 
 
     setState(() {});
@@ -832,8 +834,8 @@ class _MultipleImagePickerState extends State<MultipleImagePicker> {
         source: ImageSource.camera,
         imageQuality: 40
     );
-    images.add(cameraFile);
-    uploadlist.add(MultipartFile.fromFileSync(cameraFile.path));
+    images.add(cameraFile!);
+    uploadlist.add(MultipartFile.fromFileSync(cameraFile!.path));
     setState(() {
 
     });
@@ -895,10 +897,10 @@ class _MultipleImagePickerState extends State<MultipleImagePicker> {
           ),*/
           Expanded(
             child: Text(
-              S.of(context).do_you_want
+              S .of(context).do_you_want
                   //"Do You Want "
                   + IConstants.APP_NAME+
-                  S.of(context).call_further_details,
+                  S .of(context).call_further_details,
               // " To Call You For Further Details?",
               style: TextStyle(/*fontWeight: FontWeight.bold, fontSize: 16,*/color: Theme.of(context).primaryColor),
             ),
@@ -909,8 +911,8 @@ class _MultipleImagePickerState extends State<MultipleImagePicker> {
             height: 25,
             toggleSize: 23,
 
-            activeColor: Theme.of(context).accentColor,
-            activeToggleColor: Theme.of(context).primaryColorDark,
+            activeColor: ColorCodes.primaryColor,//Theme.of(context).accentColor,
+            activeToggleColor: ColorCodes.whiteColor,//Theme.of(context).primaryColorDark,
             value: status,
             onToggle: (val) {
               setState(() {
@@ -944,7 +946,7 @@ class _MultipleImagePickerState extends State<MultipleImagePicker> {
                       lineHeight: 20.0,
                       animationDuration: uploadtime,
                       percent: 0.95,
-                      center: Text( S.of(context).uploading
+                      center: Text( S .of(context).uploading
                         // "Uploading......."
                       ),
                       linearStrokeCap: LinearStrokeCap.roundAll,
@@ -974,7 +976,7 @@ class _MultipleImagePickerState extends State<MultipleImagePicker> {
         _isinternet = true;
       });
     } else {
-      Fluttertoast.showToast(msg:  S.of(context).no_internet
+      Fluttertoast.showToast(msg:  S .of(context).no_internet
         // "No internet connection!!!"
         , fontSize: MediaQuery.of(context).textScaleFactor *13,);
       setState(() {
@@ -997,7 +999,7 @@ class _MultipleImagePickerState extends State<MultipleImagePicker> {
       } catch (e) {
       }
       setState(() {
-        deliverlocation = PrefUtils.prefs.getString("deliverylocation");
+        deliverlocation = PrefUtils.prefs!.getString("deliverylocation")!;
       });
       var connectivityResult = await (Connectivity().checkConnectivity());
       if (connectivityResult == ConnectivityResult.mobile) {
@@ -1011,7 +1013,7 @@ class _MultipleImagePickerState extends State<MultipleImagePicker> {
           _isinternet = true;
         });
       } else {
-        Fluttertoast.showToast(msg: S.of(context).no_internet
+        Fluttertoast.showToast(msg: S .of(context).no_internet
           //  "No internet connection!!!"
           , fontSize: MediaQuery.of(context).textScaleFactor *13,);
         setState(() {
@@ -1027,7 +1029,7 @@ class _MultipleImagePickerState extends State<MultipleImagePicker> {
     _controller.dispose();
     firstnamecontroller.dispose();
     lastnamecontroller.dispose();
-    _animationController.dispose();
+    // _animationController!.dispose();
     _contactFocusNode.dispose();
     _addressFocusNode.dispose();
 
@@ -1067,16 +1069,16 @@ class _MultipleImagePickerState extends State<MultipleImagePicker> {
       }
     }
     try {
-      final routeArgs = ModalRoute.of(context).settings.arguments as Map<String, String>;
-      final subject = routeArgs['subject'];
-      final type = routeArgs['type'];
+      final routeArgs = ModalRoute.of(context)!.settings.arguments as Map<String, String>;
+      final subject = /*routeArgs['subject']*/ "Click & Send";
+      final type = /*routeArgs['type']*/ "click";
 
       //SharedPreferences prefs = await SharedPreferences.getInstance();
 
       var map = FormData.fromMap({
 
-        "id": PrefUtils.prefs.getString('apikey'),
-        "parent": PrefUtils.prefs.getString('apikey'),
+        "id": PrefUtils.prefs!.getString('apikey'),
+        "parent": PrefUtils.prefs!.getString('apikey'),
         "subject": subject,
         "message": name + ", " + deliverlocation + ", Contact Number: " +
             phone + " Date: " + pickedDate.toString(),
@@ -1084,7 +1086,7 @@ class _MultipleImagePickerState extends State<MultipleImagePicker> {
         'image': path,
         'place': deliverlocation,
         "callback": (status == true) ? "1" : "0",
-        "branch": PrefUtils.prefs.getString('branch'),
+        "branch": PrefUtils.prefs!.getString('branch'),
 
       });
 
@@ -1103,20 +1105,20 @@ class _MultipleImagePickerState extends State<MultipleImagePicker> {
       if(responseJson['status'].toString() == "200") {
         //init();
         Navigator.of(context).pop();
-        Fluttertoast.showToast(msg: S.of(context).success_submit
+        Fluttertoast.showToast(msg: S .of(context).success_submit
             //"Successfully submitted"
             , fontSize: MediaQuery.of(context).textScaleFactor *13, backgroundColor: Colors.black87, textColor: Colors.white);
         Navigator.of(context).pop();
       } else {
         Navigator.of(context).pop();
-        Fluttertoast.showToast(msg: S.of(context).something_went_wrong,
+        Fluttertoast.showToast(msg: S .of(context).something_went_wrong,
             //"Something went wrong",
             fontSize: MediaQuery.of(context).textScaleFactor *13, backgroundColor: Colors.black87, textColor: Colors.white);
       }
 
     } catch (error) {
       Navigator.of(context).pop();
-      Fluttertoast.showToast(msg:  S.of(context).something_went_wrong,
+      Fluttertoast.showToast(msg:  S .of(context).something_went_wrong,
           // "Something went wrong",
           fontSize: MediaQuery.of(context).textScaleFactor *13, backgroundColor: Colors.black87, textColor: Colors.white);
       throw error;
@@ -1141,7 +1143,7 @@ class _MultipleImagePickerState extends State<MultipleImagePicker> {
           _isinternet = true;
         });
       } else {
-        Fluttertoast.showToast(msg:S.of(context).no_internet
+        Fluttertoast.showToast(msg:S .of(context).no_internet
           //"No internet connection!!!"
           , fontSize: MediaQuery.of(context).textScaleFactor *13,);
         setState(() {
@@ -1151,10 +1153,10 @@ class _MultipleImagePickerState extends State<MultipleImagePicker> {
     });
   }
   void checkdetails() {
-    final routeArgs = ModalRoute.of(context).settings.arguments as Map<String, String>;
+    final routeArgs = ModalRoute.of(context)!.settings.arguments as Map<String, String>;
 
     if(images.length == 0){
-      Fluttertoast.showToast(msg: S.of(context).provide_image
+      Fluttertoast.showToast(msg: S .of(context).provide_image
           // "provide image"
           , fontSize: MediaQuery.of(context).textScaleFactor *13, backgroundColor: Colors.black87, textColor: Colors.white);
     }
@@ -1169,7 +1171,7 @@ class _MultipleImagePickerState extends State<MultipleImagePicker> {
 
   @override
   Widget build(BuildContext context) {
-    final routeArgs = ModalRoute.of(context).settings.arguments as Map<String, String>;
+    final routeArgs = ModalRoute.of(context)!.settings.arguments as Map<String, String>;
     if(images.length == 1){
       uploadtime = http.MultipartRequest("", Uri.parse("uri")).contentLength * 11;
     }
@@ -1196,8 +1198,12 @@ class _MultipleImagePickerState extends State<MultipleImagePicker> {
         child: Container(
           width: MediaQuery.of(context).size.width,
           height: 50.0,
-          color: Theme.of(context).primaryColor,
-          child: Center(child: Text(S.of(context).place_order
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(5.0),
+            color: Theme.of(context).primaryColor,
+          ),
+
+          child: Center(child: Text(S .of(context).save_changes
             // "PLACE ORDER"
             ,style: TextStyle(color: Theme.of(context).buttonColor,fontSize: 16),)),
         ),
@@ -1226,11 +1232,11 @@ class _MultipleImagePickerState extends State<MultipleImagePicker> {
                 ),
               ),
               SizedBox(height: 10.0,),
-              Text(S.of(context).no_internet
+              Text(S .of(context).no_internet
                 //"No internet connection"
               ),
               SizedBox(height: 5.0,),
-              Text(S.of(context).not_right_internet,
+              Text(S .of(context).not_right_internet,
                 // "Ugh! Something's not right with your internet",
                 style: TextStyle(fontSize: 12.0, color: Colors.grey),),
               SizedBox(height: 10.0,),
@@ -1243,7 +1249,7 @@ class _MultipleImagePickerState extends State<MultipleImagePicker> {
                   height: 40.0,
                   decoration: BoxDecoration(color: Theme.of(context).accentColor, borderRadius: BorderRadius.circular(3.0),),
                   child: Center(
-                      child: Text( S.of(context).try_again
+                      child: Text( S .of(context).try_again
                         //  'Try Again'
                         , textAlign: TextAlign.center, style: TextStyle(color: Colors.white),)),
                 ),
@@ -1258,9 +1264,34 @@ class _MultipleImagePickerState extends State<MultipleImagePicker> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
 //            SizedBox(height: 10,),
+//             Container(
+//               decoration: BoxDecoration(
+//                 color: ColorCodes.whiteColor,
+//               ),
+//               child: Center(
+//                 child: Column(
+//                   children: [
+//                     SizedBox(height: 20,),
+//                     GestureDetector(
+//                         onTap: (){
+//                           imageSelectorCamera();
+//                         },
+//                         child: Image.asset(Images.cameraImg, width: MediaQuery.of(context).size.width-40,)),
+//                     SizedBox(height: 20,),
+//                     GestureDetector(
+//                         onTap: (){
+//                           imageSelectorGallery();
+//                         },
+//                         child: Image.asset(Images.galleryImg, width: MediaQuery.of(context).size.width-40,)),
+//                     SizedBox(height: 20,),
+//                   ],
+//                 ),
+//               ),
+//             ),
+
             Container(
               decoration: BoxDecoration(
-                color: ColorCodes.lightGreyWebColor,
+                color: ColorCodes.whiteColor,
               ),
               child: Center(
                 child: Column(
@@ -1270,13 +1301,72 @@ class _MultipleImagePickerState extends State<MultipleImagePicker> {
                         onTap: (){
                           imageSelectorCamera();
                         },
-                        child: Image.asset(Images.cameraImg, width: MediaQuery.of(context).size.width-40,)),
+                        child: Container(
+                          width: MediaQuery.of(context).size.width,
+                          margin: EdgeInsets.only(left: 20, right: 20),
+                          padding: EdgeInsets.only(left: 25, right: 25, bottom: 20, top: 20),
+                          decoration: BoxDecoration(
+                            color: ColorCodes.varcolor,
+                            borderRadius: BorderRadius.all(
+                                const Radius.circular(5.0)
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Image.asset(
+                                Images.bulkImage,
+                                height: 30,
+                                color: IConstants.isEnterprise? ColorCodes.primaryColor:ColorCodes.liteColor,
+                                fit: BoxFit.fill,
+                              ),
+                              SizedBox(width: 20,),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(S.of(context).take_photo, style: TextStyle(color: IConstants.isEnterprise? ColorCodes.primaryColor:ColorCodes.liteColor, fontWeight: FontWeight.w900, fontSize: 16),),
+                                 SizedBox(height: 5),
+                                  Text(S.of(context).order_quick, style: TextStyle(color: IConstants.isEnterprise? ColorCodes.primaryColor:ColorCodes.liteColor, fontWeight: FontWeight.bold, fontSize: 12),),
+                                ],
+                              )
+                            ],
+                          ),
+                        )),
                     SizedBox(height: 20,),
                     GestureDetector(
                         onTap: (){
                           imageSelectorGallery();
                         },
-                        child: Image.asset(Images.galleryImg, width: MediaQuery.of(context).size.width-40,)),
+                        child: Container(
+                          width: MediaQuery.of(context).size.width,
+                          margin: EdgeInsets.only(left: 20, right: 20),
+                          padding: EdgeInsets.only(left: 25, right: 25, bottom: 20, top: 20),
+                          decoration: BoxDecoration(
+                            color: ColorCodes.supportbg,
+                            borderRadius: BorderRadius.all(
+                                const Radius.circular(5.0)
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              SizedBox(width: 5,),
+                              Image.asset(
+                                Images.fileImage,
+                                height: 35,
+                                color: IConstants.isEnterprise? ColorCodes.primaryColor:ColorCodes.liteColor,
+                                fit: BoxFit.fill,
+                              ),
+                              SizedBox(width: 25,),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(S.of(context).add_file, style: TextStyle(color: IConstants.isEnterprise? ColorCodes.primaryColor:ColorCodes.liteColor, fontWeight: FontWeight.w900, fontSize: 16),),
+                                  SizedBox(height: 5),
+                                  Text(S.of(context).upload_file, style: TextStyle(color: IConstants.isEnterprise? ColorCodes.primaryColor:ColorCodes.liteColor, fontWeight: FontWeight.bold, fontSize: 12),),
+                                ],
+                              )
+                            ],
+                          ),
+                        )),
                     SizedBox(height: 20,),
                   ],
                 ),
@@ -1297,12 +1387,12 @@ class _MultipleImagePickerState extends State<MultipleImagePicker> {
             ),
             Spacer(),
             Option(),
-//            SizedBox(height: 30,),
+           SizedBox(height: 20,),
           ],
         ),
       ),
       bottomNavigationBar: Padding(
-        padding: EdgeInsets.only(left: 0.0, top: 0.0, right: 0.0, bottom: iphonex ? 16.0 : 0.0),
+        padding: EdgeInsets.only(left: 15.0, top: 0.0, right: 15.0, bottom: iphonex ? 16.0 : 15.0),
         child: _buildBottomNavigationBar(),
       ),
     );
@@ -1315,17 +1405,18 @@ class _MultipleImagePickerState extends State<MultipleImagePicker> {
       elevation:  (IConstants.isEnterprise)?0:1,
       automaticallyImplyLeading: false,
       leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: ColorCodes.menuColor),
-          onPressed: () {
-            Navigator.of(context).pop();
+          icon: Icon(Icons.arrow_back, color: ColorCodes.iconColor),
+          onPressed: () async{
+           // Navigator.of(context).pop();
             // Navigator.of(context).popUntil(ModalRoute.withName(HomeScreen.routeName,));
+            Navigation(context, navigatore: NavigatoreTyp.Pop);
             return Future.value(false);
           }
       ),
       titleSpacing: 0,
-      title: Text(S.of(context).upload,
+      title: Text(S .of(context).upload,
         //  'Upload',
-        style: TextStyle(color: ColorCodes.menuColor,fontWeight: FontWeight.normal),
+        style: TextStyle(color: ColorCodes.iconColor, fontWeight: FontWeight.bold, fontSize: 18),
       ),
       flexibleSpace: Container(
         decoration: BoxDecoration(
@@ -1333,8 +1424,8 @@ class _MultipleImagePickerState extends State<MultipleImagePicker> {
                 begin: Alignment.topRight,
                 end: Alignment.bottomLeft,
                 colors: [
-                  ColorCodes.accentColor,
-                  ColorCodes.primaryColor
+                  ColorCodes.appbarColor,
+                  ColorCodes.appbarColor2
                 ]
             )
         ),

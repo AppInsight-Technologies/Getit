@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import '../../constants/features.dart';
 import 'package:new_gradient_app_bar/new_gradient_app_bar.dart';
 
 import 'package:pinch_zoom_image_last/pinch_zoom_image_last.dart';
@@ -13,7 +14,18 @@ import '../utils/prefUtils.dart';
 import '../constants/IConstants.dart';
 
 class SingleProductImageScreen extends StatefulWidget {
+  String? itemid = "";
+  String? itemName = "";
+  String? itemimage = "";
+  //String? notificationFor = "";
   static const routeName = '/singleproductimage-screen';
+  SingleProductImageScreen(Map<String, String> params){
+       this.itemid = params["itemid"]??"";
+    this.itemName = params["itemname"]??"";
+    this.itemimage = params["itemimage"]??"";
+    //this.notificationFor = params["quantity"]??"";
+
+  }
   @override
   _SingleProductImageScreenState createState() => _SingleProductImageScreenState();
 }
@@ -28,17 +40,17 @@ class _SingleProductImageScreenState extends State<SingleProductImageScreen> {
   bool membershipdisplay = true;
   var margins;
 
-  String varmemberprice;
-  String varprice;
-  String varmrp;
-  String varid;
-  String varname;
-  String varstock;
-  String varminitem;
-  String varmaxitem;
-  bool discountDisplay;
-  bool memberpriceDisplay;
-  Color varcolor;
+  late String varmemberprice;
+  late String varprice;
+  late String varmrp;
+  late String varid;
+  late String varname;
+  late String varstock;
+  late String varminitem;
+  late String varmaxitem;
+  late bool discountDisplay;
+  late bool memberpriceDisplay;
+  late Color varcolor;
   String itemname = "";
   String itemimg = "";
   String itemdescription = "";
@@ -51,27 +63,29 @@ class _SingleProductImageScreenState extends State<SingleProductImageScreen> {
     Future.delayed(Duration.zero, () async {
       //SharedPreferences prefs = await SharedPreferences.getInstance();
       setState(() {
-        if(PrefUtils.prefs.getString("membership") == "1"){
+        if(PrefUtils.prefs!.getString("membership") == "1"){
           _checkmembership = true;
         } else {
           _checkmembership = false;
         }
       });
-      final routeArgs = ModalRoute.of(context).settings.arguments as Map<String, String>;
-      final itemid = routeArgs['itemid'];
-      final fromScreen = routeArgs['fromScreen'];
-      notificationFor = routeArgs['notificationFor'];
-      print("from screen single....."+fromScreen.toString());
+      //final routeArgs = ModalRoute.of(context)!.settings.arguments as Map<String, String>;
+      final itemid = /*routeArgs['itemid']*/widget.itemid;
+      final itemName = /*routeArgs['itemid']*/widget.itemName;
+      final itemimage = /*routeArgs['itemid']*/widget.itemimage;
+      //final fromScreen = /*routeArgs['fromScreen']*/fromScreen.toString();
+      notificationFor = /*routeArgs['notificationFor']*/notificationFor;
+      print("Id single....."+itemid.toString());
       print("from screen single...notification for.."+notificationFor.toString());
-      await Provider.of<ItemsList>(context,listen: false).fetchSingleItems(itemid,notificationFor).then((_) {
+      await Provider.of<ItemsList>(context,listen: false).fetchSingleItems(itemid!).then((_) {
         setState(() {
-          Provider.of<SellingItemsList>(context,listen: false).fetchNewItems(routeArgs['itemid'].toString()).then((_) {
+          Provider.of<SellingItemsList>(context,listen: false).fetchNewItems(widget.itemid.toString()).then((_) {
             setState(() {
               _isLoading = false;
               singleitemData = Provider.of<ItemsList>(context,listen: false);
-              singleitemvar = Provider.of<ItemsList>(context,listen: false).findByIdsingleitems(itemid,notificationFor);
+              singleitemvar = Provider.of<ItemsList>(context,listen: false).findByIdsingleitems(itemid,/*notificationFor*/);
               varmemberprice = singleitemvar[0].varmemberprice;
-              varmrp = singleitemvar[0]._varmrp;
+              varmrp = singleitemvar[0].varmrp;
               varprice = singleitemvar[0].varprice;
               varid = singleitemvar[0].varid;
               varname = singleitemvar[0].varname;
@@ -175,18 +189,18 @@ class _SingleProductImageScreenState extends State<SingleProductImageScreen> {
             begin: Alignment.topRight,
             end: Alignment.bottomLeft,
             colors: [
-              ColorCodes.accentColor,
-              ColorCodes.primaryColor
+              ColorCodes.appbarColor,
+              ColorCodes.appbarColor2
             ]
         ),
         elevation: (IConstants.isEnterprise)?0:1,
         automaticallyImplyLeading: false,
         leading: IconButton(
-            icon: Icon(Icons.arrow_back, color: ColorCodes.menuColor),
+            icon: Icon(Icons.arrow_back, color: ColorCodes.iconColor),
             onPressed: () => Navigator.of(context).pop()),
         title: Text(
             itemname,
-          style: TextStyle(color: ColorCodes.menuColor),
+          style: TextStyle(color: ColorCodes.iconColor, fontWeight: FontWeight.bold, fontSize: 18),
         ),
       ),
       body: _isLoading ?
