@@ -5154,10 +5154,10 @@ class S {
     );
   }
 
-  /// `Kertaw eash,We have got your order, \n Keep saving. `
+  /// `Kertaw eash, We have got your order, Keep saving`
   String get thanks_choosing_confirm {
     return Intl.message(
-      'Kertaw eash,We have got your order, \n Keep saving. ',
+      'Kertaw eash, We have got your order, Keep saving',
       name: 'thanks_choosing_confirm',
       desc: '',
       args: [],

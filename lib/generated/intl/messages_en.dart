@@ -1060,7 +1060,7 @@ class MessageLookup extends MessageLookupByLibrary {
         "thank_you_shopping": MessageLookupByLibrary.simpleMessage(
             "Your order qualifies for a hamper !"),
         "thanks_choosing_confirm": MessageLookupByLibrary.simpleMessage(
-            "Kertaw eash,We have got your order, \n Keep saving. "),
+            "Kertaw eash, We have got your order, Keep saving"),
         "thats_all": MessageLookupByLibrary.simpleMessage("That\'s all!"),
         "thats_all_folk":
             MessageLookupByLibrary.simpleMessage("That\'s all folks!"),

@@ -10,6 +10,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_facebook_login_web/flutter_facebook_login_web.dart';
+import 'package:flutter_svg/svg.dart';
 
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:geocoder/geocoder.dart' as gc;
@@ -2022,13 +2023,14 @@ class _HeaderState extends State<Header> with Navigations {
                   Features.isWebTrail ? Features.logo != "" ? CachedNetworkImage(imageUrl: "${Features.logo}",
                     height: 75,
                     width: 165) : SizedBox(width: 200,)
-                      : Image.asset(
+                      : /*Image.asset(
                     IConstants.isEnterprise && !Features.ismultivendor?
                     IConstants.isEnterprise ? Images.logoAppbarImg : Images.logoAppbarImglite: Images.logoAppbarImglite,
                     height: IConstants.isEnterprise ? 50 : 75,
                     width: IConstants.isEnterprise ? 70 : 500,
                     //fit: BoxFit.fitWidth,
-                  ),
+                  ),*/
+                  SvgPicture.asset(Images.logoAppbarImg, height: 35, width: 35,),
                   Spacer(),
                   SizedBox(
                     width: 10,

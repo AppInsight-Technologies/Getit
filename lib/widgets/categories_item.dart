@@ -53,9 +53,9 @@ class CategoriesItem extends StatelessWidget with Navigations{
           if (previousScreen == "SubcategoryScreen") {
             /*Navigator.of(context).pushNamed(ItemsScreen.routeName, arguments: {
               'maincategory': maincategory,
-              *//*'catId' : categoriesData.catid.toString(),
+              'catId' : categoriesData.catid.toString(),
               'catTitle': categoriesData.title.toString(),
-              'subcatId' : categoriesData.subcatid.toString(),*//*
+              'subcatId' : categoriesData.subcatid.toString(),
               'catId': mainCategoryId,
               'catTitle': subCatTitle,
               'subcatId': subCatId,
@@ -75,7 +75,7 @@ class CategoriesItem extends StatelessWidget with Navigations{
                 'prev': "category_item"
                 });
           } else if (previousScreen == "NotSubcategoryScreen") {
-           /* Navigator.of(context).pushNamed(ItemsScreen.routeName, arguments: {
+            /*Navigator.of(context).pushNamed(ItemsScreen.routeName, arguments: {
               'maincategory': maincategory,
               'catId': categoriesData.catitems[indexvalue].catid.toString(),
               'catTitle': categoriesData.catitems[indexvalue].title.toString(),
@@ -92,8 +92,8 @@ class CategoriesItem extends StatelessWidget with Navigations{
                   'subcatId': categoriesData.catitems[indexvalue].subcatid.toString(),
                   'indexvalue': (indexvalue).toString(),
                   'prev': "category_item"
-                });*/
-
+                });
+*/
             Navigation(context, name: Routename.ItemScreen, navigatore: NavigatoreTyp.Push,
                 qparms: {
                   'maincategory': maincategory,
@@ -104,7 +104,7 @@ class CategoriesItem extends StatelessWidget with Navigations{
                   'prev': "category_item"
                 });
           } else {
-           /* Navigator.of(context)
+            /*Navigator.of(context)
                 .pushNamed(SubcategoryScreen.routeName, arguments: {
               'catId': categoriesData.catid.toString(),
               'catTitle': categoriesData.title.toString(),
