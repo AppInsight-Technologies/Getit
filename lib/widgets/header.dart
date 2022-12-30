@@ -561,7 +561,7 @@ class _HeaderState extends State<Header> with Navigations {
                             child: VxBuilder(
                               mutations: {HomeScreenController},
                               builder: (ctx,store,VxStatus? state){
-                                final snapshot = store!.homescreen.data!.featuredByCart;
+                                final snapshot = (VxState.store as GroceStore).homescreen.data!.featuredByCart;
                                 //stream: bloc.featureditems,
 
                                 if (snapshot!=null) {
@@ -1838,9 +1838,16 @@ class _HeaderState extends State<Header> with Navigations {
 
   void launchWhatsApp() async {
     String phone = /*"+918618320591"*/IConstants.secondaryMobile;
+    String newPhone = "";
     String url() {
       if (Platform.isIOS) {
-        return "whatsapp://wa.me/$phone/?text=${Uri.parse('I want to order Grocery')}";
+        if(phone.contains("+91")){
+          newPhone = phone.replaceAll('\\s+','').toString();
+          newPhone = newPhone.substring(1).removeAllWhiteSpace();
+          print("Phone nuymber...."+newPhone.removeAllWhiteSpace().toString());
+        }
+        return "whatsapp://wa.me/$newPhone/?text=${Uri.parse('I want to order Grocery')}";
+        //return "whatsapp://wa.me/$phone/?text=${Uri.parse('I want to order Grocery')}";
       } else {
         return "whatsapp://send?phone=$phone&text=${Uri.parse('I want to order Grocery')}";
         const url = "https://wa.me/?text=YourTextHere";
@@ -2023,14 +2030,14 @@ class _HeaderState extends State<Header> with Navigations {
                   Features.isWebTrail ? Features.logo != "" ? CachedNetworkImage(imageUrl: "${Features.logo}",
                     height: 75,
                     width: 165) : SizedBox(width: 200,)
-                      : /*Image.asset(
+                      : Image.asset(
                     IConstants.isEnterprise && !Features.ismultivendor?
                     IConstants.isEnterprise ? Images.logoAppbarImg : Images.logoAppbarImglite: Images.logoAppbarImglite,
                     height: IConstants.isEnterprise ? 50 : 75,
-                    width: IConstants.isEnterprise ? 70 : 500,
+                    width: IConstants.isEnterprise ? 100 : 165,
                     //fit: BoxFit.fitWidth,
-                  ),*/
-                  SvgPicture.asset(Images.logoAppbarImg, height: 35, width: 35,),
+                  ),
+                  //SvgPicture.asset(Images.logoAppbarImg, height: 35, width: 35,),
                   Spacer(),
                   SizedBox(
                     width: 10,
@@ -2042,6 +2049,7 @@ class _HeaderState extends State<Header> with Navigations {
                       builder: (context, store, status) {
                         return(Features.ismultivendor && Features.isWhatsapproot) ?
                          GestureDetector(
+                           behavior: HitTestBehavior.translucent,
                           onTap: () {
                             launchWhatsApp();
                           },
@@ -2161,6 +2169,7 @@ class _HeaderState extends State<Header> with Navigations {
                                         // color: Theme.of(context).buttonColor
                                       ),
                                       child: GestureDetector(
+                                        behavior: HitTestBehavior.translucent,
                                         onTap: () {
                                           if (value != S.of(context).not_available_location)
                                             if(!PrefUtils.prefs!.containsKey("apikey")){
@@ -2232,6 +2241,7 @@ class _HeaderState extends State<Header> with Navigations {
                         value: CartCalculations.itemCount.toString(),
                       ),
                       child: GestureDetector(
+                        behavior: HitTestBehavior.translucent,
                         onTap: () {
                           if (value != S.of(context).not_available_location)
                             Navigation(context, name: Routename.Cart, navigatore: NavigatoreTyp.Push,qparms: {"afterlogin":null});
@@ -2285,7 +2295,7 @@ class _HeaderState extends State<Header> with Navigations {
                               });
                         }
                       },
-                      child: Image.asset(Images.pickup_point, height:25, width: 25, color: ColorCodes.badgecolor)/*Icon(Icons.location_on,
+                      child: Image.asset(Images.pickup_point, height:25, width: 25, color: ColorCodes.blackColor)/*Icon(Icons.location_on,
                           color: ColorCodes.darkgreen, size: 33),*/
                     ),
                     Container(

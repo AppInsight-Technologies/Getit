@@ -30,7 +30,7 @@ class Images
   static String instaImg = "assets/images/insta.png";
   static String logoImg = "assets/images/signin_logo.png";
   static String logoImg1= "assets/images/icon_android.png";
-  static String logoAppbarImg =IConstants.isEnterprise? "assets/images/logo_appbar.svg":"assets/images/logo_appbarlite.svg";
+  static String logoAppbarImg =IConstants.isEnterprise? "assets/images/logo_appbar.png":"assets/images/logo_appbarlite.png";
   static String logoAppbarImglite = "assets/images/logo_appbarlite.png";
   static String loyaltyImg = "assets/images/loyalty.png";
   static String membershipImg = "assets/images/membership.png";

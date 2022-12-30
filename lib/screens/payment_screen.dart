@@ -116,6 +116,7 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
   bool _showDeliveryinfo = false;
   bool _isLoading = true;
   bool _checkmembership = false;
+  bool _checkmembership_mode = false;
   var _message = TextEditingController();
   bool _isLoyaltyToast = false;
   bool _isSwitch = false;
@@ -164,11 +165,11 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
       final routeArgs = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
       deliveryAmt = double.parse(/*routeArgs['deliveryCharge']*/widget.deliveryCharge);
       if(!Vx.isWeb)
-      if(PrefUtils.prefs!.containsKey("orderId")) {
-        final orderId = PrefUtils.prefs!.getString("orderId");
-        await  paymentStatus(orderId!);
-       // await  paymentStatus(orderId);
-      }
+        if(PrefUtils.prefs!.containsKey("orderId")) {
+          final orderId = PrefUtils.prefs!.getString("orderId");
+          await  paymentStatus(orderId!);
+          // await  paymentStatus(orderId);
+        }
       _initial();
       packageInfo = await PackageInfo.fromPlatform();
     });
@@ -183,195 +184,196 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
         _isPaymentLoading = false;
       });*/
     });
-   /* Provider.of<BrandItemsList>(context,listen: false).userDetails().then((_) async {
+    /* Provider.of<BrandItemsList>(context,listen: false).userDetails().then((_) async {
 
     });*/
     fetchUserDetail();
   }
- fetchUserDetail()async{
-   final routeArgs = ModalRoute.of(context)!.settings.arguments as Map<String, String>;
-   setState(() {
-     if (PrefUtils.prefs!.getString("isPickup") == "yes") {
-       _isPickup = true;
-     } else {
-       _isPickup = false;
-     }
-     if (membershipvx == "1") {
-       _checkmembership = true;
-     } else {
-       _checkmembership = false;
-       for (int i = 0; i < productBox.length; i++) {
-         if (productBox[i].mode == "1") {
-           _checkmembership = true;
-         }
-       }
-     }
+  fetchUserDetail()async{
+    final routeArgs = ModalRoute.of(context)!.settings.arguments as Map<String, String>;
+    setState(() {
+      if (PrefUtils.prefs!.getString("isPickup") == "yes") {
+        _isPickup = true;
+      } else {
+        _isPickup = false;
+      }
+      if (membershipvx == "1") {
+        _checkmembership = true;
+      } else {
+        _checkmembership = false;
+        for (int i = 0; i < productBox.length; i++) {
+          if (productBox[i].mode == "1") {
+            _checkmembership_mode = true;
+            _checkmembership = true;
+          }
+        }
+      }
 
-     if(routeArgs['fromScreen'] == "promocodeScreen"){
+      if(routeArgs['fromScreen'] == "promocodeScreen"){
 
-       _promoamount = routeArgs['amount'].toString();
-       LogicPromo();
-     }
+        _promoamount = routeArgs['amount'].toString();
+        LogicPromo();
+      }
 
 
-     if (/*routeArgs['deliveryType']*/widget.deliveryType == "express") {
-       minorderamount = double.parse(/*routeArgs['minimumOrderAmountExpress']!*/widget.minimumOrderAmountExpress);
-       deliverycharge = double.parse(/*routeArgs['deliveryChargeExpress']!*/widget.deliveryChargeExpress);
-       note = /*routeArgs['note']*/widget.note;
-     } else {
-       if (membershipvx == "1") {
-         minorderamount = double.parse(/*routeArgs['minimumOrderAmountPrime']!*/widget.minimumOrderAmountPrime);
-         deliverycharge = double.parse(/*routeArgs['deliveryChargePrime']!*/widget.deliveryChargePrime);
-         note = /*routeArgs['note']*/widget.note;
-       } else {
-         minorderamount = double.parse(/*routeArgs['minimumOrderAmountNoraml']!*/widget.minimumOrderAmountNoraml);
-         deliverycharge = double.parse(/*routeArgs['deliveryChargeNormal']!*/widget.deliveryChargeNormal);
-         note = /*routeArgs['note']*/widget.note;
-       }
-     }
+      if (/*routeArgs['deliveryType']*/widget.deliveryType == "express") {
+        minorderamount = double.parse(/*routeArgs['minimumOrderAmountExpress']!*/widget.minimumOrderAmountExpress);
+        deliverycharge = double.parse(/*routeArgs['deliveryChargeExpress']!*/widget.deliveryChargeExpress);
+        note = /*routeArgs['note']*/widget.note;
+      } else {
+        if (membershipvx == "1") {
+          minorderamount = double.parse(/*routeArgs['minimumOrderAmountPrime']!*/widget.minimumOrderAmountPrime);
+          deliverycharge = double.parse(/*routeArgs['deliveryChargePrime']!*/widget.deliveryChargePrime);
+          note = /*routeArgs['note']*/widget.note;
+        } else {
+          minorderamount = double.parse(/*routeArgs['minimumOrderAmountNoraml']!*/widget.minimumOrderAmountNoraml);
+          deliverycharge = double.parse(/*routeArgs['deliveryChargeNormal']!*/widget.deliveryChargeNormal);
+          note = /*routeArgs['note']*/widget.note;
+        }
+      }
 
-     walletbalance = /*PrefUtils.prefs!.getString("wallet_balance")*/(VxState.store as GroceStore).prepaid.prepaid.toString(); //user wallet balance
-     loyaltyPoints = double.parse(/*PrefUtils.prefs!.getString("loyalty_balance"*/(VxState.store as GroceStore).prepaid.loyalty.toString()).toStringAsFixed(0); // user loyalty points
-     if (membershipvx == "1" ||_checkmembership) {
-       cartTotal = CartCalculations.totalMember;
-     } else {
-       cartTotal = CartCalculations.total;
-     }
-     /* if (Calculations.totalmrp < minorderamount) {
+      walletbalance = /*PrefUtils.prefs!.getString("wallet_balance")*/(VxState.store as GroceStore).prepaid.prepaid.toString(); //user wallet balance
+      loyaltyPoints = double.parse(/*PrefUtils.prefs!.getString("loyalty_balance"*/(VxState.store as GroceStore).prepaid.loyalty.toString()).toStringAsFixed(0); // user loyalty points
+      if (membershipvx == "1" ||_checkmembership) {
+        cartTotal = CartCalculations.totalMember;
+      } else {
+        cartTotal = CartCalculations.total;
+      }
+      /* if (Calculations.totalmrp < minorderamount) {
           deliveryAmt = deliverycharge;
         }*/
 
-     paymentData = Provider.of<BrandItemsList>(context,listen: false);
-     for(int i = 0; i < paymentData.itemspayment.length; i++){
-       //if payment mode is wallet
-       if(paymentData.itemspayment[i].paymentMode == "2") {
-         _isWallet = true;
-         break;
-       } else {
-         _isWallet = false;
-       }
-     }
-     for(int i = 0; i < paymentData.itemspayment.length; i++){
-       //if payment mode is Loyalty
+      paymentData = Provider.of<BrandItemsList>(context,listen: false);
+      for(int i = 0; i < paymentData.itemspayment.length; i++){
+        //if payment mode is wallet
+        if(paymentData.itemspayment[i].paymentMode == "2") {
+          _isWallet = true;
+          break;
+        } else {
+          _isWallet = false;
+        }
+      }
+      for(int i = 0; i < paymentData.itemspayment.length; i++){
+        //if payment mode is Loyalty
 
-       if(paymentData.itemspayment[i].paymentMode == "4") {
-         _isLoayalty = true;
-         break;
-       } else {
-         _isLoayalty = false;
-       }
-     }
-   });
+        if(paymentData.itemspayment[i].paymentMode == "4") {
+          _isLoayalty = true;
+          break;
+        } else {
+          _isLoayalty = false;
+        }
+      }
+    });
 
-   double totalAmount = 0.0; //Order amount
-   !_displaypromo ? _isPickup ? totalAmount = (cartTotal + deliveryAmt) : totalAmount = (cartTotal + deliveryAmt) : totalAmount = (double.parse(_promoamount));
-   await Provider.of<BrandItemsList>(context, listen: false).getLoyalty().then((_) async {
-     final loyaltyData = Provider.of<BrandItemsList>(context,listen: false);
-     if(loyaltyData.itemsLoyalty.length > 0) {
+    double totalAmount = 0.0; //Order amount
+    !_displaypromo ? _isPickup ? totalAmount = (cartTotal + deliveryAmt) : totalAmount = (cartTotal + deliveryAmt) : totalAmount = (double.parse(_promoamount));
+    await Provider.of<BrandItemsList>(context, listen: false).getLoyalty().then((_) async {
+      final loyaltyData = Provider.of<BrandItemsList>(context,listen: false);
+      if(loyaltyData.itemsLoyalty.length > 0) {
 
-     } else {
-       setState(() {
-         _isLoayalty = false;
-       });
-     }
+      } else {
+        setState(() {
+          _isLoayalty = false;
+        });
+      }
 
-     if(_isLoayalty){
-       await Provider.of<BrandItemsList>(context,listen: false).checkLoyalty(totalAmount.toString()).then((_) {
-         setState(() {
-           _isLoading = false;
-           _isSwitch = true;
+      if(_isLoayalty){
+        await Provider.of<BrandItemsList>(context,listen: false).checkLoyalty(totalAmount.toString()).then((_) {
+          setState(() {
+            _isLoading = false;
+            _isSwitch = true;
 
 
-           //check user eligible to use Loyalty points or not
-           final loyaltyData = Provider.of<BrandItemsList>(context,listen: false);
-           if (double.parse(loyaltyData.itemsLoyalty[0].minimumOrderAmount!) <= totalAmount) {
-             _isSwitch = true;
-             _isLoyaltyToast = false;
-             //Compare user loyalty balance to apply loyalty points
-             if(PrefUtils.prefs!.getDouble("loyaltyPointsUser") !<= int.parse(loyaltyPoints)) {
-               loyaltyPointsUser = PrefUtils.prefs!.getDouble("loyaltyPointsUser")!;
-               loyaltyAmount = ((loyaltyPointsUser * 1) / int.parse(loyaltyData.itemsLoyalty[0].points!));
-               if(loyaltyAmount.toString() == "NaN") {
-                 loyaltyAmount = 0.0;
-               }
-             } else {
-               /*loyaltyPointsUser = PrefUtils.prefs!.getDouble("loyaltyPointsUser") - double.parse(loyaltyPoints);
+            //check user eligible to use Loyalty points or not
+            final loyaltyData = Provider.of<BrandItemsList>(context,listen: false);
+            if (double.parse(loyaltyData.itemsLoyalty[0].minimumOrderAmount!) <= totalAmount) {
+              _isSwitch = true;
+              _isLoyaltyToast = false;
+              //Compare user loyalty balance to apply loyalty points
+              if(PrefUtils.prefs!.getDouble("loyaltyPointsUser")!<= int.parse(loyaltyPoints)) {
+                loyaltyPointsUser = PrefUtils.prefs!.getDouble("loyaltyPointsUser")!;
+                loyaltyAmount = ((loyaltyPointsUser * 1) / int.parse(loyaltyData.itemsLoyalty[0].points!));
+                if(loyaltyAmount.toString() == "NaN") {
+                  loyaltyAmount = 0.0;
+                }
+              } else {
+                /*loyaltyPointsUser = PrefUtils.prefs!.getDouble("loyaltyPointsUser") - double.parse(loyaltyPoints);
                 loyaltyAmount = ((loyaltyPointsUser * 1) / int.parse(loyaltyData.itemsLoyalty[0].points));*/
-               loyaltyPointsUser = double.parse(loyaltyPoints);
-               loyaltyAmount = ((loyaltyPointsUser * 1) / int.parse(loyaltyData.itemsLoyalty[0].points!));
-               if(loyaltyAmount.toString() == "NaN") {
-                 loyaltyAmount = 0.0;
-               }
-             }
-           } else {
-             _isSwitch = true;
-             _isLoyaltyToast = true;
-           }
-         });
-       });
-     } else {
-       setState(() {
-         _isLoading = false;
-       });
-     }
-   });
+                loyaltyPointsUser = double.parse(loyaltyPoints);
+                loyaltyAmount = ((loyaltyPointsUser * 1) / int.parse(loyaltyData.itemsLoyalty[0].points!));
+                if(loyaltyAmount.toString() == "NaN") {
+                  loyaltyAmount = 0.0;
+                }
+              }
+            } else {
+              _isSwitch = true;
+              _isLoyaltyToast = true;
+            }
+          });
+        });
+      } else {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    });
 
-   setState(() {
-     if(_isWallet) {
-       double totalAmount = 0.0;
-       !_displaypromo ? _isPickup ? totalAmount = (cartTotal + deliveryAmt) : totalAmount = (cartTotal + deliveryAmt) : totalAmount = (double.parse(_promoamount));
+    setState(() {
+      if(_isWallet) {
+        double totalAmount = 0.0;
+        !_displaypromo ? _isPickup ? totalAmount = (cartTotal + deliveryAmt) : totalAmount = (cartTotal + deliveryAmt) : totalAmount = (double.parse(_promoamount));
 
-       if (int.parse(walletbalance) <= 0 /*|| double.parse((cartTotal + deliveryamount).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit)) > int.parse(walletbalance)*/) {
-         _isRemainingAmount = false;
-         _ischeckboxshow = false;
-         _ischeckbox = false;
-       } else if (_isSwitch ? totalAmount <= (int.parse(walletbalance) + loyaltyAmount) : totalAmount <= (int.parse(walletbalance))) {
-         _isRemainingAmount = false;
-         _groupValue = -1;
-         PrefUtils.prefs!.setString("payment_type", "wallet");
-         walletAmount = _isSwitch ? (totalAmount - loyaltyAmount) : totalAmount;
-       } else if (_isSwitch ? totalAmount > (int.parse(walletbalance) + loyaltyAmount) : totalAmount > int.parse(walletbalance)) {
-         bool _isOnline = false;
-         for(int i = 0; i < paymentData.itemspayment.length; i++) {
-           if(paymentData.itemspayment[i].paymentMode == "1") {
-             _groupValue = i;
-             _isOnline = true;
-             break;
-           }
-         }
-         if(_isOnline) {
-           _groupValue = -1;
-           _isRemainingAmount = true;
-           walletAmount = double.parse(walletbalance);
-           remainingAmount = _isSwitch && !_isLoyaltyToast && _isLoayalty && (double.parse(loyaltyPoints) > 0) ? totalAmount - double.parse(walletbalance) - loyaltyAmount: (totalAmount - int.parse(walletbalance));
-         } else {
-           _isWallet = false;
-           _ischeckbox = false;
-         }
-         for(int i = 0; i < paymentData.itemspayment.length; i++) {
-           if(paymentData.itemspayment[i].paymentMode == "1") {
-             _groupValue = i;
-             break;
-           }
-         }
-       }
-     } else {
-       _ischeckbox = false;
-     }
+        if (int.parse(walletbalance) <= 0 /*|| double.parse((cartTotal + deliveryamount).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit)) > int.parse(walletbalance)*/) {
+          _isRemainingAmount = false;
+          _ischeckboxshow = false;
+          _ischeckbox = false;
+        } else if (_isSwitch ? totalAmount <= (int.parse(walletbalance) + loyaltyAmount) : totalAmount <= (int.parse(walletbalance))) {
+          _isRemainingAmount = false;
+          _groupValue = -1;
+          PrefUtils.prefs!.setString("payment_type", "wallet");
+          walletAmount = _isSwitch ? (totalAmount - loyaltyAmount) : totalAmount;
+        } else if (_isSwitch ? totalAmount > (int.parse(walletbalance) + loyaltyAmount) : totalAmount > int.parse(walletbalance)) {
+          bool _isOnline = false;
+          for(int i = 0; i < paymentData.itemspayment.length; i++) {
+            if(paymentData.itemspayment[i].paymentMode == "1") {
+              _groupValue = i;
+              _isOnline = true;
+              break;
+            }
+          }
+          if(_isOnline) {
+            _groupValue = -1;
+            _isRemainingAmount = true;
+            walletAmount = double.parse(walletbalance);
+            remainingAmount = _isSwitch && !_isLoyaltyToast && _isLoayalty && (double.parse(loyaltyPoints) > 0) ? totalAmount - double.parse(walletbalance) - loyaltyAmount: (totalAmount - int.parse(walletbalance));
+          } else {
+            _isWallet = false;
+            _ischeckbox = false;
+          }
+          for(int i = 0; i < paymentData.itemspayment.length; i++) {
+            if(paymentData.itemspayment[i].paymentMode == "1") {
+              _groupValue = i;
+              break;
+            }
+          }
+        }
+      } else {
+        _ischeckbox = false;
+      }
 
 
-     //if both wallet is not there in payment method
-     if(!_isWallet) {
-       _groupValue = 0;
-       if(paymentData.itemspayment[0].paymentMode == "1") {
-         PrefUtils.prefs!.setString("payment_type", "paytm");
-       } else {
-         PrefUtils.prefs!.setString("payment_type", paymentData.itemspayment[0].paymentType);
-       }
-     }
+      //if both wallet is not there in payment method
+      if(!_isWallet) {
+        _groupValue = 0;
+        if(paymentData.itemspayment[0].paymentMode == "1") {
+          PrefUtils.prefs!.setString("payment_type", "paytm");
+        } else {
+          PrefUtils.prefs!.setString("payment_type", paymentData.itemspayment[0].paymentType);
+        }
+      }
 
-   });
- }
+    });
+  }
   @override
   void dispose() {
     // Clean up the controller when the widget is disposed.
@@ -381,6 +383,7 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
     super.dispose();
   }
   Future<void> paymentStatus(String orderId) async { // imp feature in adding async is the it automatically wrap into Future.
+    debugPrint("paymentStatus....."+orderId);
     var url = Api.getOrderStatus + orderId;
     try {
       final response = await http
@@ -391,9 +394,11 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
           }
       );
       final responseJson = json.decode(response.body);
+      debugPrint("responseJson....."+responseJson.toString());
       if(responseJson['status'].toString() == "yes") {
         PrefUtils.prefs!.remove("orderId");
       } else {
+        debugPrint("_cancelOrderback.....");
         //await _cancelOrder();
         await _cancelOrderback();
       }
@@ -431,6 +436,11 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
 
   Future<void> _cancelOrderback() async { // imp feature in adding async is the it automatically wrap into Future.
     try {
+      debugPrint("cancel...order.."+{ // await keyword is used to wait to this operation is complete.
+        "id": PrefUtils.prefs!.getString('orderId'),
+        "note": "Payment cancelled by user",
+        "branch": PrefUtils.prefs!.getString('branch')??"999",
+      }.toString());
       final response = await http.post(
           Api.cancelOrderBack,
           body: { // await keyword is used to wait to this operation is complete.
@@ -442,7 +452,7 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
       final responseJson = json.decode(response.body);
       if(responseJson['status'].toString() == "200"){
         PrefUtils.prefs!.remove("orderId");
-       /* await Provider.of<BrandItemsList>(context,listen: false).userDetails().then((_) {
+        /* await Provider.of<BrandItemsList>(context,listen: false).userDetails().then((_) {
           setState(() {
 
           });
@@ -604,7 +614,7 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
   //    // (_slots ) ? _isPickup ? Orderfood(): Features.isSplit ? OrderfoodSplit() : Orderfood() :OrderfoodSplit();
   //   });
   // }
- /* removeToCart(itemCount) async {
+  /* removeToCart(itemCount) async {
     String itemId, varId, varName,
         varMinItem, varMaxItem, varLoyalty, varStock, varMrp, itemName, qty, price, membershipPrice, itemImage, veg_type, type,eligibleforexpress,delivery,duration,durationType,note;
 
@@ -804,7 +814,7 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
     var date = new DateTime.now().toString();
     var dateParse = DateTime.parse(date);
     setState(() {
-      finalDate =  DateFormat("dd-MM-yyyy").format(dateParse).toString();
+      finalDate =  DateFormat("dd-MM-yyyy").format(dateParse).toString() ;
     });
     var url = Api.newOrderByCart;
     String channel = "";
@@ -819,6 +829,7 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
       if (productBox[i].mode == "1") {
         index = i.toString();
         membership = productBox[i].membershipId.toString();
+        membershipvx = "1";
         break;
       }else if(productBox[i].mode == "3"){
         mode = true;
@@ -894,12 +905,15 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
 
     bool toppings = false;
     List itemsToppings = [];
+    debugPrint("productBox.length..."+productBox.length.toString());
     for (int i = 0; i < productBox.length; i++) {
-       if(productBox[i].toppings_data!.length > 0){
-         toppings = true;
-       }else{
-         toppings = false;
-       }
+      if(productBox[i].toppings_data!.length > 0){
+        toppings = true;
+      }
+      else{
+        toppings = false;
+      }
+
 
       if(toppings) {
         itemsToppings.clear();
@@ -908,71 +922,14 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
         }
       }
 
-        if (double.parse(productBox[i].varStock!) > 0 &&
-            productBox[i].status.toString() == "0") {
-          if (index != "") {
-            if (int.parse(index) == i) {}
-            else {
-              resBody["items[" + i.toString() + "][productId]"] =
-                  productBox[i].itemId.toString();
-              resBody["items[" + i.toString() + "][priceVariation]"] =
-                  productBox[i].varId.toString();
-              resBody["items[" + i.toString() + "][quantity]"] =
-                  productBox[i].quantity.toString();
-              resBody["items[" + i.toString() + "][weight]"] =
-                  productBox[i].weight.toString();
-              resBody["items[" + i.toString() + "][mrp]"] =
-                  productBox[i].varMrp.toString();
-            //  resBody["items[" + i.toString() + "][toppings]"] = itemsToppings.toString();
-              if(toppings) {
-                for (int j = 0; j < productBox[i].toppings_data!.length; j++) {
-                  resBody["items[" + i.toString() + "][toppings][" + j.toString() + "][id]"] =
-                      productBox[i].toppings_data![j].id.toString();
-                  resBody["items[" + i.toString() + "][toppings][" + j.toString() + "][name]"] =
-                      productBox[i].toppings_data![j].name.toString();
-                  resBody["items[" + i.toString() + "][toppings][" + j.toString() + "][price]"] =
-                      productBox[i].toppings_data![j].price.toString();
-                  resBody["items[" + i.toString() + "][toppings][" + j.toString() + "][quantity]"] =
-                      (productBox[i].type =="1")? productBox[i].weight.toString() :productBox[i].quantity.toString();
-                }
-              }
+      if (double.parse(productBox[i].varStock!) > 0 &&
+          productBox[i].status.toString() == "0") {
 
-              if (membershipvx == "1" ||_checkmembership) { //membered user
-                if (productBox[i].membershipPrice == '-' ||
-                    double.parse(productBox[i].membershipPrice!).toStringAsFixed(0) == "0") {
-                  if (double.parse(productBox[i].price!) <= 0 ||
-                      productBox[i].price.toString() == "" ||
-                      productBox[i].price == productBox[i].varMrp) {
-                    resBody["items[" + i.toString() + "][price]"] =
-                        productBox[i].varMrp.toString();
-                  } else {
-                    resBody["items[" + i.toString() + "][price]"] =
-                        productBox[i].price.toString();
-                  }
-                } else {
-                  resBody["items[" + i.toString() + "][price]"] =
-                      productBox[i].membershipPrice;
-                }
-              } else { //Non membered user
-                if (double.parse(productBox[i].price!) <= 0 ||
-                    productBox[i].price.toString() == "" ||
-                    productBox[i].price == productBox[i].varMrp) {
-                  resBody["items[" + i.toString() + "][price]"] =
-                      productBox[i].varMrp.toString();
-                } else {
-                  resBody["items[" + i.toString() + "][price]"] =
-                      productBox[i].price.toString();
-                }
-              }
-
-              if (productBox[i].mode == "4") {
-                resBody["items[" + i.toString() + "][type]"] = "2";
-              } else {
-                resBody["items[" + i.toString() + "][type]"] = "1";
-              }
-            }
-          }
+        if (index != "") {
+          if (int.parse(index) == i) {}
           else {
+            resBody["items[" + i.toString() + "][delivery_note]"] =
+                productBox[i].note.toString();
             resBody["items[" + i.toString() + "][productId]"] =
                 productBox[i].itemId.toString();
             resBody["items[" + i.toString() + "][priceVariation]"] =
@@ -983,23 +940,23 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
                 productBox[i].weight.toString();
             resBody["items[" + i.toString() + "][mrp]"] =
                 productBox[i].varMrp.toString();
-
-             if(toppings) {
-                for (int j = 0; j < productBox[i].toppings_data!.length; j++) {
-                  resBody["items[" + i.toString() + "][toppings][" + j.toString() + "][id]"] =
-                      productBox[i].toppings_data![j].id.toString();
-                  resBody["items[" + i.toString() + "][toppings][" + j.toString() + "][name]"] =
-                      productBox[i].toppings_data![j].name.toString();
-                  resBody["items[" + i.toString() + "][toppings][" + j.toString() + "][price]"] =
-                      productBox[i].toppings_data![j].price.toString();
-                  resBody["items[" + i.toString() + "][toppings][" + j.toString() + "][quantity]"] =
-                  (productBox[i].type =="1")? productBox[i].weight.toString() :productBox[i].quantity.toString();
-                }
+            //  resBody["items[" + i.toString() + "][toppings]"] = itemsToppings.toString();
+            if(toppings) {
+              for (int j = 0; j < productBox[i].toppings_data!.length; j++) {
+                resBody["items[" + i.toString() + "][toppings][" + j.toString() + "][id]"] =
+                    productBox[i].toppings_data![j].id.toString();
+                resBody["items[" + i.toString() + "][toppings][" + j.toString() + "][name]"] =
+                    productBox[i].toppings_data![j].name.toString();
+                resBody["items[" + i.toString() + "][toppings][" + j.toString() + "][price]"] =
+                    productBox[i].toppings_data![j].price.toString();
+                resBody["items[" + i.toString() + "][toppings][" + j.toString() + "][quantity]"] =
+                (productBox[i].type =="1")? productBox[i].weight.toString() :productBox[i].quantity.toString();
               }
+            }
 
-            if (membershipvx == "1"||_checkmembership) { //membered user
+            if (membershipvx == "1" ||_checkmembership) { //membered user
               if (productBox[i].membershipPrice == '-' ||
-                  double.parse(productBox[i].membershipPrice!).toStringAsFixed(0) == "0") {
+                  productBox[i].membershipPrice == "0") {
                 if (double.parse(productBox[i].price!) <= 0 ||
                     productBox[i].price.toString() == "" ||
                     productBox[i].price == productBox[i].varMrp) {
@@ -1032,98 +989,160 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
             }
           }
         }
+        else {
+          resBody["items[" + i.toString() + "][delivery_note]"] =
+              productBox[i].note.toString();
+          resBody["items[" + i.toString() + "][productId]"] =
+              productBox[i].itemId.toString();
+          resBody["items[" + i.toString() + "][priceVariation]"] =
+              productBox[i].varId.toString();
+          resBody["items[" + i.toString() + "][quantity]"] =
+              productBox[i].quantity.toString();
+          resBody["items[" + i.toString() + "][weight]"] =
+              productBox[i].weight.toString();
+          resBody["items[" + i.toString() + "][mrp]"] =
+              productBox[i].varMrp.toString();
 
-    }
-      debugPrint("fromstore..." + resBody.toString());
-      final response = await http.post(
-        url,
-        body: resBody,
-      );
-      debugPrint("Orderfood...response" + resBody.toString());
-      final responseJson = json.decode(utf8.decode(response.bodyBytes));
-      debugPrint("Orderfood...responseJson" + responseJson.toString());
-      responsejson = responseJson['status'].toString();
-      if (responseJson['status'].toString() == "true") {
-        final orderencode = json.encode(responseJson['order']);
-        final orderdecode = json.decode(orderencode);
-        if (PrefUtils.prefs!.getString('payment_type') == "paytm") {
-          String orderAmount = orderdecode['orderAmount'].toString();
-          PrefUtils.prefs!.setString("orderId", orderdecode['id'].toString());
-          orderId = orderdecode['id'].toString();
-          final routeArgs = ModalRoute
-              .of(context)!
-              .settings
-              .arguments as Map<String, String>;
-          //  Navigator.of(context).pop();
-
-          await payment.startPaytmTransaction(context, _isWeb,
-              orderId: orderdecode['id'].toString(),
-              username: PrefUtils.prefs!.getString('userID'),
-              amount: orderAmount,
-              routeArgs: /* routeArgs*/widget.params1,
-              prev: "PaymentScreen"
-          );
-        } else {
-          for (int i = 0; i < productBox.length; i++) {
-            if (productBox[i].mode == "1") {
-              PrefUtils.prefs!.setString("membership", "2");
-              auth.getuserProfile(onsucsess: (value){
-              }, onerror: (){
-              });
+          if(toppings) {
+            for (int j = 0; j < productBox[i].toppings_data!.length; j++) {
+              resBody["items[" + i.toString() + "][toppings][" + j.toString() + "][id]"] =
+                  productBox[i].toppings_data![j].id.toString();
+              resBody["items[" + i.toString() + "][toppings][" + j.toString() + "][name]"] =
+                  productBox[i].toppings_data![j].name.toString();
+              resBody["items[" + i.toString() + "][toppings][" + j.toString() + "][price]"] =
+                  productBox[i].toppings_data![j].price.toString();
+              resBody["items[" + i.toString() + "][toppings][" + j.toString() + "][quantity]"] =
+              (productBox[i].type =="1")? productBox[i].weight.toString() :productBox[i].quantity.toString();
             }
           }
-          Provider.of<CartItems>(context, listen: false).emptyCart().then((_) {
-            //productBox.deleteFromDisk();
-            productBox.clear();
-            //await DBProvider.db.deleteAllItem();
-      /*      Navigator.of(context).pushReplacementNamed(
+
+          if (membershipvx == "1"||_checkmembership) { //membered user
+            if (productBox[i].membershipPrice == '-' ||
+                productBox[i].membershipPrice == "0") {
+              if (double.parse(productBox[i].price!) <= 0 ||
+                  productBox[i].price.toString() == "" ||
+                  productBox[i].price == productBox[i].varMrp) {
+                resBody["items[" + i.toString() + "][price]"] =
+                    productBox[i].varMrp.toString();
+              } else {
+                resBody["items[" + i.toString() + "][price]"] =
+                    productBox[i].price.toString();
+              }
+            } else {
+              resBody["items[" + i.toString() + "][price]"] =
+                  productBox[i].membershipPrice;
+            }
+          } else { //Non membered user
+            if (double.parse(productBox[i].price!) <= 0 ||
+                productBox[i].price.toString() == "" ||
+                productBox[i].price == productBox[i].varMrp) {
+              resBody["items[" + i.toString() + "][price]"] =
+                  productBox[i].varMrp.toString();
+            } else {
+              resBody["items[" + i.toString() + "][price]"] =
+                  productBox[i].price.toString();
+            }
+          }
+
+          if (productBox[i].mode == "4") {
+            resBody["items[" + i.toString() + "][type]"] = "2";
+          } else {
+            resBody["items[" + i.toString() + "][type]"] = "1";
+          }
+        }
+      }
+
+    }
+    debugPrint("fromstore..." + resBody.toString());
+    final response = await http.post(
+      url,
+      body: resBody,
+    );
+    debugPrint("Orderfood...response" + resBody.toString());
+    final responseJson = json.decode(utf8.decode(response.bodyBytes));
+    debugPrint("Orderfood...responseJson" + responseJson.toString());
+    responsejson = responseJson['status'].toString();
+    if (responseJson['status'].toString() == "true") {
+      final orderencode = json.encode(responseJson['order']);
+      final orderdecode = json.decode(orderencode);
+      if (PrefUtils.prefs!.getString('payment_type') == "paytm") {
+        String orderAmount = orderdecode['orderAmount'].toString();
+        PrefUtils.prefs!.setString("orderId", orderdecode['id'].toString());
+        orderId = orderdecode['id'].toString();
+        final routeArgs = ModalRoute
+            .of(context)!
+            .settings
+            .arguments as Map<String, String>;
+        //  Navigator.of(context).pop();
+
+        await payment.startPaytmTransaction(context, _isWeb,
+            orderId: orderdecode['id'].toString(),
+            username: PrefUtils.prefs!.getString('userID'),
+            amount: orderAmount,
+            routeArgs: /* routeArgs*/widget.params1,
+            prev: "PaymentScreen"
+        );
+      } else {
+        for (int i = 0; i < productBox.length; i++) {
+          if (productBox[i].mode == "1") {
+            PrefUtils.prefs!.setString("membership", "2");
+            auth.getuserProfile(onsucsess: (value){
+            }, onerror: (){
+            });
+          }
+        }
+        Provider.of<CartItems>(context, listen: false).emptyCart().then((_) {
+          //productBox.deleteFromDisk();
+          productBox.clear();
+          //await DBProvider.db.deleteAllItem();
+          /*      Navigator.of(context).pushReplacementNamed(
                 OrderconfirmationScreen.routeName,
                 arguments: {
                   'orderstatus': "success",
                   'orderid': orderdecode['id'].toString()
                 });*/
-            Navigation(context, name: Routename.OrderConfirmation,
-                navigatore: NavigatoreTyp.Push,
-                parms: {'orderstatus': "success",
-                  'orderid': orderdecode['id'].toString()});
-          });
-          final sellingitemData = Provider.of<SellingItemsList>(
-              context, listen: false);
-          for (int i = 0; i < sellingitemData.featuredVariation.length; i++) {
-            sellingitemData.featuredVariation[i].varQty = 0;
-          }
-
-          for (int i = 0; i < sellingitemData.itemspricevarOffer.length; i++) {
-            sellingitemData.itemspricevarOffer[i].varQty = 0;
-            break;
-          }
-          for (int i = 0; i < sellingitemData.itemspricevarSwap.length; i++) {
-            sellingitemData.itemspricevarSwap[i].varQty = 0;
-            break;
-          }
-
-          for (int i = 0; i < sellingitemData.discountedVariation.length; i++) {
-            sellingitemData.discountedVariation[i].varQty = 0;
-            break;
-          }
-
-          final cartItemsData = Provider.of<CartItems>(context, listen: false);
-          for (int i = 0; i < cartItemsData.items.length; i++) {
-            cartItemsData.items[i].itemQty = 0;
-          }
-        }
-      } else {
-        setState(() {
-          _checkpromo = false;
-          Navigator.of(context).pop();
-          Fluttertoast.showToast(msg: S
-              .of(context)
-              .something_went_wrong, //"Something went wrong!!!",
-            fontSize: MediaQuery
-                .of(context)
-                .textScaleFactor * 13,);
+          Navigation(context, name: Routename.OrderConfirmation,
+              navigatore: NavigatoreTyp.Push,
+              parms: {'orderstatus': "success",
+                'orderid': orderdecode['id'].toString()});
         });
+        final sellingitemData = Provider.of<SellingItemsList>(
+            context, listen: false);
+        for (int i = 0; i < sellingitemData.featuredVariation.length; i++) {
+          sellingitemData.featuredVariation[i].varQty = 0;
+        }
+
+        for (int i = 0; i < sellingitemData.itemspricevarOffer.length; i++) {
+          sellingitemData.itemspricevarOffer[i].varQty = 0;
+          break;
+        }
+        for (int i = 0; i < sellingitemData.itemspricevarSwap.length; i++) {
+          sellingitemData.itemspricevarSwap[i].varQty = 0;
+          break;
+        }
+
+        for (int i = 0; i < sellingitemData.discountedVariation.length; i++) {
+          sellingitemData.discountedVariation[i].varQty = 0;
+          break;
+        }
+
+        final cartItemsData = Provider.of<CartItems>(context, listen: false);
+        for (int i = 0; i < cartItemsData.items.length; i++) {
+          cartItemsData.items[i].itemQty = 0;
+        }
       }
+    } else {
+      setState(() {
+        _checkpromo = false;
+        Navigator.of(context).pop();
+        Fluttertoast.showToast(msg: S
+            .of(context)
+            .something_went_wrong, //"Something went wrong!!!",
+          fontSize: MediaQuery
+              .of(context)
+              .textScaleFactor * 13,);
+      });
+    }
     /*} catch (error) {
       throw error;
     }*/
@@ -1152,6 +1171,7 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
       if (productBox[i].mode == "1") {
         index = i.toString();
         membership = productBox[i].membershipId.toString();
+        membershipvx = "1";
         break;
       }else if(productBox[i].mode == "3"){
         mode = true;
@@ -1218,6 +1238,7 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
           toppings = false;
         }
 
+
         if(toppings) {
           debugPrint("toppings hihihi....else");
           itemsToppings.clear();
@@ -1232,6 +1253,8 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
           if (index != "") {
             if (int.parse(index) == i) {}
             else {
+              resBody["items[" + i.toString() + "][delivery_note]"] =
+                  productBox[i].note.toString();
               resBody["items[" + i.toString() + "][productId]"] =
                   productBox[i].itemId.toString();
               resBody["items[" + i.toString() + "][priceVariation]"] =
@@ -1347,7 +1370,7 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
 
               if (membershipvx == "1"||_checkmembership) { //membered user
                 if (productBox[i].membershipPrice == '-' ||
-                    double.parse(productBox[i].membershipPrice!).toStringAsFixed(0) == "0") {
+                    productBox[i].membershipPrice == "0") {
                   if (double.parse(productBox[i].price!) <= 0 ||
                       productBox[i].price.toString() == "" ||
                       productBox[i].price == productBox[i].varMrp) {
@@ -1375,7 +1398,7 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
 
               if (membershipvx == "1"||_checkmembership) { //membered user
                 if (productBox[i].membershipPrice == '-' ||
-                    double.parse(productBox[i].membershipPrice!).toStringAsFixed(0) == "0") {
+                    productBox[i].membershipPrice == "0") {
                   if (double.parse(productBox[i].price!) <= 0 ||
                       productBox[i].price.toString() == "" ||
                       productBox[i].price == productBox[i].varMrp) {
@@ -1445,6 +1468,8 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
             }
           }
           else {
+            resBody["items[" + i.toString() + "][delivery_note]"] =
+                productBox[i].note.toString();
             resBody["items[" + i.toString() + "][productId]"] =
                 productBox[i].itemId.toString();
             resBody["items[" + i.toString() + "][priceVariation]"] =
@@ -1504,7 +1529,7 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
               resBody["items[" + i.toString() + "][duration]"] =
                   productBox[i].duration.toString();
             }
-
+            debugPrint("productBox[i].duration.toString()...."+productBox[i].duration.toString());
 
             if (/*routeArgs['deliveryType']*/widget.deliveryType == "Default") {
               if (productBox[i].durationType == "0") {
@@ -1561,7 +1586,7 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
 
             if (membershipvx == "1"||_checkmembership) { //membered user
               if (productBox[i].membershipPrice == '-' ||
-                  double.parse(productBox[i].membershipPrice!).toStringAsFixed(0) == "0") {
+                  productBox[i].membershipPrice == "0") {
                 if (double.parse(productBox[i].price!) <= 0 ||
                     productBox[i].price.toString() == "" ||
                     productBox[i].price == productBox[i].varMrp) {
@@ -1589,7 +1614,7 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
 
             if (membershipvx == "1"||_checkmembership) { //membered user
               if (productBox[i].membershipPrice == '-' ||
-                  double.parse(productBox[i].membershipPrice!).toStringAsFixed(0) == "0") {
+                  productBox[i].membershipPrice == "0") {
                 if (double.parse(productBox[i].price!) <= 0 ||
                     productBox[i].price.toString() == "" ||
                     productBox[i].price == productBox[i].varMrp) {
@@ -1697,13 +1722,13 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
           //   });
           //
           // }else {
-            payment.startPaytmTransaction(
-                context, _isWeb, orderId: orderdecode['ref_id'].toString(),
-                username: PrefUtils.prefs!.getString('userID'),
-                amount: orderAmount,
-                routeArgs: widget.params1,
-                prev: "PaymentScreen");
-        //  }
+          payment.startPaytmTransaction(
+              context, _isWeb, orderId: orderdecode['ref_id'].toString(),
+              username: PrefUtils.prefs!.getString('userID'),
+              amount: orderAmount,
+              routeArgs: widget.params1,
+              prev: "PaymentScreen");
+          //  }
         } else {
           for (int i = 0; i < productBox.length; i++) {
             if (productBox[i].mode == "1") {
@@ -1719,7 +1744,7 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
             //productBox.deleteFromDisk();
             productBox.clear();
             //await DBProvider.db.deleteAllItem();
-           // Navigator.of(context).pushReplacementNamed(OrderconfirmationScreen.routeName, arguments: {'orderstatus': "success",'orderid':orderdecode['ref_id'].toString()});
+            // Navigator.of(context).pushReplacementNamed(OrderconfirmationScreen.routeName, arguments: {'orderstatus': "success",'orderid':orderdecode['ref_id'].toString()});
             Navigation(context, name: Routename.OrderConfirmation, navigatore: NavigatoreTyp.Push,
                 parms: {'orderstatus' : "success",
                   'orderid': orderdecode['ref_id'].toString()});
@@ -1753,7 +1778,7 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
           _checkpromo = false;
         });
         Navigator.of(context).pop();
-         Fluttertoast.showToast(msg: S .of(context).something_went_wrong,//"Something went wrong!!!"
+        Fluttertoast.showToast(msg: S .of(context).something_went_wrong,//"Something went wrong!!!"
         );
       }
     } catch (error) {
@@ -2003,7 +2028,7 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
 
   _dialogForPromo (){
 
-   debugPrint("cashback....dialog");
+    debugPrint("cashback....dialog");
     showDialog(
       context: context,
       builder: (context) {
@@ -2030,7 +2055,7 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
                         ), ),
                       SizedBox(height:10),
                       Text(
-                      _promocode,
+                        _promocode,
                         textAlign: TextAlign.center,
                         style: TextStyle(fontWeight: FontWeight.bold,fontSize: 20,color: Colors.black),),
                       SizedBox(height:10),
@@ -2083,73 +2108,73 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
       builder: (context) {
         return AlertDialog(
             shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(30),
-        ),
-          content:
-          Stack(
-            //overflow: Overflow.visible,
-            children: <Widget>[
-              Container(
-                padding: EdgeInsets.only(left: 10,top: 0, right: 10,bottom: 20
+              borderRadius: BorderRadius.circular(30),
+            ),
+            content:
+            Stack(
+              //overflow: Overflow.visible,
+              children: <Widget>[
+                Container(
+                  padding: EdgeInsets.only(left: 10,top: 0, right: 10,bottom: 20
+                  ),
+                  margin: EdgeInsets.only(top: 20),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.rectangle,
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                    // boxShadow: [
+                    //   BoxShadow(color: Colors.white,offset: Offset(0,10),
+                    //       blurRadius: 10
+                    //   ),
+                    // ]
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      Text(" \'" + promocode + " \'"+ " "+S.of(context).applied,//"applied",
+                        style: TextStyle(
+                          color: Colors.black, fontSize: 22,fontWeight: FontWeight.bold,
+                        ), ),
+                      SizedBox(height:8),
+                      IConstants.numberFormat == "1" ?
+                      Text(IConstants.currencyFormat+" "+ double.parse(amount).toStringAsFixed(0),style: TextStyle(color: ColorCodes.blackColor, fontSize: 40,fontWeight: FontWeight.bold), )
+                          :
+                      Text(IConstants.currencyFormat+" "+ double.parse(amount).toStringAsFixed(IConstants.decimaldigit),style: TextStyle(color: ColorCodes.blackColor, fontSize: 40,fontWeight: FontWeight.bold), ),
+                      SizedBox(height:3),
+                      Text(
+                        S.of(context).saving_coupon,//"savings with this coupon",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 18,color: ColorCodes.blackColor, fontWeight: FontWeight.bold),),
+                      SizedBox(height: 10,),
+                      Text(/*"Keep using "*/S.of(context).keep_using+ promocode +/*" and save more with each order"*/S.of(context).save_more_order, textAlign: TextAlign.center, style: TextStyle(color: ColorCodes.blackColor,
+                          fontSize: 17), ),
+                      SizedBox(height:17),
+                      Text(
+                        S.of(context).yay,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontWeight: FontWeight.bold,fontSize: 20,color: ColorCodes.primaryColor),),
+                    ],
+                  ),
                 ),
-                margin: EdgeInsets.only(top: 20),
-                decoration: BoxDecoration(
-                  shape: BoxShape.rectangle,
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(10),
-                  // boxShadow: [
-                  //   BoxShadow(color: Colors.white,offset: Offset(0,10),
-                  //       blurRadius: 10
-                  //   ),
-                  // ]
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    Text(" \'" + promocode + " \'"+ " "+S.of(context).applied,//"applied",
-                      style: TextStyle(
-                        color: Colors.black, fontSize: 22,fontWeight: FontWeight.bold,
-                      ), ),
-                    SizedBox(height:8),
-                    IConstants.numberFormat == "1" ?
-                    Text(IConstants.currencyFormat+" "+ double.parse(amount).toStringAsFixed(0),style: TextStyle(color: ColorCodes.blackColor, fontSize: 40,fontWeight: FontWeight.bold), )
-                        :
-                    Text(IConstants.currencyFormat+" "+ double.parse(amount).toStringAsFixed(IConstants.decimaldigit),style: TextStyle(color: ColorCodes.blackColor, fontSize: 40,fontWeight: FontWeight.bold), ),
-                    SizedBox(height:3),
-                    Text(
-                      S.of(context).saving_coupon,//"savings with this coupon",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 18,color: ColorCodes.blackColor, fontWeight: FontWeight.bold),),
-                    SizedBox(height: 10,),
-                    Text(/*"Keep using "*/S.of(context).keep_using+ promocode +/*" and save more with each order"*/S.of(context).save_more_order, textAlign: TextAlign.center, style: TextStyle(color: ColorCodes.blackColor,
-                        fontSize: 17), ),
-                    SizedBox(height:17),
-                    Text(
-                      S.of(context).yay,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontWeight: FontWeight.bold,fontSize: 20,color: ColorCodes.primaryColor),),
-                  ],
-                ),
-              ),
-              Positioned(
-                left: Vx.isWeb && !ResponsiveLayout.isSmallScreen(context)?MediaQuery.of(context).size.width/8:MediaQuery.of(context).size.width/4,
-                top: -50,
-                child: CircleAvatar(
-                  backgroundColor: Colors.white,
-                  radius: 30,//Constants.avatarRadius,
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.all(Radius.circular(10)),
-                    child: Image.asset(
-                      Images.appLoyalty,
-                      color: ColorCodes.primaryColor,
-                      height: 45,
-                      width: 45,
+                Positioned(
+                  left: MediaQuery.of(context).size.width/4,
+                  top: -50,
+                  child: CircleAvatar(
+                    backgroundColor: Colors.white,
+                    radius: 30,//Constants.avatarRadius,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.all(Radius.circular(10)),
+                      child: Image.asset(
+                        Images.appLoyalty,
+                        color: ColorCodes.primaryColor,
+                        height: 45,
+                        width: 45,
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ],
-          )
+              ],
+            )
         );
       },
     );
@@ -2206,7 +2231,7 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
               double.parse(routeArgs['amount']))
               .toString();
 
-          debugPrint("_promoamount....."+_promoamount.toString() +"  "+routeArgs['amount']+"  "+cartTotal.toString());
+          debugPrint("_promoamount....."+_promoamount.toString() +"  "+routeArgs['prmocodeType']+"  "+cartTotal.toString());
           _promocode = routeArgs['promocode'];
 
           //walletAmount = double.parse(walletbalance);
@@ -2348,7 +2373,7 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
         _promocode = "";
       });
       //Navigator.of(context).pop();
-       Fluttertoast.showToast(msg: routeArgs['msg'], fontSize: MediaQuery.of(context).textScaleFactor *13,);
+      Fluttertoast.showToast(msg: routeArgs['msg'], fontSize: MediaQuery.of(context).textScaleFactor *13,);
     }
   }
 
@@ -2377,7 +2402,7 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
     }
 
     List<CartItem> cartItemsData =( VxState.store as GroceStore).CartItemList;
-   // final cartItemsData = (VxState.store as GroceStore).CartItemList;//Provider.of<CartItems>(context,listen: false);
+    // final cartItemsData = (VxState.store as GroceStore).CartItemList;//Provider.of<CartItems>(context,listen: false);
     for(int i=0;i<cartItemsData.length;i++)
       if (cartItemsData.length <= 1) {
         debugPrint("if..."+cartItemsData[i].mode.toString());
@@ -2411,7 +2436,7 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
       IConstants.numberFormat == "1"?"+ " + deliveryAmt.toStringAsFixed(0)  + " " + IConstants.currencyFormat:
       "+ " + deliveryAmt.toStringAsFixed(IConstants.decimaldigit) + " " +  IConstants.currencyFormat :
       IConstants.numberFormat == "1"?"+ " + IConstants.currencyFormat + " " + deliveryAmt.toStringAsFixed(0):
-          "+ " + IConstants.currencyFormat + " " + deliveryAmt.toStringAsFixed(IConstants.decimaldigit);
+      "+ " + IConstants.currencyFormat + " " + deliveryAmt.toStringAsFixed(IConstants.decimaldigit);
     }
 
     _dialogforPromo(BuildContext context) {
@@ -2449,7 +2474,7 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
                               setState(() {
                                 _checkpromo = true;
                               });
-                             // checkPromo();
+                              // checkPromo();
                             },
                           ),
                         ),
@@ -2508,39 +2533,39 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
 
     _popupForloyaltynote() {
       showDialog(
-          // barrierDismissible: false,
+        // barrierDismissible: false,
           context: context,
           builder: (context) {
-              return
+            return
               Dialog(
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(3.0)),
-                  child: Container(
-                    width: (_isWeb && !ResponsiveLayout.isSmallScreen(context))?MediaQuery.of(context).size.width*0.50:MediaQuery.of(context).size.width,
-                    // color: Theme.of(context).primaryColor,
-                   // height: 100.0,
-                    color: ColorCodes.whiteColor,
-                    padding: EdgeInsets.only(top: 25.0, left: 20.0, right: 20.0, bottom: 25.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        Text(
-                            S .of(context).loyalty_redemption, //'Loyalty Redemption..'
-                            style: TextStyle(color: ColorCodes.blackColor,fontSize: 25.0, fontWeight: FontWeight.bold)
-                          //'Product catalogue and offers are location specific'
-                        ),
-                        Divider(),
-                        Text(
-                            loyaltyData.itemsLoyalty[0].note!,
-                            style: TextStyle(color: ColorCodes.greyColor,fontSize: 15.0, fontWeight: FontWeight.w600)
-                          //'Product catalogue and offers are location specific'
-                        ),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(3.0)),
+                child: Container(
+                  width: (_isWeb && !ResponsiveLayout.isSmallScreen(context))?MediaQuery.of(context).size.width*0.50:MediaQuery.of(context).size.width,
+                  // color: Theme.of(context).primaryColor,
+                  // height: 100.0,
+                  color: ColorCodes.whiteColor,
+                  padding: EdgeInsets.only(top: 25.0, left: 20.0, right: 20.0, bottom: 25.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                          S .of(context).loyalty_redemption, //'Loyalty Redemption..'
+                          style: TextStyle(color: ColorCodes.blackColor,fontSize: 25.0, fontWeight: FontWeight.bold)
+                        //'Product catalogue and offers are location specific'
+                      ),
+                      Divider(),
+                      Text(
+                          loyaltyData.itemsLoyalty[0].note!,
+                          style: TextStyle(color: ColorCodes.greyColor,fontSize: 15.0, fontWeight: FontWeight.w600)
+                        //'Product catalogue and offers are location specific'
+                      ),
 
-                        // SizedBox(height: 30,)
-                      ],
-                    ),
+                      // SizedBox(height: 30,)
+                    ],
                   ),
-                );
+                ),
+              );
 
           });
     }
@@ -2567,7 +2592,7 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
                     ),
                     Divider(),
                     Text(
-                loyaltyData.itemsLoyalty[0].note!,
+                        loyaltyData.itemsLoyalty[0].note!,
                         style: TextStyle(color: ColorCodes.greyColor,fontSize: 15.0, fontWeight: FontWeight.w600)
                       //'Product catalogue and offers are location specific'
                     ),
@@ -2661,7 +2686,7 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
         itemCount: CartCalculations.itemCount.toString() + " " + S .of(context).items,
         title: S .current.proceed_pay, //'PROCEED TO PAY',
         total: !_displaypromo ? _isPickup
-        ?
+            ?
         _isSwitch && !_isLoyaltyToast && _isLoayalty && (double.parse(loyaltyPoints) > 0)
             ?
         (cartTotal +   deliveryAmt - loyaltyAmount).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit) :
@@ -2703,7 +2728,7 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
                   PrefUtils.prefs!.setString("wallet_type", "0");
                 }
                 _dialogforOrdering(context);
-               /* if(_slots && Features.isSplit){
+                /* if(_slots && Features.isSplit){
                   OrderfoodSplit();
                 }else if(_isPickup){
                   Orderfood();
@@ -2988,13 +3013,13 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
             icon: Icon(Icons.arrow_back, color: ColorCodes.iconColor),
             onPressed: () {
 
-            //  Navigator.of(context).pop();
+              //  Navigator.of(context).pop();
               (Features.ismultivendor)?
               Navigation(context, name: Routename.Cart, navigatore: NavigatoreTyp.Push,qparms: {"afterlogin":""}):
               widget.fromScreen == "cartscreen"?
               Navigation(context, name: Routename.Cart, navigatore: NavigatoreTyp.Push,qparms: {"afterlogin":""}):
-                  widget.fromScreen == "pickupscreen" ?
-                  Navigation(context, name: Routename.PickupScreen, navigatore: NavigatoreTyp.Push) :
+              widget.fromScreen == "pickupscreen" ?
+              Navigation(context, name: Routename.PickupScreen, navigatore: NavigatoreTyp.Push) :
               Navigation(context, name:Routename.ConfirmOrder,navigatore: NavigatoreTyp.Push,
                   parms:{"prev": "payment"});
 
@@ -3002,7 +3027,7 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
         ),
         title: Text(
           (IConstants.isEnterprise && Features.ismultivendor)?IConstants.storename:S .of(context).payment_option,//'Payment Options',
-        style: TextStyle(color: ColorCodes.iconColor, fontWeight: FontWeight.bold, fontSize: 18),
+          style: TextStyle(color: ColorCodes.iconColor, fontWeight: FontWeight.bold, fontSize: 18),
         ),
         titleSpacing: 0,
         flexibleSpace: Container(
@@ -3083,7 +3108,7 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
         //       } else {
         //         Share.share('Download ' +
         //             IConstants.APP_NAME +
-        //             ' from Google Play Store https://play.google.com/store/apps/details?id=com.getit.store');
+        //             ' from Google Play Store https://play.google.com/store/apps/details?id=com.appinsight.gbay');
         //       }
         //     },
         //     child: Icon(
@@ -3388,7 +3413,7 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
                         ),
                         Text(
                           Features.iscurrencyformatalign?
-                         (CartCalculations.totalmrp - (amountPayable-deliveryAmt)).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit) + " " + IConstants.currencyFormat :
+                          (CartCalculations.totalmrp - (amountPayable-deliveryAmt)).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit) + " " + IConstants.currencyFormat :
                           IConstants.currencyFormat +
                               " " + (CartCalculations.totalmrp - (amountPayable-deliveryAmt)).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),
                           style: TextStyle(
@@ -3595,25 +3620,25 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
                               height: 10.0,
                             ),
                             if(!_checkmembership)
-                            if ((CartCalculations.totalprice)  > 0)
+                              if ((CartCalculations.totalprice)  > 0)
 
-                              Text(
-                                S .of(context).discount_applied,//"Discount applied:",
-                                style: TextStyle(
-                                    fontSize: 14.0,
-                                    fontWeight: FontWeight.bold,
-                                    color:
-                                    ColorCodes.greyColor),
-                              ),
+                                Text(
+                                  S .of(context).discount_applied,//"Discount applied:",
+                                  style: TextStyle(
+                                      fontSize: 14.0,
+                                      fontWeight: FontWeight.bold,
+                                      color:
+                                      ColorCodes.greyColor),
+                                ),
                             /*if ((Calculations.totalmrp - cartTotal) > 0)
                               SizedBox(
                                 height: 10.0,
                               ),*/
                             if(!_checkmembership)
-                            if ((CartCalculations.totalprice) > 0)
-                              SizedBox(
-                                height: 10.0,
-                              ),
+                              if ((CartCalculations.totalprice) > 0)
+                                SizedBox(
+                                  height: 10.0,
+                                ),
                             if(_checkmembership)
                               if((CartCalculations.totalMembersPrice ) > 0)
                                 Text(
@@ -3726,26 +3751,26 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
                               height: 10.0,
                             ),
                             if(!_checkmembership)
-                            if ((CartCalculations.totalprice) > 0)
-                              Text(
-                                "- " +
-                                    (CartCalculations.totalmrp - cartTotal)
-                                        .toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),
-                                style: TextStyle(
-                                    fontSize: 14.0,
-                                    fontWeight: FontWeight.bold,
-                                    color:
-                                    ColorCodes.greyColor),
-                              ),
+                              if ((CartCalculations.totalprice) > 0)
+                                Text(
+                                  "- " +
+                                      (CartCalculations.totalmrp - cartTotal)
+                                          .toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),
+                                  style: TextStyle(
+                                      fontSize: 14.0,
+                                      fontWeight: FontWeight.bold,
+                                      color:
+                                      ColorCodes.greyColor),
+                                ),
                             /*if ((Calculations.totalmrp - cartTotal) > 0)
                               SizedBox(
                                 height: 10.0,
                               ),*/
                             if(!_checkmembership)
-                            if ((CartCalculations.totalprice) > 0)
-                              SizedBox(
-                                height: 10.0,
-                              ),
+                              if ((CartCalculations.totalprice) > 0)
+                                SizedBox(
+                                  height: 10.0,
+                                ),
                             if(_checkmembership)
                               if((CartCalculations.totalMembersPrice ) > 0)
                                 Text(
@@ -3954,7 +3979,7 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
                     }else{
                       Orderfood();
                     }
-                   // (_slots ) ? _isPickup ? Orderfood(): Features.isSplit ? OrderfoodSplit() : Orderfood() :OrderfoodSplit();
+                    // (_slots ) ? _isPickup ? Orderfood(): Features.isSplit ? OrderfoodSplit() : Orderfood() :OrderfoodSplit();
                     // if(Features.isOffers) {
                     //   if (offersData.offers.length > 0) {
                     //     _addToCart();
@@ -3997,23 +4022,23 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
                               Text(IConstants.currencyFormat,  style: TextStyle( color: Colors.white,
                                   fontWeight: FontWeight.bold)),
                               Text(!_displaypromo ? _isPickup
-        ?
-        _isSwitch && !_isLoyaltyToast && _isLoayalty && (double.parse(loyaltyPoints) > 0)
-        ?
-        (cartTotal +   deliveryAmt - loyaltyAmount).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit) :
-        (cartTotal + deliveryAmt).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit) :
-        _isSwitch && !_isLoyaltyToast && _isLoayalty && (double.parse(loyaltyPoints) > 0) ?
-        (cartTotal + deliveryAmt - loyaltyAmount).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit) :
-        (cartTotal + deliveryAmt).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit) :
-        (promomessage.toLowerCase() == 'cashback') ?
-        _isSwitch && !_isLoyaltyToast &&   _isLoayalty && (double.parse(loyaltyPoints) > 0) ?
-        (cartTotal + deliveryAmt - loyaltyAmount).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit) :
-        (cartTotal + deliveryAmt).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit) :
-        _isSwitch &&  !_isLoyaltyToast && _isLoayalty && (double.parse(loyaltyPoints) > 0) ?
-        (double.parse(_promoamount) - loyaltyAmount).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit) :
-        (double.parse(_promoamount)).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),
-                              style: TextStyle( color: Colors.white,
-                                  fontWeight: FontWeight.bold)),
+                                  ?
+                              _isSwitch && !_isLoyaltyToast && _isLoayalty && (double.parse(loyaltyPoints) > 0)
+                                  ?
+                              (cartTotal +   deliveryAmt - loyaltyAmount).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit) :
+                              (cartTotal + deliveryAmt).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit) :
+                              _isSwitch && !_isLoyaltyToast && _isLoayalty && (double.parse(loyaltyPoints) > 0) ?
+                              (cartTotal + deliveryAmt - loyaltyAmount).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit) :
+                              (cartTotal + deliveryAmt).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit) :
+                              (promomessage.toLowerCase() == 'cashback') ?
+                              _isSwitch && !_isLoyaltyToast &&   _isLoayalty && (double.parse(loyaltyPoints) > 0) ?
+                              (cartTotal + deliveryAmt - loyaltyAmount).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit) :
+                              (cartTotal + deliveryAmt).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit) :
+                              _isSwitch &&  !_isLoyaltyToast && _isLoayalty && (double.parse(loyaltyPoints) > 0) ?
+                              (double.parse(_promoamount) - loyaltyAmount).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit) :
+                              (double.parse(_promoamount)).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),
+                                  style: TextStyle( color: Colors.white,
+                                      fontWeight: FontWeight.bold)),
                             ],
                           ),
                         ],
@@ -4125,7 +4150,7 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
                         },
                         child: Container(
                           margin: EdgeInsets.only(top: 5, bottom: 5),
-                         /* decoration: BoxDecoration(
+                          /* decoration: BoxDecoration(
                               color: ColorCodes.whiteColor,
                               boxShadow: [
                                 BoxShadow(
@@ -4136,15 +4161,15 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
                                 )
                               ]
                           )*/
-                         decoration: BoxDecoration(
-                         color: ColorCodes.whiteColor,
-                         borderRadius: BorderRadius.circular(5.0),
-                         border: Border(
-                         top: BorderSide(width: 1.0, color: ColorCodes.greylight,),
-                         bottom: BorderSide(width: 1.0, color: ColorCodes.greylight,),
-                         left: BorderSide(width: 1.0, color: ColorCodes.greylight,),
-                         right: BorderSide(width: 1.0, color: ColorCodes.greylight,),
-                         )),
+                          decoration: BoxDecoration(
+                              color: ColorCodes.whiteColor,
+                              borderRadius: BorderRadius.circular(5.0),
+                              border: Border(
+                                top: BorderSide(width: 1.0, color: ColorCodes.greylight,),
+                                bottom: BorderSide(width: 1.0, color: ColorCodes.greylight,),
+                                left: BorderSide(width: 1.0, color: ColorCodes.greylight,),
+                                right: BorderSide(width: 1.0, color: ColorCodes.greylight,),
+                              )),
                           width: MediaQuery.of(context).size.width * 0.40,
                           padding: EdgeInsets.only(
                               top: 20.0, left: 10.0, right: 10.0, bottom: 20.0),
@@ -4670,7 +4695,7 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
                   //     ),
                   //   ),
                   // ):
-                  GestureDetector(
+                  _checkmembership && PrefUtils.prefs!.getString("typenewpromo") != "new"?SizedBox.shrink(): GestureDetector(
                     behavior: HitTestBehavior.translucent,
                     /*onTap: () {
                   //_dialogforPromo(context);
@@ -4678,7 +4703,7 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
                     child: Container(
                       width: MediaQuery.of(context).size.width * 0.40,
                       margin: EdgeInsets.only(left:0, right: 0, top: 10, bottom: 5),
-                     /* decoration: BoxDecoration(
+                      /* decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.all(Radius.circular(2.0)),
                         boxShadow: [
@@ -4794,19 +4819,19 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
                                 onTap: () {
                                   final routeArgs = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
                                   Vx.isWeb && !ResponsiveLayout.isSmallScreen(context)?
-                                      PromocodeWeb(context,
-                                          deliveryAmt: widget.deliveryCharge.toString(),
-                                  minimumOrderAmountNoraml: widget.minimumOrderAmountNoraml,
-                                  deliveryChargeNormal: widget.deliveryChargeNormal,
-                                  minimumOrderAmountPrime: widget.minimumOrderAmountPrime,
-                                  deliveryChargePrime: widget.deliveryChargePrime,
-                                  minimumOrderAmountExpress: widget.minimumOrderAmountExpress,
-                                  deliveryChargeExpress: widget.deliveryChargeExpress,
-                                  deliveryType: widget.deliveryType,
-                                  addressId: PrefUtils.prefs!.getString("addressId"),
-                                  note: widget.note,
-                                  deliveryCharge: widget.deliveryCharge.toString(),
-                                  deliveryDurationExpress : widget.deliveryDurationExpress,)
+                                  PromocodeWeb(context,
+                                    deliveryAmt: widget.deliveryCharge.toString(),
+                                    minimumOrderAmountNoraml: widget.minimumOrderAmountNoraml,
+                                    deliveryChargeNormal: widget.deliveryChargeNormal,
+                                    minimumOrderAmountPrime: widget.minimumOrderAmountPrime,
+                                    deliveryChargePrime: widget.deliveryChargePrime,
+                                    minimumOrderAmountExpress: widget.minimumOrderAmountExpress,
+                                    deliveryChargeExpress: widget.deliveryChargeExpress,
+                                    deliveryType: widget.deliveryType,
+                                    addressId: PrefUtils.prefs!.getString("addressId"),
+                                    note: widget.note,
+                                    deliveryCharge: widget.deliveryCharge.toString(),
+                                    deliveryDurationExpress : widget.deliveryDurationExpress,)
                                       :
                                   Navigation(context, name: Routename.PromocodeScreen, navigatore: NavigatoreTyp.Push,
                                       qparms: {
@@ -4865,19 +4890,19 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
 
             _isPaymentMethod
                 ? Column(
-                  children: [
-                    Container(
-                      width: MediaQuery.of(context).size.width * 0.40,
-                      margin: EdgeInsets.only(top: 5),
-                      decoration: BoxDecoration(
-                        color: ColorCodes.whiteColor,
-                        borderRadius: BorderRadius.all(Radius.circular(5)),
-                      ),
-                      padding: EdgeInsets.only(
-                          top: 8.0, left: 10.0, right: 10.0, bottom: 20.0),
-                      child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Container(
+                  width: MediaQuery.of(context).size.width * 0.40,
+                  margin: EdgeInsets.only(top: 5),
+                  decoration: BoxDecoration(
+                    color: ColorCodes.whiteColor,
+                    borderRadius: BorderRadius.all(Radius.circular(5)),
+                  ),
+                  padding: EdgeInsets.only(
+                      top: 8.0, left: 10.0, right: 10.0, bottom: 20.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Container(
                           width: MediaQuery.of(context).size.width * 0.40,
                           padding: EdgeInsets.only(
@@ -4933,10 +4958,10 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
                                         Row(
                                           children: [
                                             Text(
-                                              Features.iscurrencyformatalign?
-                                              remainingAmount
-                                                      .toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit) +
-                                                  " " + IConstants.currencyFormat :
+                                                Features.iscurrencyformatalign?
+                                                remainingAmount
+                                                    .toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit) +
+                                                    " " + IConstants.currencyFormat :
                                                 IConstants.currencyFormat +
                                                     " " +
                                                     remainingAmount
@@ -5161,7 +5186,7 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
                                           ),
                                         ),
                                         handler(i),
-                                       /* SizedBox(
+                                        /* SizedBox(
                                           width: 15.0,
                                           child: _myRadioButton(
                                             title: "",
@@ -5241,7 +5266,7 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
                                           ),
                                         ),
                                         handler(i),
-                                       /* SizedBox(
+                                        /* SizedBox(
                                           width: 15.0,
                                           child: _myRadioButton(
                                             title: "",
@@ -5275,11 +5300,11 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
                         ),
                       ),
 
+                    ],
+                  ),
+                ),
               ],
-            ),
-                    ),
-                  ],
-                )
+            )
                 : Row(
               mainAxisAlignment: MainAxisAlignment.start,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -5413,64 +5438,66 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
     Widget _bodyMobile() {
       final routeArgs = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
       double amountPayable = 0.0;
-     Widget paymentMode() {
-       return Container(
-         decoration: BoxDecoration(
-             color: ColorCodes.whiteColor,
-             // boxShadow: [
-             //   BoxShadow(
-             //     color: ColorCodes.grey.withOpacity(0.5),
-             //     spreadRadius: 5,
-             //     blurRadius: 5,
-             //     offset: Offset(0, 5),
-             //   )
-             // ]
-         ),
-         child: Column (
-           children: <Widget>[
-             if (_isPaymentMethod)
-               if (_isWallet)
-                 _ischeckboxshow
-                     ? GestureDetector(
-                   behavior: HitTestBehavior.translucent,
-                   onTap: () {
-                     setState(() {
-                       _ischeckbox = !_ischeckbox;
-                       double totalAmount = 0.0;
-                       !_displaypromo ? /*_isPickup ? totalAmount = cartTotal :*/ totalAmount = (cartTotal + deliveryAmt) : totalAmount = (double.parse(_promoamount));
-                       if(_isWallet) {
-                         if (int.parse(walletbalance) <= 0 /*|| double.parse((cartTotal + deliveryamount).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit)) > int.parse(walletbalance)*/) {
-                           _isRemainingAmount = false;
-                           _ischeckboxshow = false;
-                           _ischeckbox = false;
-                         } else if (_isSwitch ? totalAmount <= (int.parse(walletbalance) + loyaltyAmount) : totalAmount <= (int.parse(walletbalance))) {
-                           _isRemainingAmount = false;
-                           _groupValue = -1;
-                           PrefUtils.prefs!.setString("payment_type", "wallet");
-                           walletAmount = _isSwitch ? (totalAmount - loyaltyAmount) : totalAmount;
-                         } else if (_isSwitch ? totalAmount > (int.parse(walletbalance) + loyaltyAmount) : totalAmount > int.parse(walletbalance)) {
-                           bool _isOnline = false;
-                           for(int i = 0; i < paymentData.itemspayment.length; i++) {
-                             if(paymentData.itemspayment[i].paymentMode == "1") {
-                               _isOnline = true;
-                               break;
-                             }
-                           }
-                           if(_isOnline) {
-                             _groupValue = -1;
-                             _isRemainingAmount = true;
-                             walletAmount = double.parse(walletbalance);
-                             remainingAmount = _isSwitch && !_isLoyaltyToast && _isLoayalty && (double.parse(loyaltyPoints) > 0) ? totalAmount - double.parse(walletbalance) - loyaltyAmount: (totalAmount - int.parse(walletbalance));
-                           } else {
-                             _isWallet = false;
-                             _ischeckbox = false;
-                           }
-                           for(int i = 0; i < paymentData.itemspayment.length; i++) {
-                             if(paymentData.itemspayment[i].paymentMode == "1") {
-                               _groupValue = i;
-                               break;
-                             }
-                           }
+      Widget paymentMode() {
+        return Container(
+          decoration: BoxDecoration(
+            color: ColorCodes.whiteColor,
+            // boxShadow: [
+            //   BoxShadow(
+            //     color: ColorCodes.grey.withOpacity(0.5),
+            //     spreadRadius: 5,
+            //     blurRadius: 5,
+            //     offset: Offset(0, 5),
+            //   )
+            // ]
+          ),
+          child: Column (
+              children: <Widget>[
+                if (_isPaymentMethod)
+                  if (_isWallet)
+                    _ischeckboxshow
+                        ? GestureDetector(
+                      behavior: HitTestBehavior.translucent,
+                      onTap: () {
+                        setState(() {
+                          _ischeckbox = !_ischeckbox;
+                          double totalAmount = 0.0;
+                          !_displaypromo ? /*_isPickup ? totalAmount = cartTotal :*/ totalAmount = (cartTotal + deliveryAmt) : totalAmount = (double.parse(_promoamount));
+                          if(_isWallet) {
+                            if (int.parse(walletbalance) <= 0 /*|| double.parse((cartTotal + deliveryamount).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit)) > int.parse(walletbalance)*/) {
+                              _isRemainingAmount = false;
+                              _ischeckboxshow = false;
+                              _ischeckbox = false;
+                            } else if (_isSwitch ? totalAmount <= (int.parse(walletbalance) + loyaltyAmount) : totalAmount <= (int.parse(walletbalance))) {
+                              _isRemainingAmount = false;
+                              _groupValue = -1;
+                              PrefUtils.prefs!.setString("payment_type", "wallet");
+                              walletAmount = _isSwitch ? (totalAmount - loyaltyAmount) : totalAmount;
+                            } else if (_isSwitch ? totalAmount > (int.parse(walletbalance) + loyaltyAmount) : totalAmount > int.parse(walletbalance)) {
+                              bool _isOnline = false;
+                              for(int i = 0; i < paymentData.itemspayment.length; i++) {
+                                if(paymentData.itemspayment[i].paymentMode == "1") {
+                                  _isOnline = true;
+                                  break;
+                                }
+                              }
+                              if(_isOnline) {
+                                _groupValue = -1;
+                                _isRemainingAmount = true;
+                                walletAmount = double.parse(walletbalance);
+                                remainingAmount = _isSwitch && !_isLoyaltyToast && _isLoayalty
+                                    && (double.parse(loyaltyPoints) > 0) ? totalAmount - double.parse(walletbalance)
+                                    - loyaltyAmount: (totalAmount - int.parse(walletbalance));
+                              } else {
+                                _isWallet = false;
+                                _ischeckbox = false;
+                              }
+                              for(int i = 0; i < paymentData.itemspayment.length; i++) {
+                                if(paymentData.itemspayment[i].paymentMode == "1") {
+                                  _groupValue = i;
+                                  break;
+                                }
+                              }
 
                             }
                           } else {
@@ -5499,7 +5526,7 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  IConstants.APP_NAME + " "+  S .of(context).wallet,//" Wallet",
+                                  /*IConstants.APP_NAME + " "+  */S .of(context).wallet,//" Wallet",
                                   style: TextStyle(
                                       fontSize: 16,
                                       color: (walletbalance == "0")? ColorCodes.grey : ColorCodes.blackColor,
@@ -5513,8 +5540,8 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
                                     Text(
                                       S .of(context).wallet_balance,    //"Balance:  ",
                                       style: TextStyle(
-                                          color: ColorCodes.greyColor,
-                                          fontSize: 12.0,
+                                        color: ColorCodes.greyColor,
+                                        fontSize: 12.0,
                                       ),
                                     ),
                                     SizedBox(
@@ -5525,8 +5552,8 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
                                       walletbalance + "" + IConstants.currencyFormat:
                                       IConstants.currencyFormat + "" + walletbalance,
                                       style: TextStyle(
-                                          color: ColorCodes.greyColor,
-                                          fontSize: 12.0,
+                                        color: ColorCodes.greyColor,
+                                        fontSize: 12.0,
                                       ),
                                     ),
                                   ],
@@ -5563,7 +5590,10 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
                                         _groupValue = -1;
                                         _isRemainingAmount = true;
                                         walletAmount = double.parse(walletbalance);
-                                        remainingAmount = _isSwitch && !_isLoyaltyToast && _isLoayalty && (double.parse(loyaltyPoints) > 0) ? totalAmount - double.parse(walletbalance) - loyaltyAmount: (totalAmount - int.parse(walletbalance));
+                                        remainingAmount = _isSwitch && !_isLoyaltyToast && _isLoayalty
+                                            && (double.parse(loyaltyPoints) > 0) ? totalAmount
+                                            - double.parse(walletbalance) - loyaltyAmount:
+                                        (totalAmount - int.parse(walletbalance));
                                       } else {
                                         _isWallet = false;
                                         _ischeckbox = false;
@@ -5620,34 +5650,34 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
                       ),
                     )
                         : GestureDetector(
-                         onTap: (){
-                           Fluttertoast.showToast(msg: S.of(context).wallet_toast/*"Your wallet balance is 0"*/);
-                         },
-                          child: Container(
-                      margin: EdgeInsets.only(left:15, right: 15, top: 20, bottom: 5),
-                      // decoration: BoxDecoration(
-                      //     color: Colors.white,
-                      //     borderRadius: BorderRadius.all(Radius.circular(2.0)),
-                      //     boxShadow: [
-                      //       BoxShadow(
-                      //         color: Colors.grey.withOpacity(0.4),
-                      //         spreadRadius: 1,
-                      //         blurRadius: 4,
-                      //         offset: Offset(0, 1), // changes position of shadow
-                      //       ),
-                      //     ],
-                      // ),
-                            decoration: BoxDecoration(
-                                color: ColorCodes.whiteColor,
-                                borderRadius: BorderRadius.circular(12.0),
-                                border: Border(
-                                  top: BorderSide(width: 1.0, color: ColorCodes.greylight,),
-                                  bottom: BorderSide(width: 1.0, color: ColorCodes.greylight,),
-                                  left: BorderSide(width: 1.0, color: ColorCodes.greylight,),
-                                  right: BorderSide(width: 1.0, color: ColorCodes.greylight,),
-                                )),
-                      padding: EdgeInsets.only(left: 10, top: 20, right: 10, bottom: 20),
-                      child: Row(
+                      onTap: (){
+                        Fluttertoast.showToast(msg: S.of(context).wallet_toast/*"Your wallet balance is 0"*/);
+                      },
+                      child: Container(
+                        margin: EdgeInsets.only(left:15, right: 15, top: 20, bottom: 5),
+                        // decoration: BoxDecoration(
+                        //     color: Colors.white,
+                        //     borderRadius: BorderRadius.all(Radius.circular(2.0)),
+                        //     boxShadow: [
+                        //       BoxShadow(
+                        //         color: Colors.grey.withOpacity(0.4),
+                        //         spreadRadius: 1,
+                        //         blurRadius: 4,
+                        //         offset: Offset(0, 1), // changes position of shadow
+                        //       ),
+                        //     ],
+                        // ),
+                        decoration: BoxDecoration(
+                            color: ColorCodes.whiteColor,
+                            borderRadius: BorderRadius.circular(12.0),
+                            border: Border(
+                              top: BorderSide(width: 1.0, color: ColorCodes.greylight,),
+                              bottom: BorderSide(width: 1.0, color: ColorCodes.greylight,),
+                              left: BorderSide(width: 1.0, color: ColorCodes.greylight,),
+                              right: BorderSide(width: 1.0, color: ColorCodes.greylight,),
+                            )),
+                        padding: EdgeInsets.only(left: 10, top: 20, right: 10, bottom: 20),
+                        child: Row(
                           //mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: <Widget>[
                             Image.asset(Images.walletImg, width: 25,height: 25, color: (walletbalance == "0")? ColorCodes.grey : ColorCodes.blackColor),
@@ -5694,9 +5724,9 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
                               ],
                             ),
                           ],
+                        ),
                       ),
                     ),
-                        ),
                 if (_isLoayalty && (double.parse(loyaltyPoints) > 0))
                   GestureDetector(
                     behavior: HitTestBehavior.translucent,
@@ -5718,8 +5748,11 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
                             _isRemainingAmount = false;
                             _groupValue = -1;
                             PrefUtils.prefs!.setString("payment_type", "wallet");
-                            walletAmount = _isSwitch && !_isLoyaltyToast && _isLoayalty && (double.parse(loyaltyPoints) > 0) ? (totalAmount - loyaltyAmount) : totalAmount;
-                          } else if (_isSwitch && !_isLoyaltyToast && _isLoayalty && (double.parse(loyaltyPoints) > 0) ? totalAmount > (int.parse(walletbalance) + loyaltyAmount) : totalAmount > int.parse(walletbalance)) {
+                            walletAmount = _isSwitch && !_isLoyaltyToast && _isLoayalty && (double.parse(loyaltyPoints) > 0)
+                                ? (totalAmount - loyaltyAmount) : totalAmount;
+                          } else if (_isSwitch && !_isLoyaltyToast && _isLoayalty && (double.parse(loyaltyPoints) > 0) ?
+                          totalAmount > (int.parse(walletbalance) + loyaltyAmount) :
+                          totalAmount > int.parse(walletbalance)) {
                             bool _isOnline = false;
                             for(int i = 0; i < paymentData.itemspayment.length; i++) {
                               if(paymentData.itemspayment[i].paymentMode == "1") {
@@ -5809,7 +5842,7 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
                                   Text(
                                     S .of(context).loyalty_balance,//"Loyalty Balance ",//"Balance:  ",
                                     style: TextStyle(
-                                        color: ColorCodes.greyColor, fontSize: 12.0, ),
+                                      color: ColorCodes.greyColor, fontSize: 12.0, ),
                                   ),
                                   Image.asset(
                                     Images.coinImg,
@@ -5819,7 +5852,7 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
                                   Text(
                                     loyaltyPoints,
                                     style: TextStyle(
-                                        color: ColorCodes.greyColor, fontSize: 12.0,),
+                                      color: ColorCodes.greyColor, fontSize: 12.0,),
                                   ),
                                 ],
                               ),
@@ -5846,7 +5879,7 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
 
                                 },
                                 child: Text(
-                                   S .of(context).know_more,//'Know More...'
+                                  S .of(context).know_more,//'Know More...'
                                   style: TextStyle(
                                     color: ColorCodes.primaryColor, fontSize: 12.0, ),
                                 ),
@@ -5859,7 +5892,9 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
                             onTap: () {
                               setState(() {
                                 _isLoyaltyToast ?
-                                Fluttertoast.showToast(msg: S .of(context).minimum_order_amount/*"Minimum order amount should be "*/ + loyaltyData.itemsLoyalty[0].minimumOrderAmount.toString(),  fontSize: MediaQuery.of(context).textScaleFactor *13,backgroundColor: Colors.black87, textColor: Colors.white)
+                                Fluttertoast.showToast(msg: S .of(context).minimum_order_amount
+                                    /*"Minimum order amount should be "*/
+                                    + loyaltyData.itemsLoyalty[0].minimumOrderAmount.toString(),  fontSize: MediaQuery.of(context).textScaleFactor *13,backgroundColor: Colors.black87, textColor: Colors.white)
                                     :
                                 _isSwitch = !_isSwitch;
                                 if(_isWallet) {
@@ -5888,7 +5923,9 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
                                       _groupValue = -1;
                                       _isRemainingAmount = true;
                                       walletAmount = double.parse(walletbalance);
-                                      remainingAmount = _isSwitch && !_isLoyaltyToast && _isLoayalty && (double.parse(loyaltyPoints) > 0) ? totalAmount - double.parse(walletbalance) - loyaltyAmount: (totalAmount - int.parse(walletbalance));
+                                      remainingAmount = _isSwitch && !_isLoyaltyToast && _isLoayalty
+                                          && (double.parse(loyaltyPoints) > 0) ? totalAmount - double.parse(walletbalance) - loyaltyAmount:
+                                      (totalAmount - int.parse(walletbalance));
                                     } else {
                                       _isWallet = false;
                                       _ischeckbox = false;
@@ -5957,116 +5994,116 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
                     :
                 (Features.isPromocode)?
                 !_checkpromo?
-              //   GestureDetector(
-              //     behavior: HitTestBehavior.translucent,
-              //     /*onTap: () {
-              //   //_dialogforPromo(context);
-              // },*/
-              //     child: Container(
-              //       margin: EdgeInsets.only(left:15, right: 15, top: 5, bottom: 5),
-              //       decoration: BoxDecoration(
-              //         color: Colors.white,
-              //         borderRadius: BorderRadius.all(Radius.circular(2.0)),
-              //         boxShadow: [
-              //           BoxShadow(
-              //             color: Colors.grey.withOpacity(0.4),
-              //             spreadRadius: 1,
-              //             blurRadius: 4,
-              //             offset: Offset(0, 1), // changes position of shadow
-              //           ),
-              //         ],
-              //       ),
-              //       padding: EdgeInsets.only(
-              //           top: 0.0, left: 10.0, right: 0.0, bottom: 0.0),
-              //       //padding: EdgeInsets.only(left: 15),
-              //       child: Row(
-              //         //mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              //         children: <Widget>[
-              //           Image.asset(Images.appLoyalty, width: 24, height: 24, color: ColorCodes.blackColor),
-              //           SizedBox(
-              //             width: 10,
-              //           ),
-              //           Container(
-              //             width: MediaQuery.of(context).size.width / 2,
-              //             child: TextField(
-              //               decoration: InputDecoration(
-              //                 border: InputBorder.none,
-              //                 hintText: S .of(context).enter_promo,
-              //                 hintStyle: TextStyle(/*color: ColorCodes.lightgrey,*/ fontSize: 14,
-              //                     /*fontWeight: FontWeight.bold*/),),//'Enter Promo Code'),
-              //               controller: myController,
-              //               onSubmitted: (String newVal) {
-              //                 /*prefs.setString("promovalue", newVal);
-              //                       setState(() {
-              //                         _checkpromo = true;
-              //                         _promocode = newVal;
-              //                       });*/
-              //                 setState(() {
-              //                   _checkpromo = true;
-              //                 });
-              //                 checkPromo();
-              //               },),
-              //           ),
-              //           Spacer(),
-              //           MouseRegion(
-              //             cursor: SystemMouseCursors.click,
-              //             child: GestureDetector(
-              //               onTap: () {
-              //                 setState(() {
-              //                   _checkpromo = true;
-              //                 });
-              //                 checkPromo();
-              //
-              //               },
-              //               // GestureDetector(
-              //               //     onTap: () {
-              //               //       _dialogForloyaltynote();
-              //               //     },
-              //               //     child: Image.asset(Images.icon_loyalty, width: 15,height: 15,color:Colors.red)),
-              //               child: Container(
-              //                 padding: EdgeInsets.only(left: 5,right: 5),
-              //                 width: (MediaQuery.of(context).size.width / 5.1),
-              //                 height: 60,
-              //                 decoration: BoxDecoration(
-              //                   color: ColorCodes.greenColor,
-              //                   borderRadius: BorderRadius.circular(2.0),
-              //                 ),
-              //                 child: Center(
-              //                     child:Text(
-              //                       S .of(context).apply,
-              //                       style: TextStyle(
-              //                           fontSize: 19.0,
-              //                           color: ColorCodes.whiteColor,
-              //                           fontWeight: FontWeight.bold),
-              //                     )
-              //                   /*Icon(Icons.keyboard_arrow_right_sharp, size: 35, color: ColorCodes.greenColor,),*/),
-              //               ),
-              //             ),
-              //           ),
-              //
-              //         ],
-              //       ),
-              //     ),
-              //   ):
-                GestureDetector(
+                //   GestureDetector(
+                //     behavior: HitTestBehavior.translucent,
+                //     /*onTap: () {
+                //   //_dialogforPromo(context);
+                // },*/
+                //     child: Container(
+                //       margin: EdgeInsets.only(left:15, right: 15, top: 5, bottom: 5),
+                //       decoration: BoxDecoration(
+                //         color: Colors.white,
+                //         borderRadius: BorderRadius.all(Radius.circular(2.0)),
+                //         boxShadow: [
+                //           BoxShadow(
+                //             color: Colors.grey.withOpacity(0.4),
+                //             spreadRadius: 1,
+                //             blurRadius: 4,
+                //             offset: Offset(0, 1), // changes position of shadow
+                //           ),
+                //         ],
+                //       ),
+                //       padding: EdgeInsets.only(
+                //           top: 0.0, left: 10.0, right: 0.0, bottom: 0.0),
+                //       //padding: EdgeInsets.only(left: 15),
+                //       child: Row(
+                //         //mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                //         children: <Widget>[
+                //           Image.asset(Images.appLoyalty, width: 24, height: 24, color: ColorCodes.blackColor),
+                //           SizedBox(
+                //             width: 10,
+                //           ),
+                //           Container(
+                //             width: MediaQuery.of(context).size.width / 2,
+                //             child: TextField(
+                //               decoration: InputDecoration(
+                //                 border: InputBorder.none,
+                //                 hintText: S .of(context).enter_promo,
+                //                 hintStyle: TextStyle(/*color: ColorCodes.lightgrey,*/ fontSize: 14,
+                //                     /*fontWeight: FontWeight.bold*/),),//'Enter Promo Code'),
+                //               controller: myController,
+                //               onSubmitted: (String newVal) {
+                //                 /*prefs.setString("promovalue", newVal);
+                //                       setState(() {
+                //                         _checkpromo = true;
+                //                         _promocode = newVal;
+                //                       });*/
+                //                 setState(() {
+                //                   _checkpromo = true;
+                //                 });
+                //                 checkPromo();
+                //               },),
+                //           ),
+                //           Spacer(),
+                //           MouseRegion(
+                //             cursor: SystemMouseCursors.click,
+                //             child: GestureDetector(
+                //               onTap: () {
+                //                 setState(() {
+                //                   _checkpromo = true;
+                //                 });
+                //                 checkPromo();
+                //
+                //               },
+                //               // GestureDetector(
+                //               //     onTap: () {
+                //               //       _dialogForloyaltynote();
+                //               //     },
+                //               //     child: Image.asset(Images.icon_loyalty, width: 15,height: 15,color:Colors.red)),
+                //               child: Container(
+                //                 padding: EdgeInsets.only(left: 5,right: 5),
+                //                 width: (MediaQuery.of(context).size.width / 5.1),
+                //                 height: 60,
+                //                 decoration: BoxDecoration(
+                //                   color: ColorCodes.greenColor,
+                //                   borderRadius: BorderRadius.circular(2.0),
+                //                 ),
+                //                 child: Center(
+                //                     child:Text(
+                //                       S .of(context).apply,
+                //                       style: TextStyle(
+                //                           fontSize: 19.0,
+                //                           color: ColorCodes.whiteColor,
+                //                           fontWeight: FontWeight.bold),
+                //                     )
+                //                   /*Icon(Icons.keyboard_arrow_right_sharp, size: 35, color: ColorCodes.greenColor,),*/),
+                //               ),
+                //             ),
+                //           ),
+                //
+                //         ],
+                //       ),
+                //     ),
+                //   ):
+                _checkmembership && PrefUtils.prefs!.getString("typenewpromo") != "new"?SizedBox.shrink(): GestureDetector(
                   behavior: HitTestBehavior.translucent,
                   /*onTap: () {
                 //_dialogforPromo(context);
               },*/
                   child: Container(
                     margin: EdgeInsets.only(left:15, right: 15, top: 5, bottom: 5),
-                          // decoration: BoxDecoration(
-                          //   color: Colors.white,
-                          //   borderRadius: BorderRadius.all(Radius.circular(2.0)),
-                          //   boxShadow: [
-                          //     BoxShadow(
-                          //       color: Colors.grey.withOpacity(0.4),
-                          //       spreadRadius: 1,
-                          //       blurRadius: 4,
-                          //       offset: Offset(0, 1), // changes position of shadow
-                          //     ),
-                          //   ],
-                          // ),
+                    // decoration: BoxDecoration(
+                    //   color: Colors.white,
+                    //   borderRadius: BorderRadius.all(Radius.circular(2.0)),
+                    //   boxShadow: [
+                    //     BoxShadow(
+                    //       color: Colors.grey.withOpacity(0.4),
+                    //       spreadRadius: 1,
+                    //       blurRadius: 4,
+                    //       offset: Offset(0, 1), // changes position of shadow
+                    //     ),
+                    //   ],
+                    // ),
                     decoration: BoxDecoration(
                         color: ColorCodes.whiteColor,
                         borderRadius: BorderRadius.circular(12.0),
@@ -6076,8 +6113,8 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
                           left: BorderSide(width: 1.0, color: ColorCodes.greylight,),
                           right: BorderSide(width: 1.0, color: ColorCodes.greylight,),
                         )),
-                          padding: EdgeInsets.only(
-                              top: 0.0, left: 10.0, right: 0.0, bottom: 0.0),
+                    padding: EdgeInsets.only(
+                        top: 0.0, left: 10.0, right: 0.0, bottom: 0.0),
                     child: Row(
                       //mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: <Widget>[
@@ -6123,7 +6160,7 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
 
                             GestureDetector(
                               onTap: (){
-                              /*  Navigator.of(context).pushNamed(PaymentScreen.routeName,arguments: {
+                                /*  Navigator.of(context).pushNamed(PaymentScreen.routeName,arguments: {
                                   'fromScreen':'',
                                   'responsejson':"",
                                   'minimumOrderAmountNoraml': routeArgs['minimumOrderAmountNoraml'],
@@ -6167,23 +6204,24 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
                                       ))),
                             )
 
-                                :GestureDetector(
+                                :
+                            GestureDetector(
                               onTap: () {
                                 final routeArgs = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
                                 Vx.isWeb && !ResponsiveLayout.isSmallScreen(context)?
                                 PromocodeWeb(context,
-                                    deliveryAmt:  widget.deliveryCharge.toString(),
-                                    minimumOrderAmountNoraml: widget.minimumOrderAmountNoraml,
-                                    deliveryChargeNormal: widget.deliveryChargeNormal,
-                                    minimumOrderAmountPrime: widget.minimumOrderAmountPrime,
-                                    deliveryChargePrime: widget.deliveryChargePrime,
-                                    minimumOrderAmountExpress: widget.minimumOrderAmountExpress,
-                                    deliveryChargeExpress: widget.deliveryChargeExpress,
-                                    deliveryType: widget.deliveryType,
-                                    addressId: PrefUtils.prefs!.getString("addressId"),
-                                    note: widget.note,
-                                    deliveryCharge: widget.deliveryCharge.toString(),
-                                    deliveryDurationExpress : widget.deliveryDurationExpress,
+                                  deliveryAmt:  widget.deliveryCharge.toString(),
+                                  minimumOrderAmountNoraml: widget.minimumOrderAmountNoraml,
+                                  deliveryChargeNormal: widget.deliveryChargeNormal,
+                                  minimumOrderAmountPrime: widget.minimumOrderAmountPrime,
+                                  deliveryChargePrime: widget.deliveryChargePrime,
+                                  minimumOrderAmountExpress: widget.minimumOrderAmountExpress,
+                                  deliveryChargeExpress: widget.deliveryChargeExpress,
+                                  deliveryType: widget.deliveryType,
+                                  addressId: PrefUtils.prefs!.getString("addressId"),
+                                  note: widget.note,
+                                  deliveryCharge: widget.deliveryCharge.toString(),
+                                  deliveryDurationExpress : widget.deliveryDurationExpress,
                                 )
                                     :
                                 Navigation(context, name: Routename.PromocodeScreen, navigatore: NavigatoreTyp.Push,
@@ -6206,7 +6244,7 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
                               },
                               child: Container(
                                 padding: EdgeInsets.only(left: 5,right: 5),
-                              //  width: (MediaQuery.of(context).size.width / 5.1),
+                                //  width: (MediaQuery.of(context).size.width / 5.1),
                                 height: 60,
                                 child: Center(
                                   child:Icon(Icons.keyboard_arrow_right_sharp, size: 35),
@@ -6292,7 +6330,7 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
                 // Divider(color: ColorCodes.blackColor),
               ],
             ):
-                SizedBox.shrink();
+            SizedBox.shrink();
           } else {
             return Container();
           }
@@ -6326,8 +6364,8 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
                         ),
                         Text(
                           Features.iscurrencyformatalign?
-                         (CartCalculations.totalmrp - (amountPayable-deliveryAmt)).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit) +
-                             " " + IConstants.currencyFormat :
+                          (CartCalculations.totalmrp - (amountPayable-deliveryAmt)).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit) +
+                              " " + IConstants.currencyFormat :
                           IConstants.currencyFormat +
                               " " + (CartCalculations.totalmrp - (amountPayable-deliveryAmt)).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),
                           style: TextStyle(
@@ -6363,15 +6401,15 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
           children: [
             Container(
               decoration: BoxDecoration(
-                  color: ColorCodes.whiteColor,
-                  // boxShadow: [
-                  //   BoxShadow(
-                  //     color: ColorCodes.grey.withOpacity(0.3),
-                  //     spreadRadius: 4,
-                  //     blurRadius: 5,
-                  //     offset: Offset(0, 3),
-                  //   )
-                  // ]
+                color: ColorCodes.whiteColor,
+                // boxShadow: [
+                //   BoxShadow(
+                //     color: ColorCodes.grey.withOpacity(0.3),
+                //     spreadRadius: 4,
+                //     blurRadius: 5,
+                //     offset: Offset(0, 3),
+                //   )
+                // ]
               ),
               width: MediaQuery.of(context).size.width,
               padding: EdgeInsets.only(
@@ -6436,124 +6474,124 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
 
                               ),
                               // if (!_isPickup)
-                            //   Container(
-                            //     height:20,
-                            //     child: Row(
-                            //       children: [
-                            //         Text(
-                            //           S .of(context).payment_delivery_charge,//"Delivery charges",
-                            //           style: TextStyle(
-                            //               fontSize: 14.0,
-                            //               color: ColorCodes.greyColor,
-                            //               fontWeight: FontWeight.bold),
-                            //
-                            //         ),
-                            //
-                            //        (deliverychargetext != "FREE") ?
-                            //         SimpleTooltip(
-                            //           maxHeight: MediaQuery.of(context).size.width * 24.7/100,
-                            //           borderColor: Theme.of(context).primaryColor,
-                            //           tooltipTap: ()
-                            //           {
-                            //             setState(() {
-                            //               _showDeliveryinfo = !_showDeliveryinfo;
-                            //             }
-                            //             );
-                            //           },
-                            //           hideOnTooltipTap: true,
-                            //           show:_showDeliveryinfo ,
-                            //           tooltipDirection: TooltipDirection.down,
-                            //           ballonPadding: EdgeInsets.symmetric(horizontal: 10,vertical: 10),
-                            //           child:
-                            //           IconButton(
-                            //             padding: EdgeInsets.all(0),
-                            //             icon:Icon(Icons.help_outline,size: 15,),
-                            //             onPressed: (){
-                            //               setState(() {
-                            //                 _showDeliveryinfo = !_showDeliveryinfo;
-                            //               }
-                            //               );
-                            //             },
-                            //           ),
-                            //           content: Container(child:Column(children:[
-                            //             _checkmembership ? Text('Shop '+IConstants.currencyFormat+(minorderamount - Calculations.totalMember).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit)+' more to get free delivery',
-                            //               style: TextStyle(
-                            //                   fontWeight: FontWeight.w500,
-                            //                   color:Colors.black,
-                            //                   fontStyle: FontStyle.normal,
-                            //                   fontSize: 12,
-                            //                   decoration: TextDecoration.none
-                            //               ),
-                            //             )
-                            //                 :
-                            //             Text('Shop '+IConstants.currencyFormat+(minorderamount - cartTotal).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit)+' more to get free delivery',
-                            //               style: TextStyle(
-                            //                   fontWeight: FontWeight.w500,
-                            //                   color:Colors.black,
-                            //                   fontStyle: FontStyle.normal,
-                            //                   fontSize: 12,
-                            //                   decoration: TextDecoration.none
-                            //               ),
-                            //             ),
-                            //             SizedBox(height: 3,),
-                            //             GestureDetector(onTap:()
-                            //             {
-                            //               /*Navigator.of(context).pushNamed(
-                            //                 CategoryScreen.routeName,
-                            //               );*/
-                            //               /*Navigator.of(context).pushNamedAndRemoveUntil(
-                            //               '/home-screen', (Route<dynamic> route) => false);*/
-                            //               Navigator.of(context).popUntil(ModalRoute.withName(HomeScreen.routeName,));
-                            //
-                            //             },
-                            //                 child: Center(
-                            //                   child:Text('Shop more',style: TextStyle(color:Color(0xffff3333),fontSize: 12,fontWeight: FontWeight.w500,decoration: TextDecoration.none),),))])),
-                            //           arrowTipDistance: 2,
-                            //           minimumOutSidePadding: 10,
-                            //           arrowLength: 8,
-                            //         )
-                            //             :
-                            //         SimpleTooltip(
-                            //
-                            //           ballonPadding: EdgeInsets.symmetric(vertical: 3,horizontal: 5),
-                            //           tooltipTap: (){
-                            //             setState(() {
-                            //               _showDeliveryinfo = !_showDeliveryinfo;
-                            //             });
-                            //           },
-                            //           //animationDuration: Duration(seconds: 3),
-                            //           hideOnTooltipTap: true,
-                            //           show:_showDeliveryinfo ,
-                            //           arrowTipDistance: 0,
-                            //           arrowLength: 5,
-                            //           tooltipDirection: TooltipDirection.down,
-                            //           child: IconButton(
-                            //
-                            //             padding: EdgeInsets.all(0),
-                            //             icon:Icon(
-                            //             Icons.help_outline,
-                            //             size: 15,
-                            //
-                            //           ),onPressed: (){
-                            //             setState(() {
-                            //               _showDeliveryinfo = !_showDeliveryinfo;
-                            //             });
-                            //           },),
-                            //           content: Text(
-                            //             //S .of(context).yay_freedelivery,
-                            //             'Yay!Free Delivery',
-                            //             style: TextStyle(
-                            //               fontSize: 12,
-                            //               color: Colors.black54,
-                            //               decoration: TextDecoration.none,
-                            //             ),
-                            //           ),
-                            //           borderColor: Theme.of(context).primaryColor,
-                            //         )
-                            // //Icon(Icons.help_outline, color: Theme.of(context).primaryColor, size: 15.0,),
-                            //       ],
-                            //     ),
-                            //   ),
+                              //   Container(
+                              //     height:20,
+                              //     child: Row(
+                              //       children: [
+                              //         Text(
+                              //           S .of(context).payment_delivery_charge,//"Delivery charges",
+                              //           style: TextStyle(
+                              //               fontSize: 14.0,
+                              //               color: ColorCodes.greyColor,
+                              //               fontWeight: FontWeight.bold),
+                              //
+                              //         ),
+                              //
+                              //        (deliverychargetext != "FREE") ?
+                              //         SimpleTooltip(
+                              //           maxHeight: MediaQuery.of(context).size.width * 24.7/100,
+                              //           borderColor: Theme.of(context).primaryColor,
+                              //           tooltipTap: ()
+                              //           {
+                              //             setState(() {
+                              //               _showDeliveryinfo = !_showDeliveryinfo;
+                              //             }
+                              //             );
+                              //           },
+                              //           hideOnTooltipTap: true,
+                              //           show:_showDeliveryinfo ,
+                              //           tooltipDirection: TooltipDirection.down,
+                              //           ballonPadding: EdgeInsets.symmetric(horizontal: 10,vertical: 10),
+                              //           child:
+                              //           IconButton(
+                              //             padding: EdgeInsets.all(0),
+                              //             icon:Icon(Icons.help_outline,size: 15,),
+                              //             onPressed: (){
+                              //               setState(() {
+                              //                 _showDeliveryinfo = !_showDeliveryinfo;
+                              //               }
+                              //               );
+                              //             },
+                              //           ),
+                              //           content: Container(child:Column(children:[
+                              //             _checkmembership ? Text('Shop '+IConstants.currencyFormat+(minorderamount - Calculations.totalMember).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit)+' more to get free delivery',
+                              //               style: TextStyle(
+                              //                   fontWeight: FontWeight.w500,
+                              //                   color:Colors.black,
+                              //                   fontStyle: FontStyle.normal,
+                              //                   fontSize: 12,
+                              //                   decoration: TextDecoration.none
+                              //               ),
+                              //             )
+                              //                 :
+                              //             Text('Shop '+IConstants.currencyFormat+(minorderamount - cartTotal).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit)+' more to get free delivery',
+                              //               style: TextStyle(
+                              //                   fontWeight: FontWeight.w500,
+                              //                   color:Colors.black,
+                              //                   fontStyle: FontStyle.normal,
+                              //                   fontSize: 12,
+                              //                   decoration: TextDecoration.none
+                              //               ),
+                              //             ),
+                              //             SizedBox(height: 3,),
+                              //             GestureDetector(onTap:()
+                              //             {
+                              //               /*Navigator.of(context).pushNamed(
+                              //                 CategoryScreen.routeName,
+                              //               );*/
+                              //               /*Navigator.of(context).pushNamedAndRemoveUntil(
+                              //               '/home-screen', (Route<dynamic> route) => false);*/
+                              //               Navigator.of(context).popUntil(ModalRoute.withName(HomeScreen.routeName,));
+                              //
+                              //             },
+                              //                 child: Center(
+                              //                   child:Text('Shop more',style: TextStyle(color:Color(0xffff3333),fontSize: 12,fontWeight: FontWeight.w500,decoration: TextDecoration.none),),))])),
+                              //           arrowTipDistance: 2,
+                              //           minimumOutSidePadding: 10,
+                              //           arrowLength: 8,
+                              //         )
+                              //             :
+                              //         SimpleTooltip(
+                              //
+                              //           ballonPadding: EdgeInsets.symmetric(vertical: 3,horizontal: 5),
+                              //           tooltipTap: (){
+                              //             setState(() {
+                              //               _showDeliveryinfo = !_showDeliveryinfo;
+                              //             });
+                              //           },
+                              //           //animationDuration: Duration(seconds: 3),
+                              //           hideOnTooltipTap: true,
+                              //           show:_showDeliveryinfo ,
+                              //           arrowTipDistance: 0,
+                              //           arrowLength: 5,
+                              //           tooltipDirection: TooltipDirection.down,
+                              //           child: IconButton(
+                              //
+                              //             padding: EdgeInsets.all(0),
+                              //             icon:Icon(
+                              //             Icons.help_outline,
+                              //             size: 15,
+                              //
+                              //           ),onPressed: (){
+                              //             setState(() {
+                              //               _showDeliveryinfo = !_showDeliveryinfo;
+                              //             });
+                              //           },),
+                              //           content: Text(
+                              //             //S .of(context).yay_freedelivery,
+                              //             'Yay!Free Delivery',
+                              //             style: TextStyle(
+                              //               fontSize: 12,
+                              //               color: Colors.black54,
+                              //               decoration: TextDecoration.none,
+                              //             ),
+                              //           ),
+                              //           borderColor: Theme.of(context).primaryColor,
+                              //         )
+                              // //Icon(Icons.help_outline, color: Theme.of(context).primaryColor, size: 15.0,),
+                              //       ],
+                              //     ),
+                              //   ),
                               // if (!_isPickup)
                               SizedBox(
                                 height: 5.0,
@@ -6568,37 +6606,37 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
                                 height: 5.0,
                               ),
                               if(!_checkmembership)
-                              if ((CartCalculations.totalprice)  > 0)
+                                if ((CartCalculations.totalprice)  > 0)
 
-                                Text(
-                                  S .of(context).discount_applied,//"Discount applied:",
-                                  style: TextStyle(
-                                      fontSize: 14.0,
-                                      color: ColorCodes.greyColor,
-                                      fontWeight: FontWeight.bold),
-                                ),
+                                  Text(
+                                    S .of(context).discount_applied,//"Discount applied:",
+                                    style: TextStyle(
+                                        fontSize: 14.0,
+                                        color: ColorCodes.greyColor,
+                                        fontWeight: FontWeight.bold),
+                                  ),
                               /*if ((Calculations.totalmrp - cartTotal) > 0)
                                 SizedBox(
                                   height: 10.0,
                                 ),*/
                               if(!_checkmembership)
-                              if ((CartCalculations.totalprice) > 0)
-                                SizedBox(
-                                  height: 5.0,
-                                ),
+                                if ((CartCalculations.totalprice) > 0)
+                                  SizedBox(
+                                    height: 5.0,
+                                  ),
                               if(!_checkmembership)
-                              if ((CartCalculations.totalprice) > 0)
-                                DottedLine(
-                                    dashColor: ColorCodes.lightgrey,
-                                    lineThickness: 1.0,
-                                    dashLength: 2.0,
-                                    dashRadius: 0.0,
-                                    dashGapLength: 1.0),
+                                if ((CartCalculations.totalprice) > 0)
+                                  DottedLine(
+                                      dashColor: ColorCodes.lightgrey,
+                                      lineThickness: 1.0,
+                                      dashLength: 2.0,
+                                      dashRadius: 0.0,
+                                      dashGapLength: 1.0),
                               if(!_checkmembership)
-                              if ((CartCalculations.totalprice) > 0)
-                                SizedBox(
-                                  height: 5.0,
-                                ),
+                                if ((CartCalculations.totalprice) > 0)
+                                  SizedBox(
+                                    height: 5.0,
+                                  ),
                               if(_checkmembership)
                                 if((CartCalculations.totalMembersPrice /*- Calculations.totalprice*/) > 0)
                                   Text(
@@ -6736,29 +6774,29 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
                                 height: 10.0,
                               ),
                               if(!_checkmembership)
-                              if ((CartCalculations.totalprice) > 0)
-                                Text(
-                                  "- " +
-                                      (CartCalculations.totalmrp - cartTotal)
-                                          .toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),
-                                  style: TextStyle(
-                                      fontSize: 13.0,
-                                      color: ColorCodes.greyColor,
-                                      fontWeight: FontWeight.bold),
-                                ),
+                                if ((CartCalculations.totalprice) > 0)
+                                  Text(
+                                    "- " +
+                                        (CartCalculations.totalmrp - cartTotal)
+                                            .toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),
+                                    style: TextStyle(
+                                        fontSize: 13.0,
+                                        color: ColorCodes.greyColor,
+                                        fontWeight: FontWeight.bold),
+                                  ),
                               /*if ((Calculations.totalmrp - cartTotal) > 0)
                                 SizedBox(
                                   height: 10.0,
                                 ),*/
                               if(!_checkmembership)
-                              if ((CartCalculations.totalprice) > 0)
-                                SizedBox(
-                                  height: 10.0,
-                                ),
+                                if ((CartCalculations.totalprice) > 0)
+                                  SizedBox(
+                                    height: 10.0,
+                                  ),
                               if(_checkmembership)
                                 if((CartCalculations.totalMembersPrice /*- Calculations.totalprice*/) > 0)
                                   Text(
-                                   "-"+ (/*Calculations.totalprice -*/ CartCalculations.totalMembersPrice)
+                                    "-"+ (/*Calculations.totalprice -*/ CartCalculations.totalMembersPrice)
                                         .toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),
                                     style: TextStyle(
                                         fontSize: 13.0,
@@ -7463,10 +7501,10 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
                                   Row(
                                     children: [
                                       Text(
-                                        Features.iscurrencyformatalign?
-                                        remainingAmount
-                                                .toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit) +
-                                            " " + IConstants.currencyFormat :
+                                          Features.iscurrencyformatalign?
+                                          remainingAmount
+                                              .toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit) +
+                                              " " + IConstants.currencyFormat :
                                           IConstants.currencyFormat +
                                               " " +
                                               remainingAmount
@@ -7501,7 +7539,7 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
                               : GestureDetector(
                             behavior: HitTestBehavior.translucent,
                             onTap: (){
-                              _handleRadioValueChange1(Features.isMembership && (_checkmembership)?0:i);
+                              _handleRadioValueChange1(Features.isMembership && (_checkmembership_mode)?0:i);
                             },
                             child: Container(
                               width:
@@ -7531,7 +7569,7 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
                                       Image.asset(Images.onlineImg, height: 24),
                                     ],
                                   ),
-                                  handler(Features.isMembership && (_checkmembership)?0:i),
+                                  handler(Features.isMembership && (_checkmembership_mode)?0:i),
                                   // SizedBox(
                                   //   width: 15.0,
                                   //   child: _myRadioButton(
@@ -7866,7 +7904,7 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
                           Orderfood();
                         }
 
-                       // (_slots ) ? _isPickup ? Orderfood(): Features.isSplit ? OrderfoodSplit() : Orderfood() :OrderfoodSplit();
+                        // (_slots ) ? _isPickup ? Orderfood(): Features.isSplit ? OrderfoodSplit() : Orderfood() :OrderfoodSplit();
                         /*if(Features.isOffers) {
                           if (offersData.offers.length > 0) {
                             _addToCart();
@@ -7948,7 +7986,7 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
               _isLoayalty &&
               (double.parse(loyaltyPoints) > 0)) {
             amountPayable =
-                (cartTotal + deliveryAmt - loyaltyAmount);//.roundToDouble();
+            (cartTotal + deliveryAmt - loyaltyAmount);//.roundToDouble();
           } else {
             amountPayable = (cartTotal + deliveryAmt);
           }
@@ -7995,66 +8033,66 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
             mainAxisAlignment: MainAxisAlignment.start,
             children: <Widget>[
               IConstants.isEnterprise && Features.ismultivendor?
-           Container(
-             width: MediaQuery.of(context).size.width,
-          decoration: BoxDecoration(
-          color: ColorCodes.whiteColor,
-          ),
-             child: Padding(
-               padding: EdgeInsets.only(left:15, right: 15, top: 5, bottom: 5),
-               child: Column(
-                 mainAxisAlignment: MainAxisAlignment.start,
-                 crossAxisAlignment: CrossAxisAlignment.start,
-                 children: [
-                   Text(S.of(context).select_payment_method,
-                     style: TextStyle(
-                         fontSize: 19,
-                         color: ColorCodes.blackColor,
-                         fontWeight: FontWeight.bold
-                   ),),
-                   Padding(
-                     padding: const EdgeInsets.only(top:8.0,bottom: 8),
-                     child: Row(
-                       children: [
-                         Text(S.of(context).item_total +" ",
-                         style: TextStyle(
-                             fontSize: 16,
-                             color: ColorCodes.greyColor,
-                             //fontWeight: FontWeight.bold
-                         ),),
-                         Text( Features.iscurrencyformatalign?
-                         amountPayable.toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit) +
-                             " " + IConstants.currencyFormat :
-                         IConstants.currencyFormat +
-                             " " +
-                             amountPayable.toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),
-                             style:TextStyle(
-                               fontSize: 16,
-                               color: ColorCodes.greyColor,
-                               //fontWeight: FontWeight.bold
-                             )),
-                         SizedBox(
-                           height:15,
-                           child: VerticalDivider(
-                             color: ColorCodes.greyColor,
-                           ),
-                         ),
+              Container(
+                width: MediaQuery.of(context).size.width,
+                decoration: BoxDecoration(
+                  color: ColorCodes.whiteColor,
+                ),
+                child: Padding(
+                  padding: EdgeInsets.only(left:15, right: 15, top: 5, bottom: 5),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(S.of(context).select_payment_method,
+                        style: TextStyle(
+                            fontSize: 19,
+                            color: ColorCodes.blackColor,
+                            fontWeight: FontWeight.bold
+                        ),),
+                      Padding(
+                        padding: const EdgeInsets.only(top:8.0,bottom: 8),
+                        child: Row(
+                          children: [
+                            Text(S.of(context).item_total +" ",
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: ColorCodes.greyColor,
+                                //fontWeight: FontWeight.bold
+                              ),),
+                            Text( Features.iscurrencyformatalign?
+                            amountPayable.toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit) +
+                                " " + IConstants.currencyFormat :
+                            IConstants.currencyFormat +
+                                " " +
+                                amountPayable.toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit),
+                                style:TextStyle(
+                                  fontSize: 16,
+                                  color: ColorCodes.greyColor,
+                                  //fontWeight: FontWeight.bold
+                                )),
+                            SizedBox(
+                              height:15,
+                              child: VerticalDivider(
+                                color: ColorCodes.greyColor,
+                              ),
+                            ),
 
-                         Text(CartCalculations.itemCount.toString() +" " + S.of(context).items,
-                         style: TextStyle(
-                             fontSize: 16,
-                             color: ColorCodes.greyColor,
-                             //fontWeight: FontWeight.bold
-                         ),),
-                       ],
-                     ),
-                   )
+                            Text(CartCalculations.itemCount.toString() +" " + S.of(context).items,
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: ColorCodes.greyColor,
+                                //fontWeight: FontWeight.bold
+                              ),),
+                          ],
+                        ),
+                      )
 
-                 ],
-               ),
-             ),
-        ):
-                  SizedBox.shrink(),
+                    ],
+                  ),
+                ),
+              ):
+              SizedBox.shrink(),
               Container(
                 color:  ColorCodes.whiteColor,
                 height: 12,
@@ -8080,11 +8118,11 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
 
     return WillPopScope(
         onWillPop: () {
-      // this is the block you need
-      /* Navigator.pushNamedAndRemoveUntil(
+          // this is the block you need
+          /* Navigator.pushNamedAndRemoveUntil(
             context, CartScreen.routeName, (route) => false);*/
-     // removeToCart(0);
-      //Navigator.of(context).pop();
+          // removeToCart(0);
+          //Navigator.of(context).pop();
           (Features.ismultivendor)?
           Navigation(context, name: Routename.Cart, navigatore: NavigatoreTyp.Push,qparms: {"afterlogin":""}):
           widget.fromScreen == "cartscreen"?
@@ -8095,34 +8133,31 @@ class _PaymentScreenState extends State<PaymentScreen> with Navigations {
               parms:{"prev": "payment"});
           final routeArgs = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
 
-            // Navigation(context, name:Routename.ConfirmOrder,navigatore: NavigatoreTyp.Push,
-            //     parms:{"prev": "payment"});
+          // Navigation(context, name:Routename.ConfirmOrder,navigatore: NavigatoreTyp.Push,
+          //     parms:{"prev": "payment"});
 
-      return Future.value(false);
-    },
-    child:Scaffold (
-      appBar: ResponsiveLayout.isSmallScreen(context)
-          ? IConstants.isEnterprise?gradientappbarmobile():gradientappbarlite()
-          : PreferredSize(preferredSize: Size.fromHeight(0),child: SizedBox.shrink()),
-      body: Column(
-        children: [
-          if (_isWeb && !ResponsiveLayout.isSmallScreen(context)) Header(false),
-          // !_isWeb ? _bodyMobile() : _bodyWeb(),
-          (_isWeb && !ResponsiveLayout.isSmallScreen(context)) ? _bodyWeb()! : _bodyMobile(),
-          // if (_isWeb && !ResponsiveLayout.isLargeScreen(context)) _bodyMobile(),
-        ],
-      ),
-      bottomNavigationBar:
-      (Vx.isWeb && !ResponsiveLayout.isSmallScreen(context)) ? SizedBox.shrink() : Container(
-        color: Colors.white,
-        child: Padding(
-            padding: EdgeInsets.only(left: 0.0, top: 0.0, right: 0.0, bottom: iphonex ? 16.0 : 0.0),
-            child: _buildBottomNavigationBar()
-        ),
-      ),
-    ));
+          return Future.value(false);
+        },
+        child:Scaffold (
+          appBar: ResponsiveLayout.isSmallScreen(context)
+              ? IConstants.isEnterprise?gradientappbarmobile():gradientappbarlite()
+              : PreferredSize(preferredSize: Size.fromHeight(0),child: SizedBox.shrink()),
+          body: Column(
+            children: [
+              if (_isWeb && !ResponsiveLayout.isSmallScreen(context)) Header(false),
+              // !_isWeb ? _bodyMobile() : _bodyWeb(),
+              (_isWeb && !ResponsiveLayout.isSmallScreen(context)) ? _bodyWeb()! : _bodyMobile(),
+              // if (_isWeb && !ResponsiveLayout.isLargeScreen(context)) _bodyMobile(),
+            ],
+          ),
+          bottomNavigationBar:
+          (Vx.isWeb && !ResponsiveLayout.isSmallScreen(context)) ? SizedBox.shrink() : Container(
+            color: Colors.white,
+            child: Padding(
+                padding: EdgeInsets.only(left: 0.0, top: 0.0, right: 0.0, bottom: iphonex ? 16.0 : 0.0),
+                child: _buildBottomNavigationBar()
+            ),
+          ),
+        ));
   }
-
-
-
 }

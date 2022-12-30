@@ -1783,7 +1783,7 @@ class _AddressInfoState extends State<AddressInfo> with Navigations{
                     onCameraIdle: _onCameraIdle,
                     onCameraMove: _onCameraMove,
                     myLocationEnabled: true,
-                    padding: (Platform.isAndroid) ? EdgeInsets.only(bottom: 10, top: MediaQuery.of(context).size.height/3, right: 0, left: 0) : null,
+                    padding: (Platform.isAndroid) ? EdgeInsets.only(bottom: 10, top: MediaQuery.of(context).size.height/5, right: 0, left: 0) : null,
                     initialCameraPosition: CameraPosition(
                       target: LatLng(_lat, _lng),
                       zoom: 18.0,

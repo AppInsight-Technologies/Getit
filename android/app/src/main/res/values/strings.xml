@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="default_notification_channel_id">com.getit.store.default</string>
-    <string name="app_name">Denimers</string>
-    <string name="facebook_app_id">265461322292464</string>
-    <string name="fb_login_protocol_scheme">fb265461322292464</string>
+    <string name="app_name">Getit</string>
+    <string name="facebook_app_id">688234919420763</string>
+    <string name="facebook_client_token">021c6bd39850e07a0a1cf8e64214fef6</string>
+    <string name="fb_login_protocol_scheme">fb688234919420763</string>
     <string name="freshchat_file_provider_authority">com.getit.store.provider</string>
 </resources>

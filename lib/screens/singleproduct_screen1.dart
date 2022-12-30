@@ -520,7 +520,7 @@ class _SingleproductScreenState extends State<SingleproductScreen> with TickerPr
 
   Future<String> createShareLink(String singleProduct, String productID) async {
     final DynamicLinkParameters dynamicLinkParameters = DynamicLinkParameters(
-        uriPrefix: 'https://itgetpage.page.link',
+        uriPrefix: 'https://getitpage.page.link',
         link: Uri.parse('${IConstants.AppDomain}/store/product/$singleProduct/$productID'),
         androidParameters: AndroidParameters(
           packageName: IConstants.androidId,

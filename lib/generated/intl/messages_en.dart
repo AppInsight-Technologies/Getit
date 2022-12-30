@@ -46,8 +46,8 @@ class MessageLookup extends MessageLookupByLibrary {
             MessageLookupByLibrary.simpleMessage("Selected Slot is full"),
         "Selesct_loc":
             MessageLookupByLibrary.simpleMessage("Select a Location"),
-        "Shop": MessageLookupByLibrary.simpleMessage(
-            "Get FREE next day delivery on above Rs. 400 orders"),
+        "Shop":
+            MessageLookupByLibrary.simpleMessage("FREE Next Day Delivery on "),
         "Shop_more": MessageLookupByLibrary.simpleMessage("Shop more"),
         "Sign_Up_Bonus": MessageLookupByLibrary.simpleMessage("Sign Up Bonus"),
         "Sun": MessageLookupByLibrary.simpleMessage("sun"),
@@ -519,8 +519,8 @@ class MessageLookup extends MessageLookupByLibrary {
             MessageLookupByLibrary.simpleMessage("ex: Monthly Grocery"),
         "more": MessageLookupByLibrary.simpleMessage("MORE"),
         "more_items": MessageLookupByLibrary.simpleMessage("more items"),
-        "more_to_get":
-            MessageLookupByLibrary.simpleMessage("more to get free delivery"),
+        "more_to_get": MessageLookupByLibrary.simpleMessage(
+            " Orders. Add more items to avail offer"),
         "multiple_customization": MessageLookupByLibrary.simpleMessage(
             "This item has multiple customization added, Proceed to cart to remove item?"),
         "my_address": MessageLookupByLibrary.simpleMessage("My Addresses"),

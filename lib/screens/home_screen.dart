@@ -423,7 +423,7 @@ class _HomeScreenState extends State<HomeScreen> with Navigations{
                           ? 18.0
                           : 24.0,
                       color:  (Vx.isWeb && !ResponsiveLayout.isSmallScreen(context))?
-                      ColorCodes.blackColor:Theme
+                      ColorCodes.primaryColor:Theme
                           .of(context)
                           .primaryColor,
                       fontWeight: FontWeight.bold),
@@ -776,7 +776,7 @@ class _HomeScreenState extends State<HomeScreen> with Navigations{
                 S.of(context).explore_by_cat, //"Explore by Category",
                 style: TextStyle(fontSize: ResponsiveLayout.isSmallScreen(context) ? 18.0 : 24.0,
                     color:  (Vx.isWeb && !ResponsiveLayout.isSmallScreen(context))?
-                    ColorCodes.blackColor:Theme
+                    ColorCodes.primaryColor:Theme
                         .of(context)
                         .primaryColor,
                     fontWeight: FontWeight.bold),
@@ -820,7 +820,7 @@ class _HomeScreenState extends State<HomeScreen> with Navigations{
                       fontSize: ResponsiveLayout.isSmallScreen(context)?18.0:24.0,
                       fontWeight: FontWeight.w900,
                     color:  (Vx.isWeb && !ResponsiveLayout.isSmallScreen(context))?
-                    ColorCodes.blackColor:Theme
+                    ColorCodes.primaryColor:Theme
                         .of(context)
                         .primaryColor,),
                 ),
@@ -874,7 +874,7 @@ class _HomeScreenState extends State<HomeScreen> with Navigations{
                       fontSize: ResponsiveLayout.isSmallScreen(context)?18.0:24.0,
                       fontWeight: FontWeight.w900,
                     color:  (Vx.isWeb && !ResponsiveLayout.isSmallScreen(context))?
-                    ColorCodes.blackColor:Theme
+                    ColorCodes.primaryColor:Theme
                         .of(context)
                         .primaryColor,),
                 ),
@@ -1168,7 +1168,7 @@ class _HomeScreenState extends State<HomeScreen> with Navigations{
                       foregroundColor: Colors.white,
                       backgroundColor: Colors.transparent,
                       child: Image.asset(Images.homeImg,
-                        color: IConstants.isEnterprise?ColorCodes.badgecolor:ColorCodes.maphome,
+                        color: IConstants.isEnterprise?ColorCodes.blackColor:ColorCodes.maphome,
                         width: 30,
                         height: 25,
                       ),
@@ -1179,7 +1179,7 @@ class _HomeScreenState extends State<HomeScreen> with Navigations{
                     Text(
                         S.of(context).home, // "Home",
                         style: TextStyle(
-                            color: IConstants.isEnterprise?ColorCodes.badgecolor:ColorCodes.maphome,
+                            color: IConstants.isEnterprise?ColorCodes.blackColor:ColorCodes.maphome,
                             fontSize: 10.0,
                             fontWeight: FontWeight.bold)),
                     SizedBox(
@@ -2071,7 +2071,7 @@ class _HomeScreenState extends State<HomeScreen> with Navigations{
                                             fontSize: ResponsiveLayout.isSmallScreen(context)?18.0:24.0,
                                             fontWeight: FontWeight.w900,
                                           color:  (Vx.isWeb && !ResponsiveLayout.isSmallScreen(context))?
-                                          ColorCodes.blackColor:ColorCodes.primaryColor,),
+                                          ColorCodes.primaryColor:ColorCodes.primaryColor,),
                                       ) : SizedBox.shrink(),
                                     ),
                                     Container(
@@ -2219,8 +2219,7 @@ class _HomeScreenState extends State<HomeScreen> with Navigations{
                                       Expanded(
                                         child: GestureDetector(
                                           onTap: () {
-                                            launch("tel: " +
-                                                IConstants.primaryMobile);
+                                            launch("tel://"+IConstants.primaryMobile);
                                           },
                                             child: Container(
                                               margin: EdgeInsets.only(left: 7),

@@ -318,7 +318,7 @@ class _ExpansionCategoryState extends State<ExpansionCategory> with Navigations 
                               child: Icon(
                                 Icons.keyboard_arrow_down,
                                 size: 30,
-                                color: ResponsiveLayout.isSmallScreen(context)?ColorCodes.darkgreen:ColorCodes.blackColor,
+                                color: ResponsiveLayout.isSmallScreen(context)?ColorCodes.darkgreen:ColorCodes.primaryColor,
                               )),
                           if (ResponsiveLayout.isSmallScreen(context))
                             SizedBox(
@@ -398,7 +398,7 @@ class _ExpansionCategoryState extends State<ExpansionCategory> with Navigations 
                                               .isSmallScreen(
                                               context)
                                               ?Theme.of(context)
-                                              .primaryColor:ColorCodes.blackColor),
+                                              .primaryColor:ColorCodes.primaryColor),
                                     ),
                                     (widget
                                         .homedata

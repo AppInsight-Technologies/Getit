@@ -5464,20 +5464,20 @@ class S {
     );
   }
 
-  /// `Get FREE next day delivery on above Rs. 400 orders`
+  /// `FREE Next Day Delivery on `
   String get Shop {
     return Intl.message(
-      'Get FREE next day delivery on above Rs. 400 orders',
+      'FREE Next Day Delivery on ',
       name: 'Shop',
       desc: '',
       args: [],
     );
   }
 
-  /// `more to get free delivery`
+  /// ` Orders. Add more items to avail offer`
   String get more_to_get {
     return Intl.message(
-      'more to get free delivery',
+      ' Orders. Add more items to avail offer',
       name: 'more_to_get',
       desc: '',
       args: [],

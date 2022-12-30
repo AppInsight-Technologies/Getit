@@ -10826,23 +10826,20 @@ if(_initialloading)
                           SizedBox(width:5),
                           (_checkmembership)?
                               Features.iscurrencyformatalign?
-                              Text(S .of(context).Shop//'Shop '
-                                  +" "+(double.parse(_minimumOrderAmountPrime) - CartCalculations.totalMember).toStringAsFixed((IConstants.numberFormat == "1")
-                                  ?0:IConstants.decimaldigit)+" "+IConstants.currencyFormat+" "+S .of(context).more_to_get//' more to get free delivery',
-                                ,maxLines:2,style: TextStyle(fontWeight: FontWeight.bold,fontSize: 12),
-                              ):
-                              Expanded(child:  Text(S .of(context).Shop//'Shop '
-                                /* +" "+IConstants.currencyFormat+" "+(double.parse(_minimumOrderAmountPrime) - CartCalculations.totalMember).toStringAsFixed((IConstants.numberFormat == "1")
-                              ?0:IConstants.decimaldigit)+" "+S .of(context).more_to_get*///' more to get free delivery',
-                                ,maxLines:2,style: TextStyle(fontWeight: FontWeight.bold,fontSize: 12),
-                              ))
+                            Expanded(child: Text(S .of(context).Shop+" "+IConstants.currencyFormat+" "+_minimumOrderAmountPrime+""+S .of(context).more_to_get+/*" "+IConstants.currencyFormat+" "+(double.parse(_minimumOrderAmountNoraml) - CartCalculations.total).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit)+*/" "/*+S .of(context).more_to_get*///' more to get free delivery'
+                              ,maxLines:2,style: TextStyle(fontWeight: FontWeight.bold,fontSize: 12),),)
+                              :
+                              Expanded(child: Text(S .of(context).Shop+" "+IConstants.currencyFormat+" "+_minimumOrderAmountPrime+""+S .of(context).more_to_get+/*" "+IConstants.currencyFormat+" "+(double.parse(_minimumOrderAmountNoraml) - CartCalculations.total).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit)+*/" "/*+S .of(context).more_to_get*///' more to get free delivery'
+                                ,maxLines:2,style: TextStyle(fontWeight: FontWeight.bold,fontSize: 12),),)
 
                               :
-                              Features.iscurrencyformatalign?
-                              Text(S .of(context).Shop+" "+(double.parse(_minimumOrderAmountNoraml) - CartCalculations.total).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit)+" "+IConstants.currencyFormat+" "/*+S .of(context).more_to_get*///' more to get free delivery'
-                                ,maxLines:2,style: TextStyle(fontWeight: FontWeight.bold,fontSize: 12),):
-                          Text(S .of(context).Shop+" "+IConstants.currencyFormat+" "+(double.parse(_minimumOrderAmountNoraml) - CartCalculations.total).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit)+" "/*+S .of(context).more_to_get*///' more to get free delivery'
-                            ,maxLines:2,style: TextStyle(fontWeight: FontWeight.bold,fontSize: 12),)
+                          Features.iscurrencyformatalign?
+                      Expanded(child: Text(S .of(context).Shop+" "+IConstants.currencyFormat+" "+_minimumOrderAmountNoraml+""+S .of(context).more_to_get+/*" "+IConstants.currencyFormat+" "+(double.parse(_minimumOrderAmountNoraml) - CartCalculations.total).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit)+*/" "/*+S .of(context).more_to_get*///' more to get free delivery'
+                        ,maxLines:2,style: TextStyle(fontWeight: FontWeight.bold,fontSize: 12),),)
+                              :
+                          Expanded(child: Text(S .of(context).Shop+" "+IConstants.currencyFormat+" "+_minimumOrderAmountNoraml+""+S .of(context).more_to_get+/*" "+IConstants.currencyFormat+" "+(double.parse(_minimumOrderAmountNoraml) - CartCalculations.total).toStringAsFixed(IConstants.numberFormat == "1"?0:IConstants.decimaldigit)+*/" "/*+S .of(context).more_to_get*///' more to get free delivery'
+                            ,maxLines:2,style: TextStyle(fontWeight: FontWeight.bold,fontSize: 12),),)
+
                         ],
                       ),
                     ),     //:SizedBox.shrink(),

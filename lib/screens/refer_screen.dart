@@ -104,7 +104,7 @@ class _ReferEarnState extends State<ReferEarn> with Navigations  {
   }
   Future<String> createReferralLink(String referralCode) async {
     final DynamicLinkParameters dynamicLinkParameters = DynamicLinkParameters(
-      uriPrefix: 'https://itgetpage.page.link',
+      uriPrefix: 'https://getitpage.page.link',
       link: Uri.parse('https://referandearn.com/refer?code=$referralCode'),
       androidParameters: AndroidParameters(
         packageName: IConstants.androidId,

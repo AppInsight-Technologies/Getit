@@ -522,7 +522,7 @@ class _ShoppinglistScreenState extends State<ShoppinglistScreen> with Navigation
                         backgroundColor: Colors.transparent,
                         child: Image.asset(Images.shoppinglistsImg,
                           //color: ColorCodes.greenColor,
-                          color:IConstants.isEnterprise?ColorCodes.badgecolor:ColorCodes.maphome,
+                          color:IConstants.isEnterprise?ColorCodes.blackColor:ColorCodes.maphome,
                             width: 18,
                             height: 25),
 
@@ -533,7 +533,7 @@ class _ShoppinglistScreenState extends State<ShoppinglistScreen> with Navigation
                       Text(  S .of(context).shopping_list,
                           //"Shopping list",
                           style: TextStyle(
-                              color:IConstants.isEnterprise?ColorCodes.badgecolor:ColorCodes.maphome,
+                              color:IConstants.isEnterprise?ColorCodes.blackColor:ColorCodes.maphome,
                             //  color: ColorCodes.greenColor,
                               fontSize: 10.0)),
                       SizedBox(

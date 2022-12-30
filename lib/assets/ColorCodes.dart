@@ -8,9 +8,9 @@ class ColorCodes {
   static Color backbutton = Color(0xFF2C2C2C);
   static Color lightred = Color(0xFFF44336);
   static Color orangeColor = Color(0xffFF9913);
-  static Color greenColor = Color(0xfff9c41c);//Color(0xff32B847);
-  static Color cartgreenColor = Color(0xfff9c41c);//Color(0xff1BA130);
-  static Color checkmarginColor = Color(0xfff9c41c);//Color(0xff6CBB3C);
+  static Color greenColor = Color(0xff71B54E);//Color(0xff32B847);
+  static Color cartgreenColor = Color(0xff71B54E);//Color(0xff1BA130);
+  static Color checkmarginColor = Color(0xff71B54E);//Color(0xff6CBB3C);
   static Color blackColor = Color(0xff000000);
   static Color lightBlack = Color(0xFF1D1D1D);
   static Color mediumBlackColor = Color(0xff2C2C2C);
@@ -58,7 +58,7 @@ class ColorCodes {
   static Color slotTab = Color(0xFFF3F9FF);
   static Color backgroundcolor=Color(0xffF8F8F8);
   static Color darkestgreen = Color(0xff035733);
-  static Color darkgreen = Color(0xfff9c41c);//Color(0xff32B847);
+  static Color darkgreen = Color(0xff71B54E);//Color(0xff32B847);
   static Color discount = Color(0xff32B847);
   static Color cyanColor = Color(0xffB9FFC4);
   static Color cyanlightColor = Color(0xFFA2E6BE);
@@ -77,12 +77,12 @@ class ColorCodes {
   static Color footertext= Color(0xff5983F9);
   static Color footertitle= Color(0xff7D7D7D);
 
-  static Color mainheaderColor1 = IConstants.isEnterprise ? Color(0xfff9c41c) : Colors.white;
-  static Color mainheaderColor2 = IConstants.isEnterprise ? Color(0xfff9c41c) : Colors.white;
+  static Color mainheaderColor1 = IConstants.isEnterprise ? Color(0xff71B54E) : Colors.white;
+  static Color mainheaderColor2 = IConstants.isEnterprise ? Color(0xff71B54E) : Colors.white;
   static Color headerIconColor = IConstants.isEnterprise && !Features.ismultivendor?IConstants.isEnterprise && !Features.isWebTrail ? Colors.white : ColorCodes.greenColor:ColorCodes.blackColor;
 
-  static Color primaryColor = IConstants.isEnterprise ? Color(0xfff9c41c) : Colors.white;
-  static Color accentColor = IConstants.isEnterprise ? Color(0xfff9c41c) : Colors.white;
+  static Color primaryColor = IConstants.isEnterprise ? Color(0xff71B54E) : Colors.white;
+  static Color accentColor = IConstants.isEnterprise ? Color(0xff71B54E) : Colors.white;
   static Color searchText = IConstants.isEnterprise ? Color(0xff5E9CC7) : blackColor;
   static Color searchIcon = IConstants.isEnterprise ? whiteColor :  blackColor;
   static Color menuColor = IConstants.isEnterprise ? blackColor : blackColor;
@@ -104,7 +104,7 @@ class ColorCodes {
   static Color black =Color(0xFF070707);
   static Color darkgrey =Color(0xff808080);
   static Color lightblack1 =Color(0xff3B3B3B);
-  static Color stepperColor = Color(0xffF9C41C);//Color(0xff32B847);
+  static Color stepperColor = Color(0xff71B54E);//Color(0xff32B847);
   static Color promocolor =Color(0xFFFFE3A4);
   static Color discountoff =Color(0xff722267);
   static Color badgecolor =Color(0xffEC7345);
@@ -115,5 +115,5 @@ class ColorCodes {
   static Color footerColor = Color(0xffF8F9FB);
 
   //Change color here for lite add primary color of color code
-  static Color liteColor = Color(0xfff9c41c);
+  static Color liteColor = Color(0xff71B54E);
 }

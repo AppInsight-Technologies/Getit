@@ -201,7 +201,7 @@ class _CategoryScreenState extends State<CategoryScreen> with Navigations{
                       backgroundColor: Colors.transparent,
                       child: Image.asset(Images.categoriesImg,
                        //   color: ColorCodes.greenColor
-                        color:IConstants.isEnterprise?ColorCodes.badgecolor:ColorCodes.maphome,
+                        color:IConstants.isEnterprise?ColorCodes.blackColor:ColorCodes.maphome,
                         width: 20,
                         height: 25,),
                     ),
@@ -211,7 +211,7 @@ class _CategoryScreenState extends State<CategoryScreen> with Navigations{
                     Text( S.of(context).categories,
                         //"Categories",
                         style: TextStyle(
-                            color:IConstants.isEnterprise?ColorCodes.badgecolor:ColorCodes.maphome,
+                            color:IConstants.isEnterprise?ColorCodes.blackColor:ColorCodes.maphome,
                            // color: ColorCodes.greenColor,
                             fontSize: 10.0,
                             fontWeight: FontWeight.bold)),
@@ -639,6 +639,7 @@ class _CategoryScreenState extends State<CategoryScreen> with Navigations{
                   )
               ),
             ),
+            SizedBox(height: 70,)
           ],
         );
       });
